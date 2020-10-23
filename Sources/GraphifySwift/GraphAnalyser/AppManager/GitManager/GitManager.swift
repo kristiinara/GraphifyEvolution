@@ -1,18 +1,12 @@
 //
-//  AppManager.swift
+//  GitManager.swift
 //  
 //
-//  Created by Kristiina Rahkema on 16.09.2020.
+//  Created by Kristiina Rahkema on 23.10.2020.
 //
 
 import Foundation
 
-protocol AppManager {
-    func nextAppVersion() -> AppVersion?
-    func newAppManager(path: String) -> AppManager
-}
-
-// 2nd priority
 class GitManager: AppManager {          // manager used for project evolution
     let path: String?
     var commits: [Commit]?  //TODO: change type, maybe create new class/structure?
@@ -264,7 +258,6 @@ class GitManager: AppManager {          // manager used for project evolution
             let res = Helper.shell(launchPath: "/usr/bin/git", arguments: ["--git-dir", path, "log", "--pretty=format:{%n \"commit\": \"%H\",%n \"abbCommit\": \"%h\",%n \"tree\": \"%T\", %n \"abbTree\": \"%t\", %n \"parent\": \"%P\", %n \"abbParent\": \"%p\", %n \"author\": \"%aN <%aE>\",%n \"date\": \"%ad\",%n \"message\": \"%f\"},"])
            var json = "[\(res.dropLast())]"
             
-            */
             let decoder = JSONDecoder()
 
             do {
@@ -317,191 +310,5 @@ class GitManager: AppManager {          // manager used for project evolution
         } else {
             fatalError("Path for gitManager not defined")
         }
-    }
-}
-
-class Helper {
-    static func shell(launchPath path: String, arguments args: [String]) -> String {
-        let task = Process()
-        task.launchPath = path
-        task.arguments = args
-
-        let pipe = Pipe()
-        task.standardOutput = pipe
-        task.standardError = pipe
-        task.launch()
-
-        let data = pipe.fileHandleForReading.readDataToEndOfFile()
-        let output = String(data: data, encoding: .utf8)
-        task.waitUntilExit()
-
-        return(output!)
-    }
-}
-
-class FileChange {
-    enum FileChangeType {
-        case changed, added, removed, renamed
-    }
-    
-    var oldPath: String?
-    var newPath: String?
-    var changes: [Change] = []
-    
-    var type: FileChangeType {
-        if oldPath == nil {
-            return .added
-        }
-        if newPath == nil {
-            return .removed
-        }
-        
-        if oldPath != newPath {
-            return .renamed
-        }
-        
-        return .changed
-    }
-    
-    init(oldPath: String?, newPath: String?) {
-        self.oldPath = oldPath
-        self.newPath = newPath
-    }
-}
-
-class Change {
-    enum ChangeType {
-        case changed, added, removed, confused
-    }
-    
-    var type: ChangeType {
-        if oldLines.length == 0 && newLines.length == 0 {
-            return .confused
-        } else if oldLines.length == 0 {
-            return .added
-        } else if newLines.length == 0 {
-            return .removed
-        } else {
-            return .changed
-        }
-    }
-    var oldLines: (start: Int, length: Int)
-    var newLines: (start: Int, length: Int)
-    
-    init(oldLines: (start: Int, length: Int), newLines: (start: Int, length: Int)) {
-        self.oldLines = oldLines
-        self.newLines = newLines
-    }
-}
-
-class Commit: Codable {
-    var parentCommit: Commit?
-    var alternateParentCommit: Commit?
-    var children: [Commit] = []
-    var commit: String
-    var abbCommit: String
-    var tree: String
-    var abbTree: String
-    var parent: String
-    var abbParent: String
-   // var body: String
-    var author: String
-    var date: String
-    var message: String
-    var appVersion: AppVersion?
-    var fileChanges: [FileChange]?
-    
-//    init(commit: String, message: String) {
-//        self.commit = commit
-//        self.message = message
-//    }
-    
-    var allChildren: [Commit] {
-        return self.children + self.children.reduce([]) { result, commit in
-            return result + commit.allChildren
-        }
-    }
-    
-    private enum CodingKeys: String, CodingKey {
-        case commit, abbCommit, tree, abbTree, author, date, message, parent, abbParent
-    }
-}
-
-// first priority
-class SimpleAppManager: AppManager {    // manager used for single project
-    let path: String?
-    var appVersionAnalysed = false
-    
-    init(path: String) {
-        self.path = path
-    }
-    
-    init() {
-        self.path = nil
-    }
-    
-    func nextAppVersion() -> AppVersion? {
-        guard let path = path else {
-            fatalError("Path for simpleAppManager not defined")
-        }
-        /*
-            Take path, find all filePaths
-            find all relevant analysis paths (look into old project)
-         */
-        if !appVersionAnalysed {
-            appVersionAnalysed = true
-            var appVersion = AppVersion(directoryPath: path)
-        //appVersion.changedFilePaths.append(self.path) //TODO: replace with actual paths
-        
-            return appVersion
-        } else {
-            return nil
-        }
-    }
-    
-    func newAppManager(path: String) -> AppManager {
-        return SimpleAppManager(path: path)
-    }
-}
-
-// Bulk will be later priority
-class BulkAppManager: AppManager {
-    let appManager: AppManager          // can be bulk analysis of evolution-project or single-project
-    
-    let jsonPath: String
-    var parsedAppVersions: [AppVersion]?
-    var appVersionsToAnalyse: [AppVersion] = []
-    
-    init(jsonPath: String, appManager: AppManager) {
-        self.jsonPath = jsonPath
-        self.appManager = appManager
-    }
-    
-    func nextAppVersion() -> AppVersion? {
-        /*
-            Take path, read json info.
-            For each app create new appVersion using appManager (can be either simple or gitmanager)
-            
-         */
-        if self.parsedAppVersions == nil {
-            self.parseJson()
-        }
-        
-        if self.appVersionsToAnalyse.isEmpty {
-            return nil
-        }
-        
-        return appVersionsToAnalyse.removeFirst()
-    }
-    
-    func parseJson() {
-        self.parsedAppVersions = []
-        self.appVersionsToAnalyse = []
-        // parse json, enter appVersions into array
-        // use appManager to create these app versions
-    }
-    
-    func newAppManager(path: String) -> AppManager {
-        fatalError("BulkAppManager does not allow generation of new app managers")
     }
 }
