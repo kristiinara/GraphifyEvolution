@@ -66,7 +66,7 @@ class CPPSyntaxAnalyser: SyntaxAnalyser {
               if let items = myJson as? [[String: Any]] {
                 for item in items {
                     print("json item: \(item)")
-                    if let classInstance = parseClassFrom(json: item) {
+                    if let classInstance = parseClassFrom(json: item, path: path) {
                         if self.classes == nil {
                             self.classes = [:]
                         }

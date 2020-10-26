@@ -14,7 +14,7 @@ protocol SyntaxAnalyser {
     func reset()
     func analyseFile(filePath: String, includePaths: [String]) -> [Class]
     
-    func parseClassFrom(json: [String:Any]) -> Class?
+    func parseClassFrom(json: [String:Any], path: String) -> Class?
     func parseMethodFrom(json: [String:Any]) -> Method?
     func parseInstructionFrom(json: [String: Any]) -> Instruction?
     func parseVariableFrom(json: [String:Any]) -> Variable?
@@ -53,11 +53,9 @@ protocol Kind {
 }
 
 extension SyntaxAnalyser {
-    func parseClassFrom(json: [String:Any]) -> Class? {
+    func parseClassFrom(json: [String:Any], path: String) -> Class? {
         if let name = json[constants.nameKey] as? String,
             let usr = json[constants.usrKey] as? String {
-            
-            var path = json[constants.pathKey] as? String
             
             var classType: Class.ClassType = .classType
             
@@ -72,12 +70,14 @@ extension SyntaxAnalyser {
             }
             
             var dataString = "--"
-            if let path = path {
-                if let codeFromFile = getCodeForPath(path: path) {
-                    dataString = codeFromFile
-                }
-            } else {
-                path = ""
+            var path = path
+            
+            if let existingPath = json[constants.pathKey] as? String {
+                path = existingPath
+            }
+            
+            if let codeFromFile = getCodeForPath(path: path) {
+                dataString = codeFromFile
             }
             
             var methods: [Method] = []
@@ -107,7 +107,7 @@ extension SyntaxAnalyser {
                 }
             }
             
-            let classInstance = Class(name: name, path: path!, type: classType, code: dataString, usr: usr, methods: [], variables: [])
+            let classInstance = Class(name: name, path: path, type: classType, code: dataString, usr: usr, methods: [], variables: [])
             
             if methods.count > 0 {
                 classInstance.potentialMethods = methods

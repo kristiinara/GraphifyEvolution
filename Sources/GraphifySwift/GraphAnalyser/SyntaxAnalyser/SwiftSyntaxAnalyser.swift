@@ -32,7 +32,7 @@ class SwiftSyntaxAnalyser: SyntaxAnalyser {
             
             if let entities = result["key.entities"] as? [[String: SourceKitRepresentable]] {
                 for entity in entities {
-                    if let classInstance = self.parseClassFrom(json: entity) {
+                    if let classInstance = self.parseClassFrom(json: entity, path: filePath) {
                         classInstance.path = filePath
                         classes.append(classInstance)
                         print("classInstance: \(classInstance.name) found")
