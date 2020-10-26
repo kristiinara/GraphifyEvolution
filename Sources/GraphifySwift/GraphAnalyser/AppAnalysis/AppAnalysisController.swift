@@ -22,8 +22,6 @@ class AppAnalysisController {
     }
     
     func runAnalysis() {
-        // does it make sense to always ask for the next app version or fetch all versions at the same time?
-        // --> let's first try the first version
         var count = 0
         
         while let appVersion = self.appManager.nextAppVersion() {
@@ -38,11 +36,6 @@ class AppAnalysisController {
             if count > 4 {
                // break
             }
-            
-            // get next app version
-            // analyse app version --> get analysed app version
-            // if app version does not have a parent --> add analysed app version to apps
-            // if app version has a parent --> add it as change + commit info (???) --> somehow have commit info as info so that it would also work if there are no commits? or just define it as commit?
         }
         print("All app versions analysed, total: \(count)")
         
@@ -51,13 +44,7 @@ class AppAnalysisController {
         for app in self.apps {
             print("app: \(app.name)")
             printApp(app: app, prefix: "  ")
-           // toDatabase(app: app)
         }
-        
-//        for appVersion in self.appVersions {
-//            print("appVersion: \(appVersion.directoryPath)")
-//            printAppVersion(appVersion: appVersion, prefix: "  ")
-//        }
     }
     
     func printApp(app: App, prefix: String) {
@@ -71,33 +58,6 @@ class AppAnalysisController {
             printApp(app: child, prefix: "\(prefix)")
         }
     }
-    
-    /*
-    func toDatabase(app:App) {
-        
-        app.save()
-        
-        for classInstance in app.classes {
-            if classInstance.nodeSet == nil {
-                classInstance.save()
-                
-                if let parent = classInstance.parent {
-                    parent.relate(to: classInstance, type: "CLASS_CHANGED_TO")
-                }
-            }
-                
-            app.relate(to: classInstance, type: "APP_OWNS_CLASS")
-        }
-        
-        if let parent = app.parent {
-            parent.relate(to: app, type: "APP_CHANGED_TO")
-        }
-        
-        for child in app.children {
-            toDatabase(app: child)
-        }
-    }
- */
     
     func printAppVersion(appVersion: AppVersion, prefix: String) {
         print("\(prefix)classes:")
@@ -123,8 +83,6 @@ class AppAnalysisController {
         
         if let fileChanges = appVersion.changes {
             print("app version has changes: \(fileChanges.count)")
-           // print("changedFilepaths")
-           // filesToBeAnalysed = filePaths
             
             var parentClasses: [Class] = []
             var existingClasses: [String:Class] = [:]
@@ -562,35 +520,6 @@ class AppAnalysisController {
             }
         }
     }
-    
-    /*
-    
-    func applyChanges(appVersion: AppVersion) {
-        
-        if let fileChanges = appVersion.changes {
-            if let app = appVersion.analysedVersion {
-                for fileChange in fileChanges {
-                    if let path = fileChange.newPath {
-                        for classInstance in app.classes {
-                            if classInstance.path == path {
-                                for change in fileChange.changes {
-                                    
-                                }
-                            }
-                        }
-                    }
-                    
-                    
-                    for change in fileChange.changes {
-                        
-                        
-                        
-                    }
-                }
-            }
-        }
-    }
- */
 }
 
 protocol LocalFileManager {
