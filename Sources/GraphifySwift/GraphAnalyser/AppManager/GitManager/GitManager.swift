@@ -51,10 +51,13 @@ class GitManager: AppManager {          // manager used for project evolution
         //appVersion.changedFilePaths
         nextCommit.appVersion = appVersion
         
+        print("finding parent commit")
         if let parentCommit = nextCommit.parentCommit {
+            print("found parent commit")
             appVersion.parent = parentCommit.appVersion //TODO: check here if parent is already analysed if it exists?
             
             if let alternateParentCommit = nextCommit.alternateParentCommit {
+                print("found alternateparent commit")
                 appVersion.alternateParent = alternateParentCommit.appVersion
             }
             
@@ -133,6 +136,7 @@ class GitManager: AppManager {          // manager used for project evolution
     }
     
     func runGitCheckoutCommand(forCommit: Commit) {
+        print("runGitCheckoutCommand")
         if let path = self.path {
             let notGitPath = String(path.dropLast(".git".count))
             
@@ -161,6 +165,7 @@ class GitManager: AppManager {          // manager used for project evolution
     }
     
     func runGitDiffCommand(forCommit: Commit) -> [FileChange] {
+        print("runGitDiffCommand")
         // git diff -r a35ecb4b3a18f72888197bae92d38293981da335 --unified=0
         
         if forCommit.parent != "" {
@@ -174,11 +179,14 @@ class GitManager: AppManager {          // manager used for project evolution
                 var currentFileChange: FileChange?
                 var oldFile: String?
                 var newFile: String?
+                
+                print("git diff res: \(res)")
               
                 for lineSubString in res.split(separator: "\n") {
                     let line = String(lineSubString)
                     
                     if line.starts(with: "diff") {
+                        print("diff")
                         if let current = currentFileChange {
                             fileChanges.append(current)
                             currentFileChange = nil
@@ -189,6 +197,7 @@ class GitManager: AppManager {          // manager used for project evolution
                     }
                     
                     if line.starts(with: "--- a/") {
+                        print("-- a/")
                         oldFile = String(line.dropFirst("--- a/".count))
                         //print("line: \(line), oldFile: \(oldFile)")
                         if oldFile == "/dev/null" {
@@ -199,6 +208,7 @@ class GitManager: AppManager {          // manager used for project evolution
                     }
                     
                     if line.starts(with: "+++ b/") {
+                        print("+++ b/")
                         newFile = String(line.dropFirst("+++ b/".count))
                         //print("line: \(line), oldFile: \(newFile)")
                         if newFile == "/dev/null" {
@@ -209,6 +219,7 @@ class GitManager: AppManager {          // manager used for project evolution
                     }
                     
                     if line.starts(with: "@@") {
+                        print("@@")
                         if currentFileChange == nil {
                             //print("Line: \(line)")
                             //print("oldFile: \(oldFile), newFile: \(newFile)")
@@ -221,17 +232,31 @@ class GitManager: AppManager {          // manager used for project evolution
                             currentFileChange = FileChange(oldPath: oldFile, newPath: newFile)
                         }
                         
+                        print("splitting by ,")
                         let values = line.split(separator: " ")
+                        print("values: \(values)")
+                        
+                        
+                        // TODO: fix error from: ["@@", "-1", "+1", "@@"] --> no "," in numbers, normally -1,9 for example instead of -1
+                        if !values[1].contains(",") {
+                            continue
+                        }
+                        
                         let oldString = String("\(values[1])".dropFirst()).split(separator: ",")
                         let newString = String("\(values[2])".dropFirst()).split(separator: ",")
+                        
+                        print("oldString: \(oldString), newString: \(newString)")
                         
                         //TODO: remove !
                         let oldLineNumbers = (start: Int(oldString[0])!, length: Int(oldString[1])!)
                         let newLineNumbers = (start: Int(oldString[0])!, length: Int(oldString[1])!)
                         
+                        print("oldLineNumbers: \(oldLineNumbers), newLineNumbers: \(newLineNumbers)")
+                        
                         let newChange = Change(oldLines: oldLineNumbers, newLines: newLineNumbers)
                         
                         currentFileChange?.changes.append(newChange)
+                        print("new change added")
                     }
                     
                     

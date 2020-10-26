@@ -9,6 +9,7 @@ import Foundation
 
 class Helper {
     static func shell(launchPath path: String, arguments args: [String]) -> String {
+        print("Helper.shell")
         let task = Process()
         task.launchPath = path
         task.arguments = args
