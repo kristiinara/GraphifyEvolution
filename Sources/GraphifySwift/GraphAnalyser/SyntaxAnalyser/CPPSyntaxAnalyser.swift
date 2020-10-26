@@ -9,6 +9,7 @@ import Foundation
 import SourceKittenFramework
 
 class CPPSyntaxAnalyser: SyntaxAnalyser {
+    let constants: Kind = SwiftKind() // TODO: change this later, currently analyse.py enters swift like keys
     var result: String?
     var classes: [String:[Class]]?
     

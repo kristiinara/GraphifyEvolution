@@ -9,6 +9,8 @@ import Foundation
 import SourceKittenFramework
 
 protocol SyntaxAnalyser {
+    var constants: Kind { get }
+    
     func reset()
     func analyseFile(filePath: String, includePaths: [String]) -> [Class]
     
@@ -20,21 +22,51 @@ protocol SyntaxAnalyser {
     
 }
 
+protocol Kind {
+    var classKind: String { get }
+    var structKind: String { get }
+    var protocolKind: String { get }
+    
+    var staticVariableKind: String { get }
+    var classVariableKind: String { get }
+    var instanceVariableKind: String { get }
+    
+    var staticMethodKind: String { get }
+    var classMethodKind: String { get }
+    var instanceMethodKind: String { get }
+    
+    var callInstructionKind: String { get }
+    var ifInstructionKind: String { get }
+    var forInstructionKind: String { get }
+    var whileInstructionKind: String { get }
+    var switchInstructionKind: String { get }
+    var caseInstructionKind: String { get }
+    
+    var nameKey: String { get }
+    var usrKey: String { get }
+    var kindKey: String { get }
+    var entitiesKey: String { get }
+    var typeKey: String { get }
+    var startLineKey: String { get }
+    var endLineKey: String { get }
+    var pathKey: String { get }
+}
+
 extension SyntaxAnalyser {
     func parseClassFrom(json: [String:Any]) -> Class? {
-        if let name = json["key.name"] as? String,
-            let usr = json["key.usr"] as? String {
+        if let name = json[constants.nameKey] as? String,
+            let usr = json[constants.usrKey] as? String {
             
-            var path = json["key.path"] as? String
+            var path = json[constants.pathKey] as? String
             
             var classType: Class.ClassType = .classType
             
-            if let kind = json["key.kind"] as? String {
-                if kind == "source.lang.swift.ref.class" {
+            if let kind = json[constants.kindKey] as? String {
+                if kind == constants.classKind {
                     classType = .classType
-                } else if kind == "source.lang.swift.ref.struct" {
+                } else if kind == constants.structKind {
                     classType = .structureType
-                } else if kind == "source.lang.swift.ref.protocol" {
+                } else if kind == constants.protocolKind {
                     classType = .protocolType
                 }
             }
@@ -51,20 +83,20 @@ extension SyntaxAnalyser {
             var methods: [Method] = []
             var variables: [Variable] = []
             
-            if let entities = json["key.entities"] as? [[String: Any]] {
+            if let entities = json[constants.entitiesKey] as? [[String: Any]] {
                 for entity in entities {
-                    if let kind = entity["key.kind"] as? String {
-                        if kind == "source.lang.swift.decl.function.method.class" ||
-                            kind == "source.lang.swift.decl.function.method.instance" ||
-                            kind == "source.lang.swift.decl.function.method.static" {
+                    if let kind = entity[constants.kindKey] as? String {
+                        if kind == constants.classMethodKind ||
+                            kind == constants.instanceMethodKind ||
+                            kind == constants.staticMethodKind {
                             
                             if let method = parseMethodFrom(json: entity) {
                                 methods.append(method)
                             }
                             
-                        } else if kind == "source.lang.swift.decl.var.instance" ||
-                            kind == "source.lang.swift.decl.var.class" ||
-                            kind == "source.lang.swift.decl.var.static" {
+                        } else if kind == constants.instanceVariableKind ||
+                            kind == constants.instanceVariableKind ||
+                            kind == constants.staticVariableKind {
                             
                             if let variable = parseVariableFrom(json: entity) {
                                 variables.append(variable)
@@ -93,29 +125,29 @@ extension SyntaxAnalyser {
     }
     
     func parseMethodFrom(json: [String:Any]) -> Method? {
-        if let name = json["key.name"] as? String,
-            let usr = json["key.usr"] as? String,
-            let kind = json["key.kind"] as? String {
+        if let name = json[constants.nameKey] as? String,
+            let usr = json[constants.usrKey] as? String,
+            let kind = json[constants.kindKey] as? String {
             
             var methodKind: Method.MethodKind = .instanceMethod
             
-            if kind == "source.lang.swift.decl.function.method.instance" {
+            if kind == constants.instanceMethodKind {
                 methodKind = .instanceMethod
-            } else if kind == "source.lang.swift.decl.function.method.class" {
+            } else if kind == constants.classMethodKind {
                 methodKind = .classMethod
-            } else if kind == "source.lang.swift.decl.function.method.static" {
+            } else if kind == constants.staticMethodKind {
                 methodKind = .staticMethod
             }
             
             var methodType = "" //TODO: should we keep it empty if not defined?
 
-            if let type = json["key.type"] as? String {
+            if let type = json[constants.typeKey] as? String {
                 methodType = type
             }
             
             var instructions: [Instruction] = []
             
-            if let subEntities = json["key.entities"] as? [[String: Any]] {
+            if let subEntities = json[constants.entitiesKey] as? [[String: Any]] {
                 for subEntity in subEntities {
                     if let instruction = parseInstructionFrom(json: subEntity) {
                         instructions.append(instruction)
@@ -127,11 +159,11 @@ extension SyntaxAnalyser {
             let method = Method(name: name, type: methodType, kind: methodKind, code: "", usr: usr)
             method.instructions = instructions
             
-            if let startLine = json["key.startLine"] as? Int {
+            if let startLine = json[constants.startLineKey] as? Int {
                 method.startLine = startLine
             }
             
-            if let endLine = json["key.endLine"] as? Int {
+            if let endLine = json[constants.endLineKey] as? Int {
                 method.endLine = endLine
             }
             
@@ -145,18 +177,18 @@ extension SyntaxAnalyser {
     func parseInstructionFrom(json: [String: Any]) -> Instruction? {
         var type: Instruction.InstructionType = .regularInstruction
         
-        if let kind = json["key.kind"] as? String {
-            if kind == "source.lang.swift.expr.call" {
+        if let kind = json[constants.kindKey] as? String {
+            if kind == constants.callInstructionKind {
                 type = .regularInstruction
-            } else if kind == "source.lang.swift.stmt.if" {
+            } else if kind == constants.ifInstructionKind {
                 type = .ifInstruction
-            } else if kind == "source.lang.swift.stmt.for" {
+            } else if kind == constants.forInstructionKind {
                 type = .forInstruction
-            } else if kind == "source.lang.swift.stmt.while" {
+            } else if kind == constants.whileInstructionKind {
                 type = .whileInstruction
-            } else if kind == "source.lang.swift.stmt.switch" {
+            } else if kind == constants.switchInstructionKind {
                 type = .switchInstruction
-            } else if kind == "source.lang.swift.stmt.case" {
+            } else if kind == constants.caseInstructionKind {
                 type = .caseInstruction
             }
         }
@@ -164,21 +196,21 @@ extension SyntaxAnalyser {
         // TODO: get code
         let instruction = Instruction(type: type, code: "")
         
-        if let usr = json["key.usr"] as? String {
+        if let usr = json[constants.usrKey] as? String {
             instruction.calledUsr = usr
         }
         
-        if let startLine = json["key.startLine"] as? Int {
+        if let startLine = json[constants.startLineKey] as? Int {
             instruction.startLine = startLine
         }
         
-        if let endLine = json["key.endLine"] as? Int {
+        if let endLine = json[constants.endLineKey] as? Int {
             instruction.endLine = endLine
         }
         
         var subInstructions: [Instruction] = []
         
-        if let entities = json["key.entities"] as? [[String: Any]] {
+        if let entities = json[constants.entitiesKey] as? [[String: Any]] {
             for entity in entities {
                 if let subInstruction = parseInstructionFrom(json: entity) {
                     subInstructions.append(subInstruction)
@@ -191,22 +223,22 @@ extension SyntaxAnalyser {
     }
     
     func parseVariableFrom(json: [String:Any]) -> Variable? {
-        if let name = json["key.name"] as? String,
-            let usr = json["key.usr"] as? String,
-            let kind = json["key.kind"] as? String {
+        if let name = json[constants.nameKey] as? String,
+            let usr = json[constants.usrKey] as? String,
+            let kind = json[constants.kindKey] as? String {
             
             var variableKind: Variable.VariableKind = .instanceVariable
             
-            if kind == "source.lang.swift.decl.var.instance" {
+            if kind == constants.instanceVariableKind {
                 variableKind = .instanceVariable
-            } else if kind == "source.lang.swift.decl.var.class" {
+            } else if kind == constants.classVariableKind{
                 variableKind = .classVariable
-            } else if kind == "source.lang.swift.decl.var.static" {
+            } else if kind == constants.staticVariableKind {
                 variableKind = .staticVariable
             }
             
             var type = ""
-            if let variableType = json["key.type"] as? String {
+            if let variableType = json[constants.typeKey] as? String {
                 type = variableType
             }
             
@@ -214,11 +246,11 @@ extension SyntaxAnalyser {
             let variable = Variable(name: name, type: type, kind: variableKind, code: "", usr: usr)
             return variable
             
-            if let startLine = json["key.startLine"] as? Int {
+            if let startLine = json[constants.startLineKey] as? Int {
                 variable.startLine = startLine
             }
             
-            if let endLine = json["key.endLine"] as? Int {
+            if let endLine = json[constants.endLineKey] as? Int {
                 variable.endLine = endLine
             }
         }

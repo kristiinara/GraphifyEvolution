@@ -9,6 +9,7 @@ import Foundation
 import SourceKittenFramework
 
 class SwiftSyntaxAnalyser: SyntaxAnalyser {
+    let constants: Kind = SwiftKind()
     var filePaths: [String] = []
     
     func reset() {
@@ -49,4 +50,34 @@ class SwiftSyntaxAnalyser: SyntaxAnalyser {
         
         return []
     }
+}
+
+struct SwiftKind: Kind {
+    let classKind = "source.lang.swift.ref.class"
+    let structKind = "source.lang.swift.ref.struct"
+    let protocolKind = "source.lang.swift.ref.protocol"
+    
+    let staticVariableKind = "source.lang.swift.decl.var.static"
+    let classVariableKind = "source.lang.swift.decl.var.class"
+    let instanceVariableKind = "source.lang.swift.decl.var.instance"
+    
+    let staticMethodKind = "source.lang.swift.decl.function.method.static"
+    let classMethodKind = "source.lang.swift.decl.function.method.class"
+    let instanceMethodKind = "source.lang.swift.decl.function.method.instance"
+    
+    let callInstructionKind = "source.lang.swift.expr.call"
+    let ifInstructionKind = "source.lang.swift.stmt.if"
+    let forInstructionKind = "source.lang.swift.stmt.for"
+    let whileInstructionKind = "source.lang.swift.stmt.while"
+    let switchInstructionKind = "source.lang.swift.stmt.switch"
+    let caseInstructionKind = "source.lang.swift.stmt.case"
+    
+    let nameKey = "key.name"
+    let usrKey = "key.usr"
+    let kindKey = "key.kind"
+    let entitiesKey = "key.entities"
+    let typeKey = "key.type"
+    let startLineKey = "key.startLine"
+    let endLineKey = "key.endLine"
+    let pathKey = "key.path"
 }
