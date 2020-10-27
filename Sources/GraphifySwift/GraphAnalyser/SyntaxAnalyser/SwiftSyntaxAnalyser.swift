@@ -30,7 +30,9 @@ class SwiftSyntaxAnalyser: SyntaxAnalyser {
             
             var classes: [Class] = []
             
-            if let entities = result["key.entities"] as? [[String: SourceKitRepresentable]] {
+            if var entities = result["key.entities"] as? [[String: Any]] {
+                entities = addLines(json: entities)
+                
                 for entity in entities {
                     if let classInstance = self.parseClassFrom(json: entity, path: filePath) {
                         classInstance.path = filePath
@@ -49,6 +51,69 @@ class SwiftSyntaxAnalyser: SyntaxAnalyser {
         }
         
         return []
+    }
+    
+    func addLines(json: [[String:Any]]) -> [[String:Any]] {
+        //print("add lines: \(json)")
+        var res: [[String:Any]] = []
+
+        for object in json {
+            print("finding lines in: \(object)")
+            print("keys: \(object.keys)")
+            print("addLines for kind: \(object["key.kind"])")
+            var newObject = object
+            
+            if let lineNumberString = object["key.line"] as? Int64 {
+                print("key.line: \(lineNumberString)")
+                
+                var lineNumber: Int = Int(lineNumberString)
+                var maxNumber = lineNumber
+            
+                if let entities = object["key.entities"] as? [[String: Any]] {
+                    maxNumber = maxLine(json: entities)
+                    
+                    if maxNumber == -1 {
+                        maxNumber = lineNumber
+                    }
+                
+                    let newEntities = addLines(json: entities)
+                    newObject["key.entities"] = newEntities
+                }
+                
+                newObject["key.startLine"] = lineNumber
+                newObject["key.endLine"] = maxNumber
+                
+                res.append(newObject)
+            } else {
+                if let entities = object["key.entities"] as? [[String: Any]]{
+                    let newEntities = addLines(json: entities)
+                    newObject["key.entities"] = newEntities
+                }
+                
+                print("no key.line \(object["key.line"])")
+                res.append(object)
+            }
+        }
+        
+        print("added lines: \(res)")
+        
+        return res
+    }
+    
+    func maxLine(json: [[String:Any]]) -> Int {
+        var allLineNumbers: [Int] = [-1]
+        
+        for object in json {
+            if let lineNumber = object["key.line"] as? Int {
+                allLineNumbers.append(lineNumber)
+                
+                if let entities = object["key.entities"] as? [[String: Any]]{
+                    allLineNumbers.append(maxLine(json: entities))
+                }
+            }
+        }
+        
+        return allLineNumbers.max()!
     }
 }
 

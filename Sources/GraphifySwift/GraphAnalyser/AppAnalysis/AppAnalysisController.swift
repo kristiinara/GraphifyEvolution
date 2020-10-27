@@ -403,8 +403,8 @@ class AppAnalysisController {
  */
     
     func handleMethods(newClass: Class, oldClass: Class, changes: [String: [FileChange]]) -> [Method] {
-        var oldUsrs: [String] = oldClass.methods.map() { value in return value.usr}
-        var newUsrs: [String] = newClass.methods.map() { value in return value.usr}
+        var oldNames: [String] = oldClass.methods.map() { value in return value.name}
+        print("oldNames: \(oldNames)")
 
         var newMethods: [Method] = []
         var updatedMethods: [Method] = []
@@ -414,7 +414,7 @@ class AppAnalysisController {
         if let methods = newClass.potentialMethods {
             print("going through potential methods, count: \(methods.count)")
             methodLoop: for method in methods {
-                if !oldUsrs.contains(method.usr) {
+                if !oldNames.contains(method.name) {
                     print("new method added: \(method.name)")
                     newMethods.append(method)
                     method.save() //TODO: do this here?
@@ -422,6 +422,7 @@ class AppAnalysisController {
                     
                     continue methodLoop
                 }
+                print("method exists: \(method.name)")
                 
                 if let startLine = method.startLine, let endLine = method.endLine {
                     print("lines: \(method.startLine) - \(method.endLine)")
@@ -433,13 +434,13 @@ class AppAnalysisController {
                                     print("match")
                                     
                                     
-                                    if oldUsrs.contains(method.usr) {
-                                        print("old usr contains method.usr")
+                                    if oldNames.contains(method.name) {
+                                        print("old name contains method.name")
                                         
                                     }
                                     
                                     for oldMethod in oldClass.methods {
-                                        if method.usr == oldMethod.usr {
+                                        if method.name == oldMethod.name {
                                             print("prev. version of method found")
                                             method.version = oldMethod.version + 1
                                             method.save()
@@ -454,12 +455,13 @@ class AppAnalysisController {
                                     continue methodLoop
                                 } else {
                                     print("no match")
-                                    for oldMethod in oldClass.methods {
-                                        if method.usr == oldMethod.usr {
-                                            oldMethods.append(oldMethod)
-                                        }
-                                    }
                                 }
+                            }
+                        }
+                        
+                        for oldMethod in oldClass.methods {
+                            if method.name == oldMethod.name {
+                                oldMethods.append(oldMethod)
                             }
                         }
                     }
@@ -475,17 +477,20 @@ class AppAnalysisController {
     }
     
     func handleVariables(newClass: Class, oldClass: Class, changes: [String: [FileChange]]) {
-        var oldUsrs: [String] = oldClass.variables.map() { value in return value.usr}
-        var newUsrs: [String] = newClass.variables.map() { value in return value.usr}
+        var oldNames: [String] = oldClass.variables.map() { value in return value.name}
+        var newNames: [String] = newClass.potentialVariables!.map() { value in return value.name}
 
         var newVariables: [Variable] = []
         var updatedVariables: [Variable] = []
         var oldVariables: [Variable] = []
         
+        print("variable oldNames: \(oldNames)")
+        print("variable newNames: \(newNames)")
+
         if let variables = newClass.potentialVariables {
-            print("going through potential methods")
+            print("going through potential variables")
             variableLoop: for variable in variables {
-                if !oldUsrs.contains(variable.usr) {
+                if !oldNames.contains(variable.name) {
                     print("new variable added: \(variable.name)")
                     newVariables.append(variable)
                     variable.save() //TODO: do this here?
@@ -502,13 +507,13 @@ class AppAnalysisController {
                                     print("match")
                                     
                                     
-                                    if oldUsrs.contains(variable.usr) {
-                                        print("old usr contains variable.usr")
+                                    if oldNames.contains(variable.name) {
+                                        print("old name contains variable.name")
                                         
                                     }
                                     
                                     for oldVariable in oldClass.variables {
-                                        if variable.usr == oldVariable.usr {
+                                        if variable.name == oldVariable.name {
                                             print("prev. version of variable found")
                                             variable.save()
                                             variable.parent = oldVariable
@@ -520,13 +525,14 @@ class AppAnalysisController {
                                     continue variableLoop
                                 } else {
                                     print("no match")
-                                    for oldVariable in oldClass.variables {
-                                        if variable.usr == oldVariable.usr {
-                                            oldVariables.append(oldVariable)
-                                        }
-                                    }
                                 }
                             }
+                        }
+                    }
+                    
+                    for oldVariable in oldClass.variables {
+                        if variable.name == oldVariable.name {
+                            oldVariables.append(oldVariable)
                         }
                     }
                 }

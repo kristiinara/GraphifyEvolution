@@ -24,8 +24,17 @@ class Variable {
     var startLine: Int?
     var endLine: Int?
     
-    weak var parent: Variable?
-    var children: [Variable] = []
+    var parent: Variable? {
+        didSet {
+            print("parent set")
+            parent?.relate(to: self, type: "CHANGED_TO")
+            
+            if let parent = self.parent {
+                self.version = parent.version + 1
+            }
+            self.save()
+        }
+    }
     
     init(name: String, type: String, kind: VariableKind, code: String, usr: String) {
         self.name = name

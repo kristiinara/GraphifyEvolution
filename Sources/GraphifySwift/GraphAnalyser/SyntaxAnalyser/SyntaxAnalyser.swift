@@ -54,6 +54,7 @@ protocol Kind {
 
 extension SyntaxAnalyser {
     func parseClassFrom(json: [String:Any], path: String) -> Class? {
+        print("class from: \(json)")
         if let name = json[constants.nameKey] as? String,
             let usr = json[constants.usrKey] as? String {
             
@@ -247,7 +248,6 @@ extension SyntaxAnalyser {
             
             //TODO: add code
             let variable = Variable(name: name, type: type, kind: variableKind, code: "", usr: usr)
-            return variable
             
             if let startLine = json[constants.startLineKey] as? Int {
                 variable.startLine = startLine
@@ -256,6 +256,8 @@ extension SyntaxAnalyser {
             if let endLine = json[constants.endLineKey] as? Int {
                 variable.endLine = endLine
             }
+            
+            return variable
         }
         return nil
     }
