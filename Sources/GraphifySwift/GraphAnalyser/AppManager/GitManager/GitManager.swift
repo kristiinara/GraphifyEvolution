@@ -90,32 +90,32 @@ class GitManager: AppManager {          // manager used for project evolution
     }
     
     func addCommit(commit: Commit, commitsAdded: [String]) -> [String] {
-        print("addCommit: \(commit.commit), \(commitsAdded)")
+        //print("addCommit: \(commit.commit), \(commitsAdded)")
         var commitsAdded = commitsAdded
         
         if !commitsAdded.contains(commit.commit) {
             if let parentCommit = commit.parentCommit {
                 if !commitsAdded.contains(parentCommit.commit) {
-                    print("add parent")
+                    //print("add parent")
                     commitsAdded = addCommit(commit: parentCommit, commitsAdded: commitsAdded)
                 }
             }
             
             if let alternateParentCommit = commit.alternateParentCommit {
                 if !commitsAdded.contains(alternateParentCommit.commit) {
-                    print("add alternate parent")
+                    //print("add alternate parent")
                     commitsAdded = addCommit(commit: alternateParentCommit, commitsAdded: commitsAdded)
                 }
             }
             
             // check again, because it might have been added when executing the above
             if !commitsAdded.contains(commit.commit) {
-                print("add commit itself")
+                //print("add commit itself")
                 self.commitsToBeAnalysed.append(commit)
                 commitsAdded.append(commit.commit)
                 
                 for child in commit.allChildren {
-                    print("add children")
+                    //print("add children")
                      commitsAdded = addCommit(commit: child, commitsAdded: commitsAdded)
                 }
             }
@@ -180,7 +180,7 @@ class GitManager: AppManager {          // manager used for project evolution
                 var oldFile: String?
                 var newFile: String?
                 
-                print("git diff res: \(res)")
+                //print("git diff res: \(res)")
               
                 for lineSubString in res.split(separator: "\n") {
                     let line = String(lineSubString)
@@ -232,9 +232,9 @@ class GitManager: AppManager {          // manager used for project evolution
                             currentFileChange = FileChange(oldPath: oldFile, newPath: newFile)
                         }
                         
-                        print("splitting by ,")
+                        //print("splitting by ,")
                         let values = line.split(separator: " ")
-                        print("values: \(values)")
+                        //print("values: \(values)")
                         
                         
                         // TODO: fix error from: ["@@", "-1", "+1", "@@"] --> no "," in numbers, normally -1,9 for example instead of -1
@@ -245,18 +245,18 @@ class GitManager: AppManager {          // manager used for project evolution
                         let oldString = String("\(values[1])".dropFirst()).split(separator: ",")
                         let newString = String("\(values[2])".dropFirst()).split(separator: ",")
                         
-                        print("oldString: \(oldString), newString: \(newString)")
+                        //print("oldString: \(oldString), newString: \(newString)")
                         
                         //TODO: remove !
                         let oldLineNumbers = (start: Int(oldString[0])!, length: Int(oldString[1])!)
                         let newLineNumbers = (start: Int(oldString[0])!, length: Int(oldString[1])!)
                         
-                        print("oldLineNumbers: \(oldLineNumbers), newLineNumbers: \(newLineNumbers)")
+                        //print("oldLineNumbers: \(oldLineNumbers), newLineNumbers: \(newLineNumbers)")
                         
                         let newChange = Change(oldLines: oldLineNumbers, newLines: newLineNumbers)
                         
                         currentFileChange?.changes.append(newChange)
-                        print("new change added")
+                        //print("new change added")
                     }
                     
                     
@@ -291,8 +291,8 @@ class GitManager: AppManager {          // manager used for project evolution
                 
                 print("total number of commits found: \(allCommits.count)")
                 for commit in allCommits {
-                    print(commit.commit)
-                    print("changes: \(commit.fileChanges?.count)")
+                    //print(commit.commit)
+                    //print("changes: \(commit.fileChanges?.count)")
                     //print(commit.children)
                 }
                 

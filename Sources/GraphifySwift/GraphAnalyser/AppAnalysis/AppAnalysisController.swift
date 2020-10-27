@@ -146,131 +146,96 @@ class AppAnalysisController {
                     changesForPaths[newPath] = changesOnpath
                     
                     //TODO: can it happen that something is changed and renamed?
-                    
-                    //TODO: analyse, get all classes and methods
-                    // figure out which methods were added, removed or changed
                     continue
                 }
             }
             
+            changedPaths = Array(Set(changedPaths)) // remove duplicates
             print("changed files: \(changedPaths)")
+            
+            //** Changed files (we can have removed classes, added classes or changed classes)
+            var classesFromUpdatedFiles: [Class] = []
+            
+            for path in changedPaths {
+                var classFound = false
+                
+                var classes = self.syntaxAnalyser.analyseFile(filePath: path, includePaths: includePaths)
+                
+                classLoop: for classInstance in classes {
+                    for parentClass in parentClasses {
+                        if classInstance.usr == parentClass.usr {
+                            //TODO: check if class was actually changed!
+                            
+                            classInstance.parent = parentClass
+                            classInstance.version = parentClass.version + 1
+                            
+                            classesFromUpdatedFiles.append(classInstance)
+                            
+                            continue classLoop
+                        }
+                    }
+                    
+                    //no parent class found --> we found an new class
+                    print("New class found in changed file: \(classInstance.name)")
+                    
+                    classesFromUpdatedFiles.append(classInstance)
+                }
+            }
+            
+            /*
+             TODO: check for additional parent!
+             
+             */
+            newClasses.append(contentsOf: classesFromUpdatedFiles)
+            
+            for classInstance in classesFromUpdatedFiles {
+                if let parent = classInstance.parent {
+                    var methods = handleMethods(newClass: classInstance, oldClass: parent, changes: changesForPaths)
+                    methodsToBeHandled.append(contentsOf: methods)
+                    
+                    handleVariables(newClass: classInstance, oldClass: parent, changes: changesForPaths)
+                } else {
+                    if let potMethods = classInstance.potentialMethods {
+                        classInstance.methods = potMethods
+                        classInstance.saveMethods()
+                        
+                        methodsToBeHandled.append(contentsOf: potMethods)
+                        classInstance.saveMethods()
+                    }
+                    
+                    if let potVariables = classInstance.potentialVariables {
+                        classInstance.variables = potVariables
+                        classInstance.saveVariables()
+                    }
+                    
+                }
+            }
+            
+            
+            //**
             
             for classInstance in parentClasses {
                 print("class path: \(classInstance.path)")
                 if removedPaths.contains(classInstance.path) {
                     print("in removed paths")
                     //do nothing?
-                } else if changedPaths.contains(classInstance.path) {
-                    print("in changed paths")
-                    //TODO: run analysis find out which methods/variables changed
-                    var classes = self.syntaxAnalyser.analyseFile(filePath: classInstance.path, includePaths: includePaths)
-                    print("file changed, classes in file: \(classes.count)")
-                    print("classInstance.usr \(classInstance.usr)")
-                    for newClassInstance in classes {
-                        print("newClassInstance.usr: \(newClassInstance.usr)")
-                        if classInstance.usr == newClassInstance.usr {
-                            print("add changed class")
-                            newClassInstance.parent = classInstance
-                            newClasses.append(newClassInstance)
-                            newClassInstance.version = classInstance.version + 1
-                            //TODO: handle if there are multiple classes in the file!
-                            // what happens if a class was added
-                            
-                            //TODO:
-                            // changesForPaths --> get changes
-                            // for each change find old method and new method --> either add, remove or modify method
-                            
-                            
- 
-                            var oldUsrs: [String] = classInstance.methods.map() { value in return value.usr}
-                            var newUsrs: [String] = newClassInstance.methods.map() { value in return value.usr}
-
-                            var newMethods: [Method] = []
-                            var updatedMethods: [Method] = []
-                            var oldMethods: [Method] = []
-                            
-                            if let methods = newClassInstance.potentialMethods {
-                                print("going through potential methods, count: \(methods.count)")
-                                methodLoop: for method in methods {
-                                    if !oldUsrs.contains(method.usr) {
-                                        print("new method added: \(method.name)")
-                                        newMethods.append(method)
-                                        method.save() //TODO: do this here?
-                                        methodsToBeHandled.append(method)
-                                        
-                                        continue methodLoop
-                                    }
-                                    
-                                    if let startLine = method.startLine, let endLine = method.endLine {
-                                        print("lines: \(method.startLine) - \(method.endLine)")
-                                        if let changesForpath = changesForPaths[newClassInstance.path] {
-                                            for fileChange in changesForpath {
-                                                for change in fileChange.changes {
-                                                    print("change lines: \(change.newLines)")
-                                                    if !(startLine < change.newLines.start && endLine < change.newLines.start) && !(startLine > (change.newLines.start + change.newLines.length) && endLine > (change.newLines.start + change.newLines.length)) {
-                                                        print("match")
-                                                        
-                                                        
-                                                        if oldUsrs.contains(method.usr) {
-                                                            print("old usr contains method.usr")
-                                                            
-                                                        }
-                                                        
-                                                        for oldMethod in classInstance.methods {
-                                                            if method.usr == oldMethod.usr {
-                                                                print("prev. version of method found")
-                                                                method.version = oldMethod.version + 1
-                                                                method.save()
-                                                                method.parent = oldMethod
-                                                                methodsToBeHandled.append(method)
-                                                                break
-                                                            }
-                                                        }
-                                                        
-                                                        updatedMethods.append(method)
-                                                        
-                                                        continue methodLoop
-                                                    } else {
-                                                        print("no match")
-                                                        for oldMethod in classInstance.methods {
-                                                            if method.usr == oldMethod.usr {
-                                                                oldMethods.append(oldMethod)
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                                
-                                
-                            }
-                            
-                            newClassInstance.methods = newMethods + updatedMethods + oldMethods
-                            newClassInstance.saveMethods()
-                            
-                            //TODO: do the same for variables
-                            
-                            handleVariables(newClass: newClassInstance, oldClass: classInstance, changes: changesForPaths)
-                            
-                        }
-                    }
-                    
                 } else if renamedPaths.keys.contains(classInstance.path) {
                     print("in renamed paths")
                     //TODO: run analysis, find out what the new name is, not as important right now
                     newClasses.append(classInstance)
+                } else if changedPaths.contains(classInstance.path) {
+                    print("in changed")
+                    //don't do anything --> already handled
                 } else {
                     print("in none")
                     //was not removed, changed or renamed, so no change
                     newClasses.append(classInstance)
                 }
             }
-            
-            if appVersion.parent?.analysedVersion == nil {
-                addedPaths = addedPaths + changedPaths
-            }
+//
+//            if appVersion.parent?.analysedVersion == nil {
+//                addedPaths = addedPaths + changedPaths
+//            }
             
             for path in addedPaths {
                 print("addedPath: \(path)")
@@ -391,7 +356,6 @@ class AppAnalysisController {
         //applyChanges(appVersion: appVersion)
     }
     
-    
     /*
     //TODO: finish this new method
     func handleClassesForNewApp(filesToBeAnalysed: [String], includePaths: [String]) -> [Class] {
@@ -430,6 +394,78 @@ class AppAnalysisController {
         }
     }
  */
+    
+    func handleMethods(newClass: Class, oldClass: Class, changes: [String: [FileChange]]) -> [Method] {
+        var oldUsrs: [String] = oldClass.methods.map() { value in return value.usr}
+        var newUsrs: [String] = newClass.methods.map() { value in return value.usr}
+
+        var newMethods: [Method] = []
+        var updatedMethods: [Method] = []
+        var oldMethods: [Method] = []
+        var methodsToBeHandled: [Method] = []
+        
+        if let methods = newClass.potentialMethods {
+            print("going through potential methods, count: \(methods.count)")
+            methodLoop: for method in methods {
+                if !oldUsrs.contains(method.usr) {
+                    print("new method added: \(method.name)")
+                    newMethods.append(method)
+                    method.save() //TODO: do this here?
+                    methodsToBeHandled.append(method)
+                    
+                    continue methodLoop
+                }
+                
+                if let startLine = method.startLine, let endLine = method.endLine {
+                    print("lines: \(method.startLine) - \(method.endLine)")
+                    if let changesForpath = changes[newClass.path] {
+                        for fileChange in changesForpath {
+                            for change in fileChange.changes {
+                                print("change lines: \(change.newLines)")
+                                if !(startLine < change.newLines.start && endLine < change.newLines.start) && !(startLine > (change.newLines.start + change.newLines.length) && endLine > (change.newLines.start + change.newLines.length)) {
+                                    print("match")
+                                    
+                                    
+                                    if oldUsrs.contains(method.usr) {
+                                        print("old usr contains method.usr")
+                                        
+                                    }
+                                    
+                                    for oldMethod in oldClass.methods {
+                                        if method.usr == oldMethod.usr {
+                                            print("prev. version of method found")
+                                            method.version = oldMethod.version + 1
+                                            method.save()
+                                            method.parent = oldMethod
+                                            methodsToBeHandled.append(method)
+                                            break
+                                        }
+                                    }
+                                    
+                                    updatedMethods.append(method)
+                                    
+                                    continue methodLoop
+                                } else {
+                                    print("no match")
+                                    for oldMethod in oldClass.methods {
+                                        if method.usr == oldMethod.usr {
+                                            oldMethods.append(oldMethod)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            
+        }
+        
+        newClass.methods = newMethods + updatedMethods + oldMethods
+        newClass.saveMethods()
+        return methodsToBeHandled
+    }
     
     func handleVariables(newClass: Class, oldClass: Class, changes: [String: [FileChange]]) {
         var oldUsrs: [String] = oldClass.variables.map() { value in return value.usr}
@@ -516,7 +552,7 @@ class AppAnalysisController {
             } else if let usedVariable = allVariables[usr] {
                 method.relate(to: usedVariable, type: "USED")
             } else {
-                print("Usr not found")
+                print("Usr not found: \(usr)")
             }
         }
     }

@@ -60,12 +60,15 @@ extension SyntaxAnalyser {
             var classType: Class.ClassType = .classType
             
             if let kind = json[constants.kindKey] as? String {
+                print("kind: \(kind)")
                 if kind == constants.classKind {
                     classType = .classType
                 } else if kind == constants.structKind {
                     classType = .structureType
                 } else if kind == constants.protocolKind {
                     classType = .protocolType
+                } else {
+                    return nil // not a class
                 }
             }
             

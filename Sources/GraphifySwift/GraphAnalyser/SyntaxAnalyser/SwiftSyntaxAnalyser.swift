@@ -53,9 +53,9 @@ class SwiftSyntaxAnalyser: SyntaxAnalyser {
 }
 
 struct SwiftKind: Kind {
-    let classKind = "source.lang.swift.ref.class"
-    let structKind = "source.lang.swift.ref.struct"
-    let protocolKind = "source.lang.swift.ref.protocol"
+    let classKind = "source.lang.swift.decl.class"
+    let structKind = "source.lang.swift.decl.struct"
+    let protocolKind = "source.lang.swift.decl.protocol"
     
     let staticVariableKind = "source.lang.swift.decl.var.static"
     let classVariableKind = "source.lang.swift.decl.var.class"
