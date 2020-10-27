@@ -153,6 +153,9 @@ class AppAnalysisController {
             changedPaths = Array(Set(changedPaths)) // remove duplicates
             print("changed files: \(changedPaths)")
             
+            var updatedUsrs: [String] = []
+            var addedUsrs: [String] = []
+            
             //** Changed files (we can have removed classes, added classes or changed classes)
             var classesFromUpdatedFiles: [Class] = []
             
@@ -167,9 +170,9 @@ class AppAnalysisController {
                             //TODO: check if class was actually changed!
                             
                             classInstance.parent = parentClass
-                            classInstance.version = parentClass.version + 1
                             
                             classesFromUpdatedFiles.append(classInstance)
+                            updatedUsrs.append(classInstance.usr)
                             
                             continue classLoop
                         }
@@ -190,6 +193,7 @@ class AppAnalysisController {
             
             for classInstance in classesFromUpdatedFiles {
                 if let parent = classInstance.parent {
+                    classInstance.saveParent()
                     var methods = handleMethods(newClass: classInstance, oldClass: parent, changes: changesForPaths)
                     methodsToBeHandled.append(contentsOf: methods)
                     
@@ -221,6 +225,7 @@ class AppAnalysisController {
                     //do nothing?
                 } else if renamedPaths.keys.contains(classInstance.path) {
                     print("in renamed paths")
+                    
                     //TODO: run analysis, find out what the new name is, not as important right now
                     newClasses.append(classInstance)
                 } else if changedPaths.contains(classInstance.path) {
@@ -228,8 +233,10 @@ class AppAnalysisController {
                     //don't do anything --> already handled
                 } else {
                     print("in none")
-                    //was not removed, changed or renamed, so no change
-                    newClasses.append(classInstance)
+                    if !updatedUsrs.contains(classInstance.usr) {
+                        //was not removed, changed or renamed, so no change (also check if not already changed)
+                        newClasses.append(classInstance)
+                    }
                 }
             }
 //

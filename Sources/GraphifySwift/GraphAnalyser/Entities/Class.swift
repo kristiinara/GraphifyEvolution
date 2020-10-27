@@ -43,14 +43,22 @@ class Class {
         }
     }
     
-    var children: [Class] = []
-    weak var parent: Class? {
-        didSet {
-            if let parent = self.parent {
-                parent.relate(to: self, type: "CLASS_CHANGED_TO")
-                self.version = parent.version + 1
-                self.save()
-            }
+    //var children: [Class] = []
+    var parent: Class?// {
+//        didSet {
+//            if let parent = self.parent {
+//                parent.relate(to: self, type: "CLASS_CHANGED_TO")
+//                self.version = parent.version + 1
+//                self.save()
+//            }
+//        }
+//    }
+    
+    func saveParent() {
+        if let parent = self.parent {
+            parent.relate(to: self, type: "CLASS_CHANGED_TO")
+            self.version = parent.version + 1
+            self.save()
         }
     }
     
