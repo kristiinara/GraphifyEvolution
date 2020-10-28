@@ -212,6 +212,7 @@ class AppAnalysisController {
                         classInstance.saveVariables()
                     }
                     
+                    classInstance.save()
                 }
             }
             

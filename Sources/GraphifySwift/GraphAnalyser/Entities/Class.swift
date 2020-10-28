@@ -33,12 +33,14 @@ class Class {
     
     func saveMethods() {
         for method in methods {
+            method.save()
             self.relate(to: method, type: "CLASS_OWNS_METHOD")
         }
     }
     
     func saveVariables() {
         for variable in variables {
+            variable.save()
             self.relate(to: variable, type: "CLASS_OWNS_VARIABLE")
         }
     }
