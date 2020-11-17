@@ -20,6 +20,15 @@
         }
       },
       {
+        "package": "IndexStoreDB",
+        "repositoryURL": "https://github.com/apple/indexstore-db.git",
+        "state": {
+          "branch": "release/5.3",
+          "revision": "58b306e0274155911dd4957945fd7e630798fec5",
+          "version": null
+        }
+      },
+      {
         "package": "Theo",
         "repositoryURL": "https://github.com/Neo4j-Swift/Neo4j-Swift.git",
         "state": {

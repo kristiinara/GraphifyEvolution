@@ -14,7 +14,8 @@ let package = Package(
         .package(url: "https://github.com/jpsim/SourceKitten.git", from: "0.23.1"),
         .package(url: "https://github.com/apple/swift-argument-parser", from: "0.3.0"),
         .package(name: "Theo", url: "https://github.com/Neo4j-Swift/Neo4j-Swift.git", .branch("master")),
-        .package(url: "https://github.com/Neo4j-Swift/Bolt-swift.git", .branch("master"))
+        .package(url: "https://github.com/Neo4j-Swift/Bolt-swift.git", .branch("master")),
+        .package(name: "IndexStoreDB", url: "https://github.com/apple/indexstore-db.git", .branch("release/5.3"))
     ],
     
     targets: [
@@ -25,7 +26,7 @@ let package = Package(
             dependencies: [
                 .product(name: "SourceKittenFramework", package: "SourceKitten"),
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
-                  "Theo"]),
+                  "Theo", "IndexStoreDB"]),
         .testTarget(
             name: "GraphifySwiftTests",
             dependencies: ["GraphifySwift"]),
