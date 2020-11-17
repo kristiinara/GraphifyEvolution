@@ -17,8 +17,8 @@ class SwiftSyntaxAnalyser: SyntaxAnalyser {
     }
     
     func analyseFile(filePath: String, includePaths: [String]) -> [Class] {
-        let target = "arm64-apple-ios13.7"
-        let sdk = "/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS13.7.sdk"
+        let target = "arm64-apple-ios14.2"
+        let sdk = "/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS14.2.sdk"
         
         var arguments = ["-target", target, "-sdk", sdk ,"-j4"]
         arguments.append(contentsOf: includePaths)

@@ -25,9 +25,9 @@ let package = Package(
             dependencies: [
                 .product(name: "SourceKittenFramework", package: "SourceKitten"),
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
-                  "Theo"]),
-        .testTarget(
-            name: "GraphifySwiftTests",
-            dependencies: ["GraphifySwift"]),
+                  "Theo"])//,
+        //.testTarget(
+         //   name: "GraphifySwiftTests",
+         //   dependencies: ["GraphifySwift"]),
     ]
 )
