@@ -156,7 +156,13 @@ class GitManager: AppManager {          // manager used for project evolution
             
            // var res = Helper.shell(launchPath: "/usr/bin/git", arguments: ["--git-dir", path, "--work-tree", notGitPath, "status"])
            // print("Status command result: \(res)")
-            var res = Helper.shell(launchPath: "/usr/bin/git", arguments: ["--git-dir", path, "--work-tree", notGitPath, "stash"])
+            
+            var res = Helper.shell(launchPath: "/usr/bin/git", arguments: ["--git-dir", path, "--work-tree", notGitPath, "branch"])
+            
+        let mainBranch = 
+            
+            
+            res = Helper.shell(launchPath: "/usr/bin/git", arguments: ["--git-dir", path, "--work-tree", notGitPath, "stash"])
             res = Helper.shell(launchPath: "/usr/bin/git", arguments: ["--git-dir", path, "--work-tree", notGitPath, "checkout", "master"])
             //print("Checkout command result: \(res)")
         } else {
@@ -171,7 +177,15 @@ class GitManager: AppManager {          // manager used for project evolution
         if forCommit.parent != "" {
             if let path = self.path {
                 //print("path: \(path)")
-                let res = Helper.shell(launchPath: "/usr/bin/git", arguments: ["--git-dir", path, "diff", "-r", forCommit.parent, forCommit.commit])
+               // let res = Helper.shell(launchPath: "/usr/bin/git", arguments: ["--git-dir", path, "diff", "-r", forCommit.parent, forCommit.commit])
+                
+              //  var args = ["--git-dir", path, "diff", "-r",forCommit.commit, forCommit.parent]
+                var args = ["--git-dir", path, "diff", "-r", forCommit.parent, forCommit.commit]
+                if let altparent = forCommit.alternateParentCommit {
+                    args.append(altparent.commit)
+                }
+                
+                let res = Helper.shell(launchPath: "/usr/bin/git", arguments: args)
                 
                 //print("git diff result: \(res)")
                 

@@ -40,7 +40,7 @@ class App {
         self.name = name
         self.classes = classes
         
-        //self.save()
+        self.save()
         for classInstance in classes {
             self.relate(to: classInstance, type: "APP_OWNS_CLASS")
         }

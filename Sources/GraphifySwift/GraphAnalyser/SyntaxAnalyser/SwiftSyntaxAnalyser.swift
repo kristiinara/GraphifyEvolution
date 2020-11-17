@@ -8,6 +8,8 @@
 import Foundation
 import SourceKittenFramework
 
+import IndexStoreDB
+
 class SwiftSyntaxAnalyser: SyntaxAnalyser {
     let constants: Kind = SwiftKind()
     var filePaths: [String] = []
@@ -16,14 +18,58 @@ class SwiftSyntaxAnalyser: SyntaxAnalyser {
         // TODO: do we need to reset something?
     }
     
-    func analyseFile(filePath: String, includePaths: [String]) -> [Class] {
-        let target = "arm64-apple-ios13.7"
-        let sdk = "/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS13.7.sdk"
+    func tryingToAnalyse(path: String) {
+        let dbPath: String = "/Applications/Xcode 2.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/libIndexStore.dylib"
+        let workspace = Workspace(storePath: "/Users/kristiina/Library/Developer/Xcode/DerivedData/SmallAppExample-dwkqgphxfuvqhxgbxrejrjcuzsgy/Index/DataStore", dbPath: dbPath)
+        //workspace?.searchSymbol("ViewController")
+        print(workspace?.allClasses(path: path))
         
-        var arguments = ["-target", target, "-sdk", sdk ,"-j4"]
+        workspace?.searchSymbol("")
+    }
+    
+    func analyseFile(filePath: String, includePaths: [String]) -> [Class] {
+        
+        //tryingToAnalyse(path: filePath)
+        
+        if let file = File(path: filePath) {
+            do {
+                let result = try Structure(file: file)
+                   
+                if let substructure = result.dictionary["key.substructure"] as? [[String:Any]] {
+                    for element in substructure {
+                        if let name = element["key.name"] {
+                            print("found element: \(name)")
+                            
+                            if let children = element["key.substructure"] as? [[String:Any]] {
+                                print("  children: \(children.count)")
+                                for child in children {
+                                    if let name = element["key.name"] {
+                                        print("   \(name)")
+                                    }
+                                }
+                            }
+                        }
+                        
+                    }
+                }
+                
+               // print(result)
+            } catch {
+                print("Syntax tree failed: \(error.localizedDescription)")
+            }
+        }
+        
+        /*
+        let target = "arm64-apple-ios14.1"
+        //let sdk = "/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS14.1.sdk"
+        let sdk = "/Applications/Xcode12.1.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS14.1.sd"
+        
+        var arguments = [filePath, "-target", target, "-sdk", sdk ,"-j4"]
         arguments.append(contentsOf: includePaths)
                
         let request = Request.index(file: filePath, arguments: arguments)
+        print("Request: \(request)")
+        
                
         do {
             let result = try request.send()
@@ -49,6 +95,7 @@ class SwiftSyntaxAnalyser: SyntaxAnalyser {
         catch {
             print("error while doing index request: \(error)")
         }
+ */
         
         return []
     }
@@ -146,3 +193,88 @@ struct SwiftKind: Kind {
     let endLineKey = "key.endLine"
     let pathKey = "key.path"
 }
+
+class Workspace {
+    static let libIndexStore = "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/libIndexStore.dylib"
+        
+        let db: IndexStoreDB
+        
+        init?(storePath: String, dbPath: String) {
+            do {
+                let lib = try IndexStoreLibrary(dylibPath: Workspace.libIndexStore)
+                self.db = try IndexStoreDB(
+                    storePath: URL(fileURLWithPath: storePath).path,
+                    databasePath: NSTemporaryDirectory() + "index_\(getpid())",
+                    library: lib,
+                    listenToUnitEvents: false)
+                print("opened IndexStoreDB at \(dbPath) with store path \(storePath)")
+            } catch {
+                print("failed to open IndexStoreDB: \(error.localizedDescription)")
+                return nil
+            }
+            
+            db.pollForUnitChangesAndWait()
+        }
+    
+    func allClasses(path: String) -> [String] {
+        
+       // let names = self.db.unitNamesContainingFile(path: path)
+        
+        let names = self.db.allSymbolNames()
+        
+        for name in names {
+            self.searchSymbol(name)
+        }
+        
+       // return names
+        
+        return []
+    }
+        
+        func searchSymbol(_ symbol: String?) {
+            guard var symbol = symbol else { return }
+            
+            if symbol.contains(".o") {
+                let components = symbol.components(separatedBy: ".o")
+                symbol = components.first!
+            }
+            
+            //print("Searching symbol: \(symbol) ...")
+            
+            
+            let symbolOccurences = db.canonicalOccurrences(ofName: symbol)
+            if symbolOccurences.isEmpty {
+                print("The symbol of \(symbol) not found")
+            } else {
+                symbolOccurences.forEach { (symbolOccurence) in
+                    if symbolOccurence.location.isSystem == false {
+                        print("Name:\t\t\(symbolOccurence.symbol.name)")
+                        print("USR:\t\t\(symbolOccurence.symbol.usr)")
+                        print("Location:\t\(symbolOccurence.location)")
+                        print("Roles:\t\t\(symbolOccurence.roles)")
+
+                        print("\n")
+                        findReferences(symbolOccurence)
+                    }
+                }
+            }
+        }
+        
+        func findReferences(_ symbolOccurence: SymbolOccurrence) {
+            db.occurrences(ofUSR: symbolOccurence.symbol.usr, roles: .reference).forEach {
+                print("Reference Count: \($0.relations.count)")
+                
+                $0.relations.forEach { (symbolRelation) in
+                    if let definition = db.occurrences(ofUSR: symbolRelation.symbol.usr, roles: .definition).first {
+                        let path = URL.init(fileURLWithPath: definition.location.path)
+                        var description = "\t\(symbolOccurence.symbol.name)'s "
+                        description += "referenced in \(path.lastPathComponent) "
+                        description += "by \(symbolRelation.symbol.kind):\(symbolRelation.symbol.name)"
+                        description += ",line number:\(definition.location.line)"
+                        print("\(description)\n")
+                    }
+                }
+            }
+        }
+    }
+
