@@ -80,6 +80,7 @@ class AppAnalysisController {
         
         var newClasses: [Class] = []
         var methodsToBeHandled: [Method] = []
+        var variablesToBeHandled: [Variable] = []
         
         if let fileChanges = appVersion.changes {
             print("app version has changes: \(fileChanges.count)")
@@ -197,7 +198,8 @@ class AppAnalysisController {
                     var methods = handleMethods(newClass: classInstance, oldClass: parent, changes: changesForPaths)
                     methodsToBeHandled.append(contentsOf: methods)
                     
-                    handleVariables(newClass: classInstance, oldClass: parent, changes: changesForPaths)
+                    var variables = handleVariables(newClass: classInstance, oldClass: parent, changes: changesForPaths)
+                    variablesToBeHandled.append(contentsOf: variables)
                 } else {
                     if let potMethods = classInstance.potentialMethods {
                         classInstance.methods = potMethods
@@ -210,6 +212,8 @@ class AppAnalysisController {
                     if let potVariables = classInstance.potentialVariables {
                         classInstance.variables = potVariables
                         classInstance.saveVariables()
+                        
+                        variablesToBeHandled.append(contentsOf: potVariables)
                     }
                     
                     classInstance.save()
@@ -266,6 +270,7 @@ class AppAnalysisController {
                     if let variables = classInstance.potentialVariables {
                         for variable in variables {
                             variable.save()
+                            variablesToBeHandled.append(variable)
                         }
                         
                         classInstance.variables = variables
@@ -305,6 +310,7 @@ class AppAnalysisController {
                         if let variables = classInstance.potentialVariables {
                             for variable in variables {
                                 variable.save()
+                                variablesToBeHandled.append(variable)
                             }
                             
                             classInstance.variables = variables
@@ -358,8 +364,9 @@ class AppAnalysisController {
         app.save()
         
         for method in methodsToBeHandled {
-            addCallAndUseConnections(method: method, app: app)
+            addCallAndUseConnectionsFrom(method: method, app: app)
         }
+        addCallAndUseConnectionsTo(methods: methodsToBeHandled, variables: variablesToBeHandled, app: app)
         
         //applyChanges(appVersion: appVersion)
     }
@@ -477,9 +484,14 @@ class AppAnalysisController {
         return methodsToBeHandled
     }
     
-    func handleVariables(newClass: Class, oldClass: Class, changes: [String: [FileChange]]) {
+    func handleVariables(newClass: Class, oldClass: Class, changes: [String: [FileChange]]) -> [Variable] {
         var oldNames: [String] = oldClass.variables.map() { value in return value.name}
-        var newNames: [String] = newClass.potentialVariables!.map() { value in return value.name}
+        
+        var newNames: [String] = []
+        
+        if let potentialVariables = newClass.potentialVariables {
+            newNames = potentialVariables.map() { value in return value.name}
+        }
 
         var newVariables: [Variable] = []
         var updatedVariables: [Variable] = []
@@ -544,9 +556,11 @@ class AppAnalysisController {
         
         newClass.variables = newVariables + updatedVariables + oldVariables
         newClass.saveVariables()
+        
+        return newVariables + updatedVariables
     }
     
-    func addCallAndUseConnections(method: Method, app: App) {
+    func addCallAndUseConnectionsFrom(method: Method, app: App) {
         var allMethods: [String: Method] = [:]
         var allVariables: [String: Variable] = [:]
         
@@ -567,6 +581,61 @@ class AppAnalysisController {
                 method.relate(to: usedVariable, type: "USED")
             } else {
                 print("Usr not found: \(usr)")
+            }
+        }
+    }
+    
+    func addCallAndUseConnectionsTo(methods: [Method], variables: [Variable], app: App) {
+        var methodsToBeHandled: [String: Method] = [:]
+        var variablesToBeHandled: [String: Variable] = [:]
+        
+        var allMethods: [String: Method] = [:]
+        var allVariables: [String: Variable] = [:]
+        
+        for classInstance in app.classes {
+            for method in classInstance.methods {
+                allMethods[method.usr] = method
+            }
+            
+            for variable in classInstance.variables {
+                allVariables[variable.usr] = variable
+            }
+        }
+        
+        
+        for method in methods {
+            methodsToBeHandled[method.usr] = method
+            
+            var parent = method.parent
+            while let existingParent = parent {
+                methodsToBeHandled[existingParent.usr] = method
+                parent = existingParent.parent
+            }
+        }
+        
+        for variable in variables {
+            variablesToBeHandled[variable.usr] = variable
+            
+            var parent = variable.parent
+            while let existingParent = parent {
+                variablesToBeHandled[existingParent.usr] = variable
+                parent = existingParent.parent
+            }
+        }
+        
+        for classInstance in app.classes {
+            for method in classInstance.methods {
+                if !methodsToBeHandled.keys.contains(method.usr) {
+                    for usr in method.calledUsrs {
+                        if let calledMethod = methodsToBeHandled[usr] {
+                            method.relate(to: calledMethod, type: "CALLED") // TODO: check why no called methods
+                        } else if let usedVariable = variablesToBeHandled[usr] {
+                            method.relate(to: usedVariable, type: "USED")
+                        } else {
+                            print("Usr not found: \(usr)")
+                        }
+                    }
+                }
             }
         }
     }
