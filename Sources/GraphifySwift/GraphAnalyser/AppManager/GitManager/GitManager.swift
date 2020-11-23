@@ -46,23 +46,29 @@ class GitManager: AppManager {          // manager used for project evolution
         let nextCommit = self.commitsToBeAnalysed.removeFirst()
         print("Next commit: \(nextCommit.commit), parent: \(nextCommit.parent), check parent: \(nextCommit.parentCommit?.commit)")
         
-        var appVersion = AppVersion(directoryPath: path)
-        appVersion.changes = self.getChangesForCommit(commit: nextCommit)
+        let appVersion = AppVersion(directoryPath: path)
         //appVersion.changedFilePaths
         nextCommit.appVersion = appVersion
         
         print("finding parent commit")
         if let parentCommit = nextCommit.parentCommit {
-            print("found parent commit")
-            appVersion.parent = parentCommit.appVersion //TODO: check here if parent is already analysed if it exists?
+            let changes = self.getChangesForCommit(commit: nextCommit, toCommit: parentCommit)
             
-            if let alternateParentCommit = nextCommit.alternateParentCommit {
-                print("found alternateparent commit")
-                appVersion.alternateParent = alternateParentCommit.appVersion
+            if let parentAppVersion = parentCommit.appVersion {
+                print("found parent commit")
+                appVersion.parent = AppVersionParent(appVersion: parentAppVersion, changes: changes)
+                
             }
             
-        } else {
-            appVersion.changes = nil
+            if let altParentCommit = nextCommit.alternateParentCommit {
+                if let altParentVersion = altParentCommit.appVersion {
+                    print("found alternateparent commit")
+                    let altChanges = self.getChangesForCommit(commit: nextCommit, toCommit: altParentCommit)
+                    
+                    appVersion.alternateParent = AppVersionParent(appVersion: altParentVersion, changes: altChanges)
+                }
+            }
+            
         }
         
         appVersion.commit = nextCommit.commit
@@ -125,9 +131,9 @@ class GitManager: AppManager {          // manager used for project evolution
     }
     
     
-    func getChangesForCommit(commit: Commit) -> [FileChange] {
+    func getChangesForCommit(commit: Commit, toCommit: Commit) -> [FileChange] {
         print("getChangesForCommit")
-        let changes = runGitDiffCommand(forCommit: commit)
+        let changes = runGitDiffCommand(forCommit: commit, toCommit: toCommit)
         return changes
     }
     
@@ -164,14 +170,14 @@ class GitManager: AppManager {          // manager used for project evolution
         }
     }
     
-    func runGitDiffCommand(forCommit: Commit) -> [FileChange] {
+    func runGitDiffCommand(forCommit: Commit, toCommit: Commit) -> [FileChange] {
         print("runGitDiffCommand")
         // git diff -r a35ecb4b3a18f72888197bae92d38293981da335 --unified=0
         
         if forCommit.parent != "" {
             if let path = self.path {
                 //print("path: \(path)")
-                let res = Helper.shell(launchPath: "/usr/bin/git", arguments: ["--git-dir", path, "diff", "-r", forCommit.parent, forCommit.commit])
+                let res = Helper.shell(launchPath: "/usr/bin/git", arguments: ["--git-dir", path, "diff", "-r", toCommit.commit, forCommit.commit])
                 
                 //print("git diff result: \(res)")
                 

@@ -56,10 +56,17 @@ class Class {
 //        }
 //    }
     
+    var alternateParent: Class?
+    
     func saveParent() {
         if let parent = self.parent {
             parent.relate(to: self, type: "CLASS_CHANGED_TO")
             self.version = parent.version + 1
+            
+//            if let altParent = self.alternateParent {
+//                self.version = max(parent.version, altParent.version) + 1
+//            }
+            
             self.save()
         }
     }
