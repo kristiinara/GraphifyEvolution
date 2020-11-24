@@ -32,6 +32,15 @@ class DatabaseController {
         
         self.theo?.connectSync()
     }
+    
+    func start() {
+        self.theo?.connectSync()
+        //self.theo?.resetSync()
+    }
+    
+    func stop() {
+        self.theo?.disconnect()
+    }
 
     /*
     func fetchObjectsWith(label: String, completition: @escaping (([Node]?) -> Void)) {

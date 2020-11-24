@@ -44,6 +44,11 @@ extension Neo4jObject {
     
     func newNode() -> Node {
         print("newNode \(Self.nodeType)")
+        if Self.nodeType == "App" {
+            DatabaseController.currentDatabase.stop()
+            DatabaseController.currentDatabase.start()
+        }
+        
         if let client = DatabaseController.currentDatabase.theo {
             do {
                 let newNode = try client.createAndReturnNodeSync(node: Node(label: Self.nodeType, properties: [:])).get()
@@ -52,6 +57,7 @@ extension Neo4jObject {
                 fatalError("Failing to insert new object \(Self.nodeType) - \(error.localizedDescription)")
             }
         }
+        
         fatalError("Failing to insert new object \(Self.nodeType)")
     }
     
@@ -73,11 +79,12 @@ extension Neo4jObject {
     func save() -> Bool {
         print("save \(Self.nodeType)")
         if let client = DatabaseController.currentDatabase.theo {
-            do {
-                try client.updateNodeSync(node: self.updatedNode)
-            } catch {
-                fatalError("Failing to save object \(Self.nodeType) - \(error.localizedDescription)")
-            }
+            var res = client.updateNodeSync(node: self.updatedNode)
+//            do {
+//                try client.updateNodeSync(node: self.updatedNode)
+//            } catch {
+//                fatalError("Failing to save object \(Self.nodeType) - \(error.localizedDescription)")
+//            }
         }
         return false
     }
@@ -85,11 +92,12 @@ extension Neo4jObject {
     func relate(to: Neo4jNode, type: String) -> Bool {
         print("relate \(Self.nodeType) - \(type) - \(to.nodeType)")
         if let client = DatabaseController.currentDatabase.theo {
-            do {
-                try client.relateSync(node: self.node, to: to.node, type: type)
-            } catch {
-                fatalError("Failing to relate objects \(Self.nodeType) - \(type) - \(to.nodeType) -- \(error.localizedDescription)")
-            }
+            var res = client.relateSync(node: self.node, to: to.node, type: type)
+//            do {
+//                try client.relateSync(node: self.node, to: to.node, type: type)
+//            } catch {
+//                fatalError("Failing to relate objects \(Self.nodeType) - \(type) - \(to.nodeType) -- \(error.localizedDescription)")
+//            }
         }
         return false
     }

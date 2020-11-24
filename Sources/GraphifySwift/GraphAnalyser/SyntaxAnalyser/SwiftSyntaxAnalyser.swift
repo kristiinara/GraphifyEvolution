@@ -58,13 +58,13 @@ class SwiftSyntaxAnalyser: SyntaxAnalyser {
         var res: [[String:Any]] = []
 
         for object in json {
-            print("finding lines in: \(object)")
-            print("keys: \(object.keys)")
-            print("addLines for kind: \(object["key.kind"])")
+            //print("finding lines in: \(object)")
+            //print("keys: \(object.keys)")
+            //print("addLines for kind: \(object["key.kind"])")
             var newObject = object
             
             if let lineNumberString = object["key.line"] as? Int64 {
-                print("key.line: \(lineNumberString)")
+                //print("key.line: \(lineNumberString)")
                 
                 var lineNumber: Int = Int(lineNumberString)
                 var maxNumber = lineNumber
@@ -90,12 +90,12 @@ class SwiftSyntaxAnalyser: SyntaxAnalyser {
                     newObject["key.entities"] = newEntities
                 }
                 
-                print("no key.line \(object["key.line"])")
+                //print("no key.line \(object["key.line"])")
                 res.append(object)
             }
         }
         
-        print("added lines: \(res)")
+       // print("added lines: \(res)")
         
         return res
     }
