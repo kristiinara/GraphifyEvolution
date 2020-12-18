@@ -89,16 +89,6 @@ struct Application: ParsableCommand {
         
         @Option(help: "Provide output path for html or csv files.")
         var outputPath: String = "outputFolder/"
-        
-        mutating func run() {
-            print("running query: " + query)
-            print("Running db controller")
-            let dbController = DatabaseController()
-            dbController.fetchApplications()
-            while(true) {
-                //
-            }
-        }
     }
 }
 

@@ -62,14 +62,14 @@ extension Variable: Neo4jObject {
     var updatedNode: Node {
         let oldNode = self.node
         
-        oldNode["name"] = self.name
+        oldNode.properties["name"] = self.name
         //oldNode["kind"] = self.kind as! String
-        oldNode["usr"] = self.usr
-        oldNode["type"] = self.type
-        oldNode["code"] = self.code
-        oldNode["version_number"] = self.version
-        oldNode["start_line"] = self.startLine
-        oldNode["end_line"] = self.endLine
+        oldNode.properties["usr"] = self.usr
+        oldNode.properties["type"] = self.type
+        oldNode.properties["code"] = self.code
+        oldNode.properties["version_number"] = self.version
+        oldNode.properties["start_line"] = self.startLine
+        oldNode.properties["end_line"] = self.endLine
         
         
         self.nodeSet = oldNode

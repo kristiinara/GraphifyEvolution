@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import Theo
 
 protocol Neo4jNode {
     var node: Node {get}
@@ -20,7 +19,6 @@ protocol Neo4jObject: Neo4jNode {
     //func fetchAll() -> [ObjectType]
     func save() -> Bool
     func relate(to: Neo4jNode, type: String) -> Bool
-    //static func newInstance() -> ObjectType?
     func newNode() -> Node
     
     // Need to be implemented:
@@ -34,72 +32,42 @@ extension Neo4jObject {
         return Self.nodeType
     }
     
-    /*
-     let node = client.createAndReturnNodeSync(node: Node(label: "", properties: [:])).get()
-     
-     client.updateNodeSync(node: node)
-     
-     client.relateSync(node: node, to: node, type: "Test")
-     */
-    
     func newNode() -> Node {
         print("newNode \(Self.nodeType)")
-        if Self.nodeType == "App" {
-            DatabaseController.currentDatabase.stop()
-            DatabaseController.currentDatabase.start()
-        }
         
-        if let client = DatabaseController.currentDatabase.theo {
-            do {
-                let newNode = try client.createAndReturnNodeSync(node: Node(label: Self.nodeType, properties: [:])).get()
+        if let client = DatabaseController.currentDatabase.client {
+            if let newNode = client.createAndReturnNodeSync(node: Node(label: Self.nodeType, properties: [:])) {
                 return newNode
-            } catch {
-                fatalError("Failing to insert new object \(Self.nodeType) - \(error.localizedDescription)")
             }
+            fatalError("Failing to insert new object \(Self.nodeType)")
         }
         
         fatalError("Failing to insert new object \(Self.nodeType)")
     }
     
-    /*
-    static func newInstance() -> ObjectType? {
-        print("newInstance \(Self.nodeType)")
-        if let client = DatabaseController.currentDatabase.theo {
-            do {
-                let newNode = try client.createAndReturnNodeSync(node: Node(label: Self.nodeType, properties: [:])).get()
-                let newObject = Self.initFrom(node: newNode)
-            } catch {
-                fatalError("Failing to insert new object \(Self.nodeType) - \(error.localizedDescription)")
-            }
-        }
-        return nil
-    }
- */
-    
     func save() -> Bool {
         print("save \(Self.nodeType)")
-        if let client = DatabaseController.currentDatabase.theo {
+        if let client = DatabaseController.currentDatabase.client {
             var res = client.updateNodeSync(node: self.updatedNode)
-//            do {
-//                try client.updateNodeSync(node: self.updatedNode)
-//            } catch {
-//                fatalError("Failing to save object \(Self.nodeType) - \(error.localizedDescription)")
-//            }
         }
+        return false
+    }
+    
+    func relate(_ relationship: Neo4jRelationship) -> Bool {
+        print("relate \(Self.nodeType) - \(relationship.type) - \(relationship.toNode.label)")
+        if let client = DatabaseController.currentDatabase.client {
+            client.relateSync(node: relationship.node, to: relationship.toNode, relationship: relationship) //TODO: fix: does not need that much info
+
+            return true
+        }
+        
         return false
     }
     
     func relate(to: Neo4jNode, type: String) -> Bool {
-        print("relate \(Self.nodeType) - \(type) - \(to.nodeType)")
-        if let client = DatabaseController.currentDatabase.theo {
-            var res = client.relateSync(node: self.node, to: to.node, type: type)
-//            do {
-//                try client.relateSync(node: self.node, to: to.node, type: type)
-//            } catch {
-//                fatalError("Failing to relate objects \(Self.nodeType) - \(type) - \(to.nodeType) -- \(error.localizedDescription)")
-//            }
-        }
-        return false
+        let relationship = Neo4jRelationship(node: self.updatedNode, toNode: to.updatedNode, type: type)
+        
+        return self.relate(relationship)
     }
     
 }

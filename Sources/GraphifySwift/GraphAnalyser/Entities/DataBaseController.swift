@@ -9,98 +9,334 @@ import Foundation
 
 import Theo
 import PackStream
+import Dispatch
+
+class Node {
+    var label: String
+    var id: Int?
+    var properties: [String:Any] = [:]
+    
+    init(label: String, properties: [String:Any]) {
+        self.label = label
+        self.properties = properties
+    }
+    
+    var propertyString: String {
+        var propertyString = "\(self.properties)"
+        propertyString = propertyString.replacingOccurrences(of: "[", with: "{")
+        propertyString = propertyString.replacingOccurrences(of: "]", with: "}")
+        
+        propertyString = propertyString.replacingOccurrences(of: ": \"", with: ": \'")
+        propertyString = propertyString.replacingOccurrences(of: "\",", with: "\',")
+        propertyString = propertyString.replacingOccurrences(of: "\"}", with: "\'}")
+        propertyString = propertyString.replacingOccurrences(of: "\"", with: "")
+        
+        propertyString = propertyString.replacingOccurrences(of: "{:}", with: "{}")
+        
+        print("propertyString: \(propertyString)")
+        
+        return propertyString
+    }
+}
 
 class DatabaseController {
-    let theo: BoltClient?
+    let client: Neo4jClient?
     static var currentDatabase = DatabaseController() //TODO: should we do it another way?
     
     init() {
+        self.client = Neo4jClient(
+            hostname: "localhost",
+            port: 7474,
+            username: "neo4j",
+            password: "1234"
+        )
+        
+        /*
+        let group = DispatchGroup()
+            group.enter()
+        
+        self.client?.connect() { res in
+            print("connect res: \(res)")
+            group.leave()
+        }
+        group.wait()
+        */
+    }
+    
+    init(hostname: String = "localhost", port: Int = 7474, username: String = "neo4j", password: String = "1234") {
+        self.client = Neo4jClient(
+            hostname: hostname,
+            port: port,
+            username: username,
+            password: password
+        )
+    }
+    
+    init(hostname: String = "localhost", port: Int = 7474, authorizationToken: String) {
+        self.client = Neo4jClient(
+            hostname: hostname,
+            port: port,
+            authorizationToken: authorizationToken
+        )
+    }
+}
+
+class Neo4jClient {
+    let dataURL: URL
+    let authorizationToken: String
+    
+    convenience init(hostname: String = "localhost", port: Int = 7474, username: String = "neo4j", password: String = "1234") {
+        
+        
+        let token = Neo4jClient.generateAuthorizationToken(username: username, password: password)
+        self.init(hostname: hostname, port: port, authorizationToken: token)
+    }
+    
+    init(hostname: String = "localhost", port: Int = 7474, authorizationToken: String) {
+        guard let url = URL(string: "http://\(hostname):\(port)/db/data/transaction/commit") else {
+            fatalError("Incorrect url for hostname: \(hostname) and port \(port)")
+        }
+        self.dataURL = url
+        self.authorizationToken = authorizationToken
+    }
+    
+    static func generateAuthorizationToken(username: String, password: String) -> String {
+        let token = Data("\(username):\(password)".utf8).base64EncodedString()
+        return token
+    }
+    
+    func createAndReturnNodeSync(node: Node) -> Node? {
+        //TODO: return optinal, or retrun Result object --> read about Result objects!
+        
+        let transaction = "create (n:\(node.label) \(node.propertyString)) return id(n)"
+        
+        let group = DispatchGroup()
+        group.enter()
+        
+        requestWithDefaultCompletition(transaction: transaction) { id in
+            node.id = id
+            group.leave()
+        }
+        group.wait()
+        
+        if node.id == nil {
+            return nil
+        }
+        return node
+    }
+    
+    func updateNodeSync(node: Node) {
+        //TODO: return result object?
+        
+        if let id = node.id {
+            let transaction = "match (n:\(node.label)) where id(n)=\(id) set n += \(node.propertyString)"
+            
+            let group = DispatchGroup()
+            group.enter()
+            
+            requestWithDefaultCompletition(transaction: transaction) { id in
+                group.leave()
+            }
+            
+            group.wait()
+            //TODO: what happens if query fails?
+            
+        } else {
+            let _ = createAndReturnNodeSync(node: node)
+        }
+    }
+    
+    func relateSync(node: Node, to: Node, relationship: Neo4jRelationship) {
+        //TODO: return result object
+        
+        print("Relate: \(node.properties["name"]) \(node.id) - \(to.properties["name"]) \(to.id)")
+        
+        if let id = node.id, let toId = to.id {
+            let transaction = "match (a:\(node.label)), (c:\(to.label)) where id(a) = \(id) and id(c) = \(toId) create (a)-[r:\(relationship.type)]->(c) return id(r)"
+            //TODO: add properties
+            
+            let group = DispatchGroup()
+            group.enter()
+            
+            requestWithDefaultCompletition(transaction: transaction) { id in
+               // node.id = id
+                group.leave()
+            }
+            
+            group.wait()
+            //TODO: what happens if query fails?
+            
+        } else {
+            print("could not relate")
+        }
+    }
+    
+    private func requestWithDefaultCompletition(transaction: String, completition: @escaping (Int?) -> Void) {
+        print("requestWithDefaultCompletition")
+        let parameters = [
+            "statements": [[
+                "statement" : transaction
+                ]]
+        ]
+        print("running transaction: \(transaction)")
+        
+        requestWithParameters(parameters) { [unowned self] json in
+//            guard let self = self else {
+//                completition(nil)
+//                return
+//            }
+            
+            print("request finished")
+            let success = self.defaultErrorHandling(json: json)
+            
+//            print("----- JSON result (success? \(success)): -----")
+//            print(json ?? "Empty response")
+            
+            if success {
+                completition(self.getId(json))
+            } else {
+                completition(nil)
+            }
+        }
+    }
+    
+    private func requestWithParameters(_ parameters: [String: Any], completition: @escaping ([String: Any]?) -> Void) {
+        print("requestWithParameters")
+        //create the session object
+        let session = URLSession.shared
+        
+        //now create the URLRequest object using the url object
+        var request = URLRequest(url: dataURL)
+        request.httpMethod = "POST" //set http method as POST
+        
         do {
-            self.theo = try BoltClient(
-                hostname: "127.0.0.1",
-                port: 7687,
-                username: "neo4j",
-                password: "1234",
-                encrypted: false
-            )
-            
-            print("Client created?")
-        } catch {
-            print("Cannot connect - \(error.localizedDescription)")
-            self.theo = nil
+            request.httpBody = try JSONSerialization.data(withJSONObject: parameters, options: .prettyPrinted) // pass dictionary to nsdata object and set it as request body
+        } catch let error {
+            completition(["JsonError": error])
+            print(error.localizedDescription)
+            return
         }
         
-        self.theo?.connectSync()
+        //try! print("REQUEST: \(JSONSerialization.jsonObject(with: request.httpBody!, options: .mutableContainers))")
+        
+        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.addValue("application/json", forHTTPHeaderField: "Accept")
+        
+        request.addValue("Basic \(self.authorizationToken)", forHTTPHeaderField: "Authorization")
+        
+        //print("Starting request!")
+        //create dataTask using the session object to send data to the server
+        let task = session.dataTask(with: request as URLRequest, completionHandler: { [unowned self] data, response, error in
+            
+//            guard let self = self else {
+//                completition(nil)
+//                return
+//            }
+            
+            //print("response: \(String(describing: response))")
+            
+            
+            guard error == nil else {
+                completition(["NetworkError" : error!])
+                return
+            }
+            
+            guard let data = data else {
+                completition(nil)
+                return
+            }
+            
+            do {
+                //create json object from data
+                if let json = try JSONSerialization.jsonObject(with: data, options: .mutableContainers) as? [String: Any] {
+                    //print(json)
+                    completition(json)
+                }
+            } catch let error {
+                print(error.localizedDescription)
+                completition(["JsonError": error])
+            }
+        })
+        task.resume()
     }
     
-    func start() {
-        self.theo?.connectSync()
-        //self.theo?.resetSync()
+    private func defaultErrorHandling(json: [String: Any]?) -> Bool {
+        guard let json = json else {
+            print("No results!")
+            return false
+        }
+        
+        if let jsonError = json["JsonError"] {
+            print(jsonError)
+            return false
+        }
+        
+        if let networkError = json["NetworkError"] {
+            print(networkError)
+            return false
+        }
+        
+        return true
     }
     
-    func stop() {
-        self.theo?.disconnect()
+    private func getId(_ json: [String: Any]?) -> Int? {
+        guard let json = json else { return nil }
+        
+        guard let results = json["results"] as? [[String:Any]] else {
+            print("no results: \(json)")
+            return nil
+        }
+        
+        guard results.count > 0 else {
+            print("Results length 0: \(json)")
+            return nil
+        }
+        guard results[0]["errors"] == nil else {
+            print("Resulted in errors: \(results[0]["errors"] as! [[String: Any]])")
+            return nil
+        }
+        
+        guard let data = results[0]["data"] as? [[String: Any]] else {
+            print("no data: \(results[0])")
+            return nil
+        }
+        
+        guard data.count > 0 else {
+            print("Data length 0")
+            return nil
+        }
+        
+        guard let row = data[0]["row"] as? [Any] else {
+            print("no row: \(data)")
+            return nil
+        }
+        
+        guard row.count > 0 else {
+            print("Row length 0")
+            return nil
+        }
+        
+        guard let id = row[0] as? Int else {
+            print("No id: \(row)")
+            return nil
+        }
+        
+        return id
     }
+    
+}
 
-    /*
-    func fetchObjectsWith(label: String, completition: @escaping (([Node]?) -> Void)) {
-        let labels = [label]
-        let properties: [String:PackProtocol] = [:
-            //"firstName": "Niklas",
-            //"age": 38
-        ]
-
-        print("Running fetch")
-        
-        //TODO: current limit is 1000 --> how should we handle this?
-        if let client = self.theo {
-            client.nodesWith(labels: labels, andProperties: properties, limit: 1000) { result in
-                
-                do {
-                    var values = try result.get()
-                    completition(values)
-                } catch {
-                    print("nodes with error: \(error.localizedDescription)")
-                }
-            }
-        } else {
-            print("No db client")
-        }
-        completition(nil)
-    }
- */
-   
-    func fetchApplications() {
-        let labels = ["App"]
-        let properties: [String:PackProtocol] = [:
-            //"firstName": "Niklas",
-            //"age": 38
-        ]
-
-        print("Running fetch")
-        
-        if let client = self.theo {
-            
-        }
-        
-        if let client = self.theo {
-            client.nodesWith(labels: labels, andProperties: properties, limit: 1000) { result in
-                print("Got some result")
-                
-                do {
-                    var values = try result.get()
-                    
-                    
-                    try print("Found \(values.count ?? 0) nodes")
-                    for value in values {
-                        print("\(value.labels) \(value["name"])")
-                    }
-                } catch {
-                    print("nodes with error: \(error.localizedDescription)")
-                }
-            }
-        } else {
-            print("No db client")
-        }
+class Neo4jRelationship {
+    let node: Node
+    let toNode: Node
+    let type: String
+    let properties: [String:String]
+    var id : Int?
+    
+    init(node: Node, toNode: Node, type: String, properties: [String:String] = [:]) {
+        self.node = node
+        self.toNode = toNode
+        self.type = type
+        self.properties = properties
     }
 }

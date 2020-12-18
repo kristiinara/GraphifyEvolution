@@ -162,8 +162,14 @@ class GitManager: AppManager {          // manager used for project evolution
             
            // var res = Helper.shell(launchPath: "/usr/bin/git", arguments: ["--git-dir", path, "--work-tree", notGitPath, "status"])
            // print("Status command result: \(res)")
-            var res = Helper.shell(launchPath: "/usr/bin/git", arguments: ["--git-dir", path, "--work-tree", notGitPath, "stash"])
-            res = Helper.shell(launchPath: "/usr/bin/git", arguments: ["--git-dir", path, "--work-tree", notGitPath, "checkout", "master"])
+            var res = Helper.shell(launchPath: "/usr/bin/git", arguments: ["--git-dir", path, "--work-tree", notGitPath, "branch"])
+            var branchName = "master"
+            if res.contains("* main") {
+                branchName = "main"
+            }
+            
+            res = Helper.shell(launchPath: "/usr/bin/git", arguments: ["--git-dir", path, "--work-tree", notGitPath, "stash"])
+            res = Helper.shell(launchPath: "/usr/bin/git", arguments: ["--git-dir", path, "--work-tree", notGitPath, "checkout", branchName])
             //print("Checkout command result: \(res)")
         } else {
             fatalError("Path for gitManager not defined")

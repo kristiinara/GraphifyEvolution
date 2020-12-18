@@ -78,12 +78,12 @@ extension App: Neo4jObject {
     var updatedNode: Node {
         let oldNode = self.node
         
-        oldNode["name"] = self.name
-        oldNode["usr"] = self.usr
-        oldNode["version_number"] = self.versionNumber
-        oldNode["commit"] = self.commit
-        oldNode["parent_commit"] = self.parentCommit
-        oldNode["alternate_parent_commit"] = self.alternateParentCommit
+        oldNode.properties["name"] = self.name
+        oldNode.properties["usr"] = self.usr
+        oldNode.properties["version_number"] = self.versionNumber
+        oldNode.properties["commit"] = self.commit
+        oldNode.properties["parent_commit"] = self.parentCommit
+        oldNode.properties["alternate_parent_commit"] = self.alternateParentCommit
         
         self.nodeSet = oldNode
         

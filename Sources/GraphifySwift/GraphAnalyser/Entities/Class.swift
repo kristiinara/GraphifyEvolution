@@ -141,12 +141,12 @@ extension Class: Neo4jObject {
     var updatedNode: Node {
         let oldNode = self.node
         
-        oldNode["name"] = self.name
-        oldNode["path"] = self.path
-        oldNode["usr"] = self.usr
+        oldNode.properties["name"] = self.name
+        oldNode.properties["path"] = self.path
+        oldNode.properties["usr"] = self.usr
                
-        oldNode["code"] = self.code
-        oldNode["version_number"] = self.version
+        oldNode.properties["code"] = self.code
+        oldNode.properties["version_number"] = self.version
         
         self.nodeSet = oldNode
         
