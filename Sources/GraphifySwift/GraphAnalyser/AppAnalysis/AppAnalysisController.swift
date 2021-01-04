@@ -98,7 +98,17 @@ class AppAnalysisController {
                 var instersectonAltParentNew = parent.changedPaths
                 var intersectionNew = parent.addedPaths
                 
+                print("parent: ")
+                print("chagned: \(parent.changedPaths)")
+                print("new: \(parent.addedPaths)")
+                print("unchanged: \(parent.unchangedPaths)")
+                
                 if let altParent = appVersion.alternateParent {
+                    print("altparent: ")
+                    print("chagned: \(altParent.changedPaths)")
+                    print("new: \(altParent.addedPaths)")
+                    print("unchanged: \(altParent.unchangedPaths)")
+                    
                     if let altParentApp = altParent.appVersion.analysedVersion {
                         altParentClasses = altParentApp.classes
                     }
@@ -120,11 +130,19 @@ class AppAnalysisController {
                 for path in combinedPaths {
                     let classes = self.syntaxAnalyser.analyseFile(filePath: path, includePaths: includePaths)
                     
+                    var classesToAdd: [Class] = []
+                    
                     for classInstance in classes {
-                        addedClasses[classInstance.usr] = classInstance
+                        if let existingClass = addedClasses[classInstance.usr] {
+                            print("Class already added: \(classInstance.name) - \(classInstance.usr)")
+                        } else {
+                            addedClasses[classInstance.usr] = classInstance
+                            classesToAdd.append(classInstance)
+                        }
                     }
                     
-                    finalClasses.append(contentsOf: classes)
+                    finalClasses.append(contentsOf: classesToAdd)
+                    print("add classes (combined paths) : \(classesToAdd.map() { val in return val.name } )")
                 }
                 
                 var remainingParentClasses: [String: Class] = [:]
@@ -133,12 +151,21 @@ class AppAnalysisController {
                 for classInstance in parentClasses {
                     if let addedClass = addedClasses[classInstance.usr] {
                         addedClass.parent = classInstance
+                        var properties: [String:String] = [:]
+                        if let commit = appVersion.commit {
+                            properties["commit"] = commit
+                        }
+                        
+                        classInstance.relate(to: addedClass, type: "CLASS_CHANGED_TO", properties: properties)
+                        
                     } else if parent.unchangedPaths.contains(classInstance.path) {
                         finalClasses.append(classInstance)
+                        print("add classes (unchanged from parent): \(classInstance.name)")
                         notChangedClasses[classInstance.usr] = classInstance
                     } else if parent.removedPaths.contains(classInstance.path) {
                         // do nothing
                     } else {
+                        print("remainingParentClass: \(classInstance) - commit: \(appVersion.commit)")
                         remainingParentClasses[classInstance.usr] = classInstance
                     }
                 }
@@ -147,8 +174,15 @@ class AppAnalysisController {
                     for classInstance in altParentClasses {
                         if let addedClass = addedClasses[classInstance.usr] {
                             addedClass.alternateParent = classInstance
-                            addedClass.saveParent()
-                            classInstance.relate(to: addedClass, type: "CLASS_CHANGED_TO")
+                            //addedClass.saveParent()
+                            
+                            
+                            var properties: [String:String] = [:]
+                            if let commit = appVersion.commit {
+                                properties["commit"] = commit
+                            }
+                            
+                            classInstance.relate(to: addedClass, type: "CLASS_CHANGED_TO", properties: properties)
                             
                             // handle methods from both sides
                             // rel for parents
@@ -156,25 +190,55 @@ class AppAnalysisController {
                         } else if altParent.unchangedPaths.contains(classInstance.path) {
                             if let remainingParentClass = remainingParentClasses[classInstance.usr] {
                                 finalClasses.append(classInstance)
+                                print("add classes (unchanged from altParent): \(classInstance.name)")
                                 classInstance.parent = remainingParentClass
-                                classInstance.saveParent()
+                                //classInstance.saveParent()
+                                
+                                var properties: [String:String] = [:]
+                                if let commit = appVersion.commit {
+                                    properties["commit"] = commit
+                                }
+                                
+                                classInstance.relate(to: remainingParentClass, type: "CLASS_CHANGED_TO", properties: properties)
                                 
                                 // add rel to methods where necessary (can start with Changed for each method?)
                                 // handle methods (only parent to alt parent)
                                 
                             } else if let notChangedClass = notChangedClasses[classInstance.usr] {
                                 // none were changed --> merge
-                                finalClasses.append(notChangedClass)
-                                notChangedClass.alternateParent = classInstance
+                                //finalClasses.append(notChangedClass)
+                                print("add classes (non changed -- merge): \(notChangedClass.name)")
                                 
-                                classInstance.relate(to: notChangedClass, type: "MERGE")
+                                if notChangedClass.node.id == classInstance.node.id && notChangedClass.node.id != nil {
+                                    // same class
+                                } else {
+                                    notChangedClass.alternateParent = classInstance
+                                    
+                                    var properties: [String:String] = [:]
+                                    if let commit = appVersion.commit {
+                                        properties["commit"] = commit
+                                    }
+                                    
+                                    classInstance.relate(to: notChangedClass, type: "MERGE", properties: properties)
+                                }
+                                
                                 //handle methods (only alt parent merge where methods not the same)
+                            } else if parent.addedPaths.contains(classInstance.path) {
+                                // class from altParent merged without changes
+                                finalClasses.append(classInstance)
+                            } else {
+                                fatalError("Class not handled: \(classInstance.name) - \(classInstance.usr)")
                             }
                         } else if altParent.removedPaths.contains(classInstance.path) {
                             // do nothing
                         } else if let notChangedClass = notChangedClasses[classInstance.usr] {
                             notChangedClass.alternateParent = classInstance
-                            classInstance.relate(to: notChangedClass, type: "CLASS_CHANGED_TO")
+                            var properties: [String:String] = [:]
+                            if let commit = appVersion.commit {
+                                properties["commit"] = commit
+                            }
+                            
+                            classInstance.relate(to: notChangedClass, type: "CLASS_CHANGED_TO", properties: properties)
                             // handle methods (only from alt parent to class)
                             
                         } else if let remainingParentClass = remainingParentClasses[classInstance.usr] {
@@ -188,7 +252,7 @@ class AppAnalysisController {
                     // no alt parent
                     for classInstance in [Class](addedClasses.values) {
                         if let parentClass = classInstance.parent, combinedPaths.contains(classInstance.path) {
-                            classInstance.saveParent()
+                            //classInstance.saveParent()
                             
                             let methods = handleMethods(newClass: classInstance, oldClass: parentClass, changes: parent.changesForPaths)
                             methodsToBeHandled.append(contentsOf: methods)
@@ -201,7 +265,6 @@ class AppAnalysisController {
                                 classInstance.saveMethods()
                                 
                                 methodsToBeHandled.append(contentsOf: potMethods)
-                                classInstance.saveMethods()
                             }
                             
                             if let potVariables = classInstance.potentialVariables {
@@ -257,10 +320,11 @@ class AppAnalysisController {
                 //TODO: figure out what to do with this class.. where should we define an app? if appVersion has no parent?
 
                 finalClasses.append(contentsOf: classes)
+                print("add classes (no parent, new app): \(classes.map() { val in return val.name } )")
             }
         }
         
-        var app = App(name: "name", classes: finalClasses)
+        var app = App(name: "name2", classes: finalClasses)
         appVersion.analysedVersion = app
         print("new app with nr of classes: \(finalClasses.count)")
         

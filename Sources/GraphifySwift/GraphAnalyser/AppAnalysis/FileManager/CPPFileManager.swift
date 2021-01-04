@@ -45,6 +45,12 @@ class CPPFileManager: LocalFileManager {
                 continue fileLoop
             }
             
+            if !(fileURL.path.contains("/src/") || fileURL.path.contains("/include/")) {
+                continue fileLoop
+            }
+            
+        
+            
             do {
                 let resourceValues = try fileURL.resourceValues(forKeys: Set(resourceKeys))
                 //print(fileURL.path, resourceValues.creationDate!, resourceValues.isDirectory!)

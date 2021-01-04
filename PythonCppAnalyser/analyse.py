@@ -15,8 +15,6 @@ def get_cursor_id(cursor, cursor_list = []):
     if cursor is None:
         return None
 
-    # FIXME: This is really slow. It would be nice if the index API exposed
-    # something that let us hash cursors.
     for i,c in enumerate(cursor_list):
         if cursor == c:
             return i
@@ -27,10 +25,8 @@ def get_info(node, depth=0):
     if depth >= maxDepth:
         children = None
         nodes = None
-        #print "too deep"
     else: 
         children = [get_info(c, depth+1) for c in node.get_children()]
-       # nodes = [get_info(c, depth+1) for c in node.walk_preorder()]
 
     file = node.location.file
     if file == None:
@@ -74,12 +70,8 @@ def analyse_file(index, path, args):
 
             if fileName in nodeFileName or headerName in nodeFileName:
                 nameSpaces.append(node)
-        #else:
-        #    print "not supported: ", node.kind, node.spelling
 
     for node in nameSpaces:
-        #for child in node.get_children():
-        #allClasses = allClasses + 
         find_classes(node, fileName, headerName, os.path.abspath(path))
 
     for node in nameSpaces:
@@ -99,11 +91,6 @@ def fill_classes(node, fileName, classes, abspath):
             name = child.spelling
             usr = child.get_usr()
             nodetype = child.type.spelling
-
-            # defNode = child.get_definition()
-            # if not defNode is None:
-            #     print "def", defNode
-            #     usr = defNode.get_usr()
 
             num_lines = sum(1 for line in open(abspath))
 
@@ -170,11 +157,6 @@ def handleMethod(method, node, classInstance):
         name = node.spelling
         usr = node.get_usr()
         nodetype = node.type.spelling
-
-        # defNode = node.get_definition()
-        # if not defNode is None:
-        #     print "def", defNode
-        #     usr = defNode.get_usr()
 
         return_type = ""
         split_type = nodetype.split(" (")
@@ -486,10 +468,14 @@ if len(sys.argv) == 2:
     variables = []
     calls = []
     variable_references = []
-
+    
     for fileName in os.listdir(sourcePath):
         if fileName.endswith(".cpp"):
             classes = analyse_file(index, sourcePath + fileName, args = args)
+    
+    #for fileName in os.listdir(includePath):
+    #    if fileName.endswith(".h"):
+    #        classes = analyse_file(index, includePath + fileName, args = args)
 
     correctReferences()
     print(json.dumps(list(allClasses.values()), indent=4))

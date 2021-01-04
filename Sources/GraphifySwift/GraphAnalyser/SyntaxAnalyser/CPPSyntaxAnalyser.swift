@@ -21,6 +21,11 @@ class CPPSyntaxAnalyser: SyntaxAnalyser {
     func analyseFile(filePath: String, includePaths: [String]) -> [Class] {
         print("analyseFile \(filePath)")
         
+        if !includePaths.contains(filePath) {
+            print("Filepath \(filePath) not in includePaths: \(includePaths)")
+            return []
+        }
+        
         if classes == nil {
             var directoryPath: String? = nil
             if filePath.contains("/src/") {
@@ -39,6 +44,28 @@ class CPPSyntaxAnalyser: SyntaxAnalyser {
         if let classes = classes {
             if let classesForFile = classes[filePath] {
                 return classesForFile
+            } else {
+                var alternatePath = filePath
+                if filePath.contains("/src/") {
+                    alternatePath = alternatePath.replacingOccurrences(of: "/src/", with: "/include/")
+                    alternatePath = alternatePath.replacingOccurrences(of: ".cpp", with: ".h")
+                } else if filePath.contains("/include/") {
+                    alternatePath = alternatePath.replacingOccurrences(of: "/include/", with: "/src/")
+                    alternatePath = alternatePath.replacingOccurrences(of: ".h", with: ".cpp")
+                }
+                
+                if let classesForFile = classes[alternatePath] {
+                    return classesForFile
+                }
+                
+                if filePath.hasSuffix("main.cpp") || filePath.contains("inpututils") || filePath.contains("functions") {
+                    //ignore right now
+                    //TODO: figure out if we should add as separate class
+                    return []
+                }
+                
+                print("no classes for filepath: \(filePath) or alternatePath: \(alternatePath), allClasses: \(classes)")
+                //fatalError("no classes for filepath: \(filePath) or alternatePath: \(alternatePath), allClasses: \(classes)")
             }
         }
         return []

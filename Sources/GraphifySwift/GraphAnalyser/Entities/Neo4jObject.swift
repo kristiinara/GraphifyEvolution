@@ -70,4 +70,10 @@ extension Neo4jObject {
         return self.relate(relationship)
     }
     
+    func relate(to: Neo4jNode, type: String, properties: [String:String]) -> Bool {
+        let relationship = Neo4jRelationship(node: self.updatedNode, toNode: to.updatedNode, type: type, properties: properties)
+        
+        return self.relate(relationship)
+    }
+    
 }
