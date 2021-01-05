@@ -259,6 +259,8 @@ class AppAnalysisController {
                             
                             let variables = handleVariables(newClass: classInstance, oldClass: parentClass, changes: parent.changesForPaths)
                             variablesToBeHandled.append(contentsOf: variables)
+                            
+                            classInstance.save()
                         } else {
                             if let potMethods = classInstance.potentialMethods {
                                 classInstance.methods = potMethods
