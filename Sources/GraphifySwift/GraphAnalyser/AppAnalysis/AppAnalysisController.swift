@@ -111,6 +111,14 @@ class AppAnalysisController {
                     
                     if let altParentApp = altParent.appVersion.analysedVersion {
                         altParentClasses = altParentApp.classes
+                        print("altParentClasses: \(altParentClasses.map(){value in return value.name})")
+                        
+                        for classInstance in altParentClasses {
+                            print("class: \(classInstance.name)")
+                            print("methds: \(classInstance.methods.map() {value in return value.name})")
+                        }
+                    } else {
+                        print("Alternate parent not analysed!")
                     }
                     
                     intersectionChanged = Array((Set(parent.changedPaths)).intersection(altParent.changedPaths))
@@ -183,8 +191,20 @@ class AppAnalysisController {
                             }
                             
                             classInstance.relate(to: addedClass, type: "CLASS_CHANGED_TO", properties: properties)
+                            addedClass.save()
                             
-                            // handle methods from both sides
+                            var methods = handleMethods(newClass: addedClass, oldClass: addedClass.parent!, changes: parent.changesForPaths)
+                            methodsToBeHandled.append(contentsOf: methods)
+                            
+                            methods = handleMethods(newClass: addedClass, oldClass: classInstance, changes: altParent.changesForPaths)
+                            methodsToBeHandled.append(contentsOf: methods)
+                            
+                            var variables = handleVariables(newClass: addedClass, oldClass: addedClass.parent!, changes: parent.changesForPaths)
+                            variablesToBeHandled.append(contentsOf: variables)
+                            
+                            variables = handleVariables(newClass: addedClass, oldClass: classInstance, changes: altParent.changesForPaths)
+                            
+                            // TODO: handle methods from both sides
                             // rel for parents
                             
                         } else if altParent.unchangedPaths.contains(classInstance.path) {
@@ -202,7 +222,13 @@ class AppAnalysisController {
                                 classInstance.relate(to: remainingParentClass, type: "CLASS_CHANGED_TO", properties: properties)
                                 
                                 // add rel to methods where necessary (can start with Changed for each method?)
-                                // handle methods (only parent to alt parent)
+                                // TODO: handle methods (only parent to alt parent)
+                                let methods = handleMethods(newClass: classInstance, oldClass: remainingParentClass, changes: parent.changesForPaths)
+                                methodsToBeHandled.append(contentsOf: methods)
+                                
+                                var variables = handleVariables(newClass: classInstance, oldClass: remainingParentClass, changes: parent.changesForPaths)
+                                variablesToBeHandled.append(contentsOf: variables)
+                                
                                 
                             } else if let notChangedClass = notChangedClasses[classInstance.usr] {
                                 // none were changed --> merge
@@ -220,6 +246,13 @@ class AppAnalysisController {
                                     }
                                     
                                     classInstance.relate(to: notChangedClass, type: "MERGE", properties: properties)
+                                    
+                                    let methods = handleMethods(newClass: notChangedClass, oldClass: classInstance, changes: altParent.changesForPaths)
+                                    methodsToBeHandled.append(contentsOf: methods)
+                                    
+                                    var variables = handleVariables(newClass: notChangedClass, oldClass: classInstance, changes: altParent.changesForPaths)
+                                    variablesToBeHandled.append(contentsOf: variables)
+                                    
                                 }
                                 
                                 //handle methods (only alt parent merge where methods not the same)
@@ -239,7 +272,14 @@ class AppAnalysisController {
                             }
                             
                             classInstance.relate(to: notChangedClass, type: "CLASS_CHANGED_TO", properties: properties)
+                            
+                            let methods = handleMethods(newClass: notChangedClass, oldClass: classInstance, changes: altParent.changesForPaths)
                             // handle methods (only from alt parent to class)
+                            methodsToBeHandled.append(contentsOf: methods)
+                            
+                            var variables = handleVariables(newClass: notChangedClass, oldClass: classInstance, changes: altParent.changesForPaths)
+                            variablesToBeHandled.append(contentsOf: variables)
+                            
                             
                         } else if let remainingParentClass = remainingParentClasses[classInstance.usr] {
                             print("Found remainingParentClass: \(remainingParentClass.name) - \(remainingParentClass.usr)")

@@ -183,7 +183,7 @@ class GitManager: AppManager {          // manager used for project evolution
         if forCommit.parent != "" {
             if let path = self.path {
                 //print("path: \(path)")
-                let res = Helper.shell(launchPath: "/usr/bin/git", arguments: ["--git-dir", path, "diff", "-r", toCommit.commit, forCommit.commit])
+                let res = Helper.shell(launchPath: "/usr/bin/git", arguments: ["--git-dir", path, "diff", "-r", toCommit.commit, forCommit.commit, "--unified=0"])
                 
                 //print("git diff result: \(res)")
                 
@@ -247,21 +247,35 @@ class GitManager: AppManager {          // manager used for project evolution
                         //print("splitting by ,")
                         let values = line.split(separator: " ")
                         //print("values: \(values)")
+            
+                        /*
+                         @@ -12 +12 @@ class House {
+                         -    let doors: [String]
+                         +    let doors: [Door]
+                         */
+                        
+                        var oldLineNumbers = (start: 0, length: 0)
+                        var newLineNumbers = (start: 0, length: 0)
                         
                         
                         // TODO: fix error from: ["@@", "-1", "+1", "@@"] --> no "," in numbers, normally -1,9 for example instead of -1
-                        if !values[1].contains(",") {
-                            continue
+                        if values[1].contains(",") {
+                            let oldString = String("\(values[1])".dropFirst()).split(separator: ",")
+                            let newString = String("\(values[2])".dropFirst()).split(separator: ",")
+                            
+                            oldLineNumbers = (start: Int(oldString[0])!, length: Int(oldString[1])!)
+                            newLineNumbers = (start: Int(oldString[0])!, length: Int(oldString[1])!)
+                        } else {
+                            oldLineNumbers = (start: Int("\(values[1])".dropFirst())!, length: 0)
+                            newLineNumbers = (start: Int("\(values[2])".dropFirst())!, length: 0)
                         }
                         
-                        let oldString = String("\(values[1])".dropFirst()).split(separator: ",")
-                        let newString = String("\(values[2])".dropFirst()).split(separator: ",")
+                        
                         
                         //print("oldString: \(oldString), newString: \(newString)")
                         
                         //TODO: remove !
-                        let oldLineNumbers = (start: Int(oldString[0])!, length: Int(oldString[1])!)
-                        let newLineNumbers = (start: Int(oldString[0])!, length: Int(oldString[1])!)
+                        
                         
                         //print("oldLineNumbers: \(oldLineNumbers), newLineNumbers: \(newLineNumbers)")
                         
