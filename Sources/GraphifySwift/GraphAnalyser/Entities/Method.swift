@@ -26,10 +26,17 @@ class Method {
     var instructions: [Instruction]? //Current idea: when instructions is nil, then object came from db, if not nil then read from structure analysis - used to calculate metrics
     
     var children: [Method] = []
-    var parent: Method? {
-        didSet {
-            parent?.relate(to: self, type: "CHANGED_TO")
+    var parent: Method?
+    var altParent: Method?
+    
+    func saveParent() {
+        parent?.relate(to: self, type: "CHANGED_TO")
+        altParent?.relate(to: self, type: "CHANGED_TO")
+        
+        if let parent = self.parent {
+            self.version = parent.version + 1
         }
+        self.save()
     }
     
     init(name: String, type: String, kind: MethodKind, code: String, usr: String) {

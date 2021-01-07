@@ -199,10 +199,10 @@ class AppAnalysisController {
                             methods = handleMethods(newClass: addedClass, oldClass: classInstance, changes: altParent.changesForPaths)
                             methodsToBeHandled.append(contentsOf: methods)
                             
-                            var variables = handleVariables(newClass: addedClass, oldClass: addedClass.parent!, changes: parent.changesForPaths)
+                            var variables = handleVariablesMerge(newClass: addedClass, changesParent: parent.changesForPaths, changesAddParent: altParent.changesForPaths)
+                            
                             variablesToBeHandled.append(contentsOf: variables)
                             
-                            variables = handleVariables(newClass: addedClass, oldClass: classInstance, changes: altParent.changesForPaths)
                             
                             // TODO: handle methods from both sides
                             // rel for parents
@@ -962,7 +962,137 @@ class AppAnalysisController {
         return methodsToBeHandled
     }
     
+    func findNewVariables(newClass: Class, oldClass: Class, changes: [String: [FileChange]]) -> [Variable] {
+        
+        return []
+    }
+    
+    func findUpdatedVariables(newClass: Class, oldClass: Class, changes: [String: [FileChange]]) -> [Variable] {
+    
+        return []
+    }
+    
+    func handleVariablesMerge(newClass: Class, changesParent: [String: [FileChange]], changesAddParent: [String: [FileChange]]) -> [Variable] {
+        
+        if let parent = newClass.parent, let altParent = newClass.alternateParent {
+            var newVariables: [Variable] = []
+            var oldVariables: [Variable] = []
+            
+            let variablesParent = findNewAndUpdatedVariables(newClass: newClass, oldClass: parent, changes: changesParent)
+            
+            let variablesAltParent = findNewAndUpdatedVariables(newClass: newClass, oldClass: altParent, changes: changesAddParent)
+            
+            var handledVariables: [String: Variable] = [:]
+            
+            variableLoop: for variable in variablesParent.new {
+                for altVariable in (variablesAltParent.new + variablesAltParent.updated + variablesAltParent.old) {
+                    if variable.name == altVariable.name { //TODO: figure out if it's ok to compare names -- usr might probably not always be the same?
+                        if handledVariables[variable.name] == nil {
+                            newVariables.append(altVariable)
+                            handledVariables[altVariable.name] = altVariable
+                        }
+                        
+                        continue variableLoop
+                    }
+                }
+            }
+            
+            variableLoop: for altVariable in variablesAltParent.new {
+                for variable in (variablesParent.new + variablesParent.updated + variablesParent.old) {
+                    if variable.name == altVariable.name { //TODO: figure out if it's ok to compare names -- usr might probably not always be the same?
+                        if handledVariables[variable.name] == nil {
+                            newVariables.append(variable)
+                            handledVariables[variable.name] = variable
+                        }
+                        
+                        continue variableLoop
+                    }
+                }
+            }
+            
+            variableLoop: for variable in variablesParent.old {
+                for altVariable in (variablesAltParent.updated) {
+                    if variable.name == altVariable.name { //TODO: figure out if it's ok to compare names -- usr might probably not always be the same?
+                        if handledVariables[variable.name] == nil {
+                            newVariables.append(variable)
+                            handledVariables[variable.name] = variable
+                            variable.altParent = altVariable.parent
+                        }
+                        
+                        continue variableLoop
+                    }
+                }
+                
+                for altVariable in (variablesAltParent.old) {
+                    if variable.name == altVariable.name {
+                        if handledVariables[variable.name] == nil {
+                            oldVariables.append(variable)
+                            handledVariables[variable.name] = variable
+                            variable.altParent = altVariable.parent
+                        }
+                    }
+                }
+            }
+            
+            variableLoop: for altVariable in variablesAltParent.old {
+                for variable in (variablesParent.updated) {
+                    if variable.name == altVariable.name { //TODO: figure out if it's ok to compare names -- usr might probably not always be the same?
+                        if handledVariables[variable.name] == nil {
+                            newVariables.append(altVariable)
+                            handledVariables[altVariable.name] = altVariable
+                            altVariable.altParent = variable.parent
+                        }
+                        
+                        continue variableLoop
+                    }
+                }
+            }
+            
+            variableLoop: for variable in variablesParent.updated {
+                for altVariable in (variablesAltParent.updated) {
+                    if variable.name == altVariable.name { //TODO: figure out if it's ok to compare names -- usr might probably not always be the same?
+                        if handledVariables[variable.name] == nil {
+                            newVariables.append(variable)
+                            handledVariables[variable.name] = variable
+                            variable.altParent = altVariable.parent
+                        }
+                        
+                        continue variableLoop
+                    }
+                }
+            }
+            
+            newClass.variables = newVariables + oldVariables
+            newClass.saveVariables()
+            
+            return newVariables
+        }
+        
+        print("Could not find parent \(newClass.parent) or altParent \(newClass.alternateParent)")
+        return []
+    }
+
+    
     func handleVariables(newClass: Class, oldClass: Class, changes: [String: [FileChange]]) -> [Variable] {
+        
+        let variables = findNewAndUpdatedVariables(newClass: newClass, oldClass: oldClass, changes: changes)
+        
+        for variable in variables.new {
+            variable.save()
+        }
+        
+        for variable in variables.updated {
+            variable.save()
+            variable.saveParent()
+        }
+        
+        newClass.variables = variables.new  + variables.updated + variables.old
+        newClass.saveVariables()
+        
+        return variables.new + variables.updated
+    }
+    
+    func findNewAndUpdatedVariables(newClass: Class, oldClass: Class, changes: [String: [FileChange]]) -> (new: [Variable], updated: [Variable], old: [Variable]) {
         var oldNames: [String] = oldClass.variables.map() { value in return value.name}
         
         var newNames: [String] = []
@@ -984,7 +1114,6 @@ class AppAnalysisController {
                 if !oldNames.contains(variable.name) {
                     print("new variable added: \(variable.name)")
                     newVariables.append(variable)
-                    variable.save() //TODO: do this here?
                     continue variableLoop
                 }
                 
@@ -1006,7 +1135,6 @@ class AppAnalysisController {
                                     for oldVariable in oldClass.variables {
                                         if variable.name == oldVariable.name {
                                             print("prev. version of variable found")
-                                            variable.save()
                                             variable.parent = oldVariable
                                         }
                                     }
@@ -1032,10 +1160,7 @@ class AppAnalysisController {
             
         }
         
-        newClass.variables = newVariables + updatedVariables + oldVariables
-        newClass.saveVariables()
-        
-        return newVariables + updatedVariables
+        return (new: newVariables, updated: updatedVariables, oldVariables)
     }
     
     func addCallAndUseConnectionsFrom(method: Method, app: App) {

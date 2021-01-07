@@ -232,6 +232,8 @@ class GitManager: AppManager {          // manager used for project evolution
                     
                     if line.starts(with: "@@") {
                         print("@@")
+                        print("line: \(line)")
+                        
                         if currentFileChange == nil {
                             //print("Line: \(line)")
                             //print("oldFile: \(oldFile), newFile: \(newFile)")
@@ -260,14 +262,30 @@ class GitManager: AppManager {          // manager used for project evolution
                         
                         // TODO: fix error from: ["@@", "-1", "+1", "@@"] --> no "," in numbers, normally -1,9 for example instead of -1
                         if values[1].contains(",") {
-                            let oldString = String("\(values[1])".dropFirst()).split(separator: ",")
-                            let newString = String("\(values[2])".dropFirst()).split(separator: ",")
+                            let oldString = String("\(values[1])".replacingOccurrences(of: "-", with: "")).split(separator: ",")
+                            print("oldString: \(oldString)")
                             
                             oldLineNumbers = (start: Int(oldString[0])!, length: Int(oldString[1])!)
-                            newLineNumbers = (start: Int(oldString[0])!, length: Int(oldString[1])!)
                         } else {
-                            oldLineNumbers = (start: Int("\(values[1])".dropFirst())!, length: 0)
-                            newLineNumbers = (start: Int("\(values[2])".dropFirst())!, length: 0)
+                            print("values1: \(values[1])")
+                            oldLineNumbers = (start: Int("\(values[1])".trimmingCharacters(in: .whitespacesAndNewlines).dropFirst())!, length: 0)
+                        }
+                        
+                        if values[2].contains(",") {
+                            let newString = String("\(values[2])".replacingOccurrences(of: "+", with: "")).split(separator: ",")
+                            print("newString: \(newString)")
+                            
+                            newLineNumbers = (start: Int(newString[0])!, length: Int(newString[1])!)
+                        } else {
+                            print("values2: \(values[2])")
+                            let test = "\(values[2])".trimmingCharacters(in: .whitespacesAndNewlines).dropFirst()
+                            print("test: \(test)")
+                            print("int: \(Int("\(test)"))")
+                            print("ascii: \(String(test).first!.asciiValue)")
+                            print("antoher: \(Int(String(test)))")
+                            print("length: \(String(test).count)")
+                            test.forEach({ print($0.asciiValue) })
+                            newLineNumbers = (start: Int(String(test))!, length: 0)
                         }
                         
                         
