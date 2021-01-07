@@ -279,13 +279,9 @@ class GitManager: AppManager {          // manager used for project evolution
                         } else {
                             print("values2: \(values[2])")
                             let test = "\(values[2])".trimmingCharacters(in: .whitespacesAndNewlines).dropFirst()
-                            print("test: \(test)")
-                            print("int: \(Int("\(test)"))")
-                            print("ascii: \(String(test).first!.asciiValue)")
-                            print("antoher: \(Int(String(test)))")
-                            print("length: \(String(test).count)")
-                            test.forEach({ print($0.asciiValue) })
-                            newLineNumbers = (start: Int(String(test))!, length: 0)
+                            
+                            let start = Int(test)!
+                            newLineNumbers = (start: start, length: 0)
                         }
                         
                         
