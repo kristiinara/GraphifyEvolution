@@ -71,7 +71,7 @@ class GitManager: AppManager {          // manager used for project evolution
             
         }
         
-        appVersion.commit = nextCommit.commit
+        appVersion.commit = nextCommit
         
         self.runGitCheckoutCommand(forCommit: nextCommit)
         

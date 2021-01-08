@@ -14,9 +14,9 @@ class App {
     var versionNumber: Int = 1
     
     var usr: String? // USR??
-    var commit: String?
-    var parentCommit: String?
-    var alternateParentCommit: String?
+    var commit: Commit?
+    var parentCommit: Commit?
+    var alternateParentCommit: Commit?
     
     var classes: [Class]
     
@@ -81,7 +81,11 @@ extension App: Neo4jObject {
         oldNode.properties["name"] = self.name
         oldNode.properties["usr"] = self.usr
         oldNode.properties["version_number"] = self.versionNumber
-        oldNode.properties["commit"] = self.commit
+        oldNode.properties["commit"] = self.commit?.commit
+        oldNode.properties["treee"] = self.commit?.tree
+        oldNode.properties["time"] = self.commit?.date
+        oldNode.properties["author"] = self.commit?.author
+        oldNode.properties["message"] = self.commit?.message
         oldNode.properties["parent_commit"] = self.parentCommit
         oldNode.properties["alternate_parent_commit"] = self.alternateParentCommit
         

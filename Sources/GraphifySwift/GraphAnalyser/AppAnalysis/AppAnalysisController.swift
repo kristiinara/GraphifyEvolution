@@ -160,7 +160,7 @@ class AppAnalysisController {
                     if let addedClass = addedClasses[classInstance.usr] {
                         addedClass.parent = classInstance
                         var properties: [String:String] = [:]
-                        if let commit = appVersion.commit {
+                        if let commit = appVersion.commit?.commit {
                             properties["commit"] = commit
                         }
                         
@@ -173,7 +173,7 @@ class AppAnalysisController {
                     } else if parent.removedPaths.contains(classInstance.path) {
                         // do nothing
                     } else {
-                        print("remainingParentClass: \(classInstance) - commit: \(appVersion.commit)")
+                        print("remainingParentClass: \(classInstance) - commit: \(appVersion.commit?.commit)")
                         remainingParentClasses[classInstance.usr] = classInstance
                     }
                 }
@@ -186,17 +186,14 @@ class AppAnalysisController {
                             
                             
                             var properties: [String:String] = [:]
-                            if let commit = appVersion.commit {
+                            if let commit = appVersion.commit?.commit {
                                 properties["commit"] = commit
                             }
                             
                             classInstance.relate(to: addedClass, type: "CLASS_CHANGED_TO", properties: properties)
                             addedClass.save()
                             
-                            var methods = handleMethods(newClass: addedClass, oldClass: addedClass.parent!, changes: parent.changesForPaths)
-                            methodsToBeHandled.append(contentsOf: methods)
-                            
-                            methods = handleMethods(newClass: addedClass, oldClass: classInstance, changes: altParent.changesForPaths)
+                            let methods = handleMethodsMerge(newClass: addedClass, changesParent: parent.changesForPaths, changesAddParent: altParent.changesForPaths)
                             methodsToBeHandled.append(contentsOf: methods)
                             
                             var variables = handleVariablesMerge(newClass: addedClass, changesParent: parent.changesForPaths, changesAddParent: altParent.changesForPaths)
@@ -215,7 +212,7 @@ class AppAnalysisController {
                                 //classInstance.saveParent()
                                 
                                 var properties: [String:String] = [:]
-                                if let commit = appVersion.commit {
+                                if let commit = appVersion.commit?.commit {
                                     properties["commit"] = commit
                                 }
                                 
@@ -241,7 +238,7 @@ class AppAnalysisController {
                                     notChangedClass.alternateParent = classInstance
                                     
                                     var properties: [String:String] = [:]
-                                    if let commit = appVersion.commit {
+                                    if let commit = appVersion.commit?.commit {
                                         properties["commit"] = commit
                                     }
                                     
@@ -260,14 +257,15 @@ class AppAnalysisController {
                                 // class from altParent merged without changes
                                 finalClasses.append(classInstance)
                             } else {
-                                fatalError("Class not handled: \(classInstance.name) - \(classInstance.usr)")
+                                finalClasses.append(classInstance) //TODO: check if this is correct
+                               // fatalError("Class not handled: \(classInstance.name) - \(classInstance.usr)")
                             }
                         } else if altParent.removedPaths.contains(classInstance.path) {
                             // do nothing
                         } else if let notChangedClass = notChangedClasses[classInstance.usr] {
                             notChangedClass.alternateParent = classInstance
                             var properties: [String:String] = [:]
-                            if let commit = appVersion.commit {
+                            if let commit = appVersion.commit?.commit {
                                 properties["commit"] = commit
                             }
                             
@@ -285,7 +283,9 @@ class AppAnalysisController {
                             print("Found remainingParentClass: \(remainingParentClass.name) - \(remainingParentClass.usr)")
                             fatalError("Found not handled remainingParentClass \(remainingParentClass.name) - should not happen!")
                         } else {
-                            fatalError("Class not handled: \(classInstance.name) - \(classInstance.usr)")
+                            print("Class not handled: \(classInstance.name) - \(classInstance.usr)") //TODO: figure out how bad this is
+                            finalClasses.append(classInstance)
+                            //fatalError("Class not handled: \(classInstance.name) - \(classInstance.usr)")
                         }
                     }
                 } else {
@@ -962,15 +962,106 @@ class AppAnalysisController {
         return methodsToBeHandled
     }
     
-    func findNewVariables(newClass: Class, oldClass: Class, changes: [String: [FileChange]]) -> [Variable] {
+    func handleMethodsMerge(newClass: Class, changesParent: [String: [FileChange]], changesAddParent: [String: [FileChange]]) -> [Method] {
         
+        if let parent = newClass.parent, let altParent = newClass.alternateParent {
+            var newMethods: [Method] = []
+            var oldMethods: [Method] = []
+            
+            let methodsParent = findNewAndUpdatedMethods(newClass: newClass, oldClass: parent, changes: changesParent)
+            
+            let methodsAltParent = findNewAndUpdatedMethods(newClass: newClass, oldClass: altParent, changes: changesAddParent)
+            
+            var handledMethods: [String: Method] = [:]
+            
+            methodLoop: for method in methodsParent.new {
+                for altMethod in (methodsAltParent.new + methodsAltParent.updated + methodsAltParent.old) {
+                    if method.name == altMethod.name { //TODO: figure out if it's ok to compare names -- usr might probably not always be the same?
+                        if handledMethods[method.name] == nil {
+                            newMethods.append(altMethod)
+                            handledMethods[altMethod.name] = altMethod
+                        }
+                        
+                        continue methodLoop
+                    }
+                }
+            }
+            
+            methodLoop: for altMethod in methodsAltParent.new {
+                for method in (methodsParent.new + methodsParent.updated + methodsParent.old) {
+                    if method.name == altMethod.name { //TODO: figure out if it's ok to compare names -- usr might probably not always be the same?
+                        if handledMethods[method.name] == nil {
+                            newMethods.append(method)
+                            handledMethods[method.name] = method
+                        }
+                        
+                        continue methodLoop
+                    }
+                }
+            }
+            
+            methodLoop: for method in methodsParent.old {
+                for altMethod in (methodsAltParent.updated) {
+                    if method.name == altMethod.name { //TODO: figure out if it's ok to compare names -- usr might probably not always be the same?
+                        if handledMethods[method.name] == nil {
+                            newMethods.append(method)
+                            handledMethods[method.name] = method
+                            method.altParent = altMethod.parent
+                        }
+                        
+                        continue methodLoop
+                    }
+                }
+                
+                for altMethod in (methodsAltParent.old) {
+                    if method.name == altMethod.name {
+                        if handledMethods[method.name] == nil {
+                            oldMethods.append(method)
+                            handledMethods[method.name] = method
+                            method.altParent = altMethod.parent
+                        }
+                    }
+                }
+            }
+            
+            methodLoop: for altMethod in methodsAltParent.old {
+                for method in (methodsParent.updated) {
+                    if method.name == altMethod.name { //TODO: figure out if it's ok to compare names -- usr might probably not always be the same?
+                        if handledMethods[method.name] == nil {
+                            newMethods.append(altMethod)
+                            handledMethods[altMethod.name] = altMethod
+                            altMethod.altParent = method.parent
+                        }
+                        
+                        continue methodLoop
+                    }
+                }
+            }
+            
+            methodLoop: for method in methodsParent.updated {
+                for altMethod in (methodsAltParent.updated) {
+                    if method.name == altMethod.name { //TODO: figure out if it's ok to compare names -- usr might probably not always be the same?
+                        if handledMethods[method.name] == nil {
+                            newMethods.append(method)
+                            handledMethods[method.name] = method
+                            method.altParent = altMethod.parent
+                        }
+                        
+                        continue methodLoop
+                    }
+                }
+            }
+            
+            newClass.methods = newMethods + oldMethods
+            newClass.saveMethods()
+            
+            return newMethods
+        }
+        
+        print("Could not find parent \(newClass.parent) or altParent \(newClass.alternateParent)")
         return []
     }
     
-    func findUpdatedVariables(newClass: Class, oldClass: Class, changes: [String: [FileChange]]) -> [Variable] {
-    
-        return []
-    }
     
     func handleVariablesMerge(newClass: Class, changesParent: [String: [FileChange]], changesAddParent: [String: [FileChange]]) -> [Variable] {
         
@@ -1090,6 +1181,77 @@ class AppAnalysisController {
         newClass.saveVariables()
         
         return variables.new + variables.updated
+    }
+    
+    func findNewAndUpdatedMethods(newClass: Class, oldClass: Class, changes: [String: [FileChange]]) -> (new: [Method], updated: [Method], old: [Method]) {
+        var oldNames: [String] = oldClass.methods.map() { value in return value.name}
+        
+        var newNames: [String] = []
+        
+        if let potentialMethods = newClass.potentialMethods {
+            newNames = potentialMethods.map() { value in return value.name}
+        }
+
+        var newMethods: [Method] = []
+        var updatedMethods: [Method] = []
+        var oldMethods: [Method] = []
+        
+        print("method oldNames: \(oldNames)")
+        print("method newNames: \(newNames)")
+
+        if let methods = newClass.potentialMethods {
+            print("going through potential variables")
+            methodLoop: for method in methods {
+                if !oldNames.contains(method.name) {
+                    print("new variable added: \(method.name)")
+                    newMethods.append(method)
+                    continue methodLoop
+                }
+                
+                if let startLine = method.startLine, let endLine = method.endLine {
+                    print("lines: \(method.startLine) - \(method.endLine)")
+                    if let changesForpath = changes[newClass.path] {
+                        for fileChange in changesForpath {
+                            for change in fileChange.changes {
+                                print("change lines: \(change.newLines)")
+                                if !(startLine < change.newLines.start && endLine < change.newLines.start) && !(startLine > (change.newLines.start + change.newLines.length) && endLine > (change.newLines.start + change.newLines.length)) {
+                                    print("match")
+                                    
+                                    
+                                    if oldNames.contains(method.name) {
+                                        print("old name contains variable.name")
+                                        
+                                    }
+                                    
+                                    for oldMethod in oldClass.methods {
+                                        if method.name == oldMethod.name {
+                                            print("prev. version of variable found")
+                                            method.parent = oldMethod
+                                        }
+                                    }
+                                    
+                                    updatedMethods.append(method)
+                                    
+                                    continue methodLoop
+                                } else {
+                                    print("no match")
+                                }
+                            }
+                        }
+                    }
+                    
+                    for oldMethod in oldClass.methods {
+                        if method.name == oldMethod.name {
+                            oldMethods.append(oldMethod)
+                        }
+                    }
+                }
+            }
+            
+            
+        }
+        
+        return (new: newMethods, updated: updatedMethods, oldMethods)
     }
     
     func findNewAndUpdatedVariables(newClass: Class, oldClass: Class, changes: [String: [FileChange]]) -> (new: [Variable], updated: [Variable], old: [Variable]) {
