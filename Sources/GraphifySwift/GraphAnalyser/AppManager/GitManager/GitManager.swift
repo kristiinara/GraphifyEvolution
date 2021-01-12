@@ -46,6 +46,9 @@ class GitManager: AppManager {          // manager used for project evolution
         let nextCommit = self.commitsToBeAnalysed.removeFirst()
         print("Next commit: \(nextCommit.commit), parent: \(nextCommit.parent), check parent: \(nextCommit.parentCommit?.commit)")
         
+        let branch = runGetBranchCommand(forCommit: nextCommit)
+        nextCommit.branch = branch
+        
         let appVersion = AppVersion(directoryPath: path)
         //appVersion.changedFilePaths
         nextCommit.appVersion = appVersion
@@ -139,6 +142,26 @@ class GitManager: AppManager {          // manager used for project evolution
     
     func newAppManager(path: String) -> AppManager {
         return GitManager(path: path)
+    }
+    
+    func runGetBranchCommand(forCommit: Commit) -> String? {
+      //  git name-rev --name-only --exclude=tags/*
+        if let path = self.path {
+            let notGitPath = String(path.dropLast(".git".count))
+            
+            let res = Helper.shell(launchPath: "/usr/bin/git", arguments: ["--git-dir", path, "--work-tree", notGitPath, "name-rev", "--name-only", "--exclude=tags/*", forCommit.commit ])
+            
+            print("Branch result: \(res)")
+            let split = res.split(separator: "~")
+            
+            if let first = split.first {
+                print("setting branch: \(first)")
+                return String(first)
+            }
+            return nil
+        } else {
+            fatalError("Path for gitManager not defined")
+        }
     }
     
     func runGitCheckoutCommand(forCommit: Commit) {

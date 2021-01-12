@@ -82,7 +82,8 @@ extension App: Neo4jObject {
         oldNode.properties["usr"] = self.usr
         oldNode.properties["version_number"] = self.versionNumber
         oldNode.properties["commit"] = self.commit?.commit
-        oldNode.properties["treee"] = self.commit?.tree
+        oldNode.properties["tree"] = self.commit?.tree
+        oldNode.properties["branch"] = self.commit?.branch
         oldNode.properties["time"] = self.commit?.date
         oldNode.properties["author"] = self.commit?.author
         oldNode.properties["message"] = self.commit?.message
