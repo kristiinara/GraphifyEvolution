@@ -9,4 +9,6 @@ import Foundation
 
 protocol LocalFileManager {
     func fetchAllFiles(folderPath: String) -> [URL]
+    var ignoreWithPathComponents: [String] {get}
+    var allowedEndings: [String] {get}
 }

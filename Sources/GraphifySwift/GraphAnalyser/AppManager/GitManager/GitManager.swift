@@ -63,6 +63,7 @@ class GitManager: AppManager {          // manager used for project evolution
                 
             }
             
+            /*
             if let altParentCommit = nextCommit.alternateParentCommit {
                 if let altParentVersion = altParentCommit.appVersion {
                     print("found alternateparent commit")
@@ -71,6 +72,7 @@ class GitManager: AppManager {          // manager used for project evolution
                     appVersion.alternateParent = AppVersionParent(appVersion: altParentVersion, changes: altChanges)
                 }
             }
+ */
             
         }
         

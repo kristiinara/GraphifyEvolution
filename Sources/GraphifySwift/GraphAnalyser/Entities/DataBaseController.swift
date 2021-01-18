@@ -33,6 +33,8 @@ class Node {
         
         propertyString = propertyString.replacingOccurrences(of: "{:}", with: "{}")
         
+        propertyString = propertyString.replacingOccurrences(of: "'", with: "\"")
+        
         print("propertyString: \(propertyString)")
         
         return propertyString

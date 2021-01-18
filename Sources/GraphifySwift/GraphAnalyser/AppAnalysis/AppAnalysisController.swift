@@ -15,6 +15,8 @@ class AppAnalysisController {
     var appVersions: [AppVersion] = [] //TODO: do we really need this?
     var apps: [App] = []
     
+    var externalObjects: [String: ExternalObject] = [:]
+    
     init(appManager: AppManager, syntaxAnalyser: SyntaxAnalyser, fileManager: LocalFileManager) {
         self.appManager = appManager
         self.syntaxAnalyser = syntaxAnalyser
@@ -135,7 +137,25 @@ class AppAnalysisController {
                 combinedPaths.append(contentsOf: intersectionParentNew)
                 combinedPaths.append(contentsOf: instersectonAltParentNew)
                 
-                for path in combinedPaths {
+                pathLoop: for path in combinedPaths {
+                    for ignore in fileManager.ignoreWithPathComponents {
+                        if path.contains(ignore) {
+                            continue pathLoop
+                        }
+                    }
+                    
+                    var correctEnding = false
+                    for ending in fileManager.allowedEndings {
+                        if path.hasSuffix(ending) {
+                            correctEnding = true
+                            break
+                        }
+                    }
+                    
+                    if !correctEnding {
+                        continue pathLoop
+                    }
+                    
                     let classes = self.syntaxAnalyser.analyseFile(filePath: path, includePaths: includePaths)
                     
                     var classesToAdd: [Class] = []
@@ -146,6 +166,7 @@ class AppAnalysisController {
                         } else {
                             addedClasses[classInstance.usr] = classInstance
                             classesToAdd.append(classInstance)
+                            classInstance.save()
                         }
                     }
                     
@@ -173,7 +194,7 @@ class AppAnalysisController {
                     } else if parent.removedPaths.contains(classInstance.path) {
                         // do nothing
                     } else {
-                        print("remainingParentClass: \(classInstance) - commit: \(appVersion.commit?.commit)")
+                        print("remainingParentClass: \(classInstance.name) - commit: \(appVersion.commit?.commit), path: \(classInstance.path)")
                         remainingParentClasses[classInstance.usr] = classInstance
                     }
                 }
@@ -318,6 +339,11 @@ class AppAnalysisController {
                             
                             classInstance.save()
                         }
+                    }
+                    
+                    for remainingParentClass in remainingParentClasses.values {
+                        print("add from remainingParentClasses: \(remainingParentClass.name)")
+                        finalClasses.append(remainingParentClass)
                     }
                 }
                 
@@ -1345,7 +1371,15 @@ class AppAnalysisController {
             } else if let usedVariable = allVariables[usr] {
                 method.relate(to: usedVariable, type: "USED")
             } else {
-                print("Usr not found: \(usr)")
+                if let external = externalObjects[usr] {
+                    method.relate(to: external, type: "EXTERNAL_REF")
+                } else {
+                    let external = ExternalObject(usr: usr)
+                    external.save()
+                    externalObjects[usr] = external
+                    method.relate(to: external, type: "EXTERNAL_REF")
+                }
+                print("Usr not found (method from): \(usr)")
             }
         }
     }
@@ -1397,7 +1431,7 @@ class AppAnalysisController {
                         } else if let usedVariable = variablesToBeHandled[usr] {
                             method.relate(to: usedVariable, type: "USED")
                         } else {
-                            print("Usr not found: \(usr)")
+                            print("Usr not found methodTo: \(usr)")
                         }
                     }
                 }

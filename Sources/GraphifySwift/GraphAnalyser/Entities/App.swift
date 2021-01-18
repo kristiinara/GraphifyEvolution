@@ -42,6 +42,7 @@ class App {
         
         //self.save()
         for classInstance in classes {
+            classInstance.save()
             self.relate(to: classInstance, type: "APP_OWNS_CLASS")
         }
     }

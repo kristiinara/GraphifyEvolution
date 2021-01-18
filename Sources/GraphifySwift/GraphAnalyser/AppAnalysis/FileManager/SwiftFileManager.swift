@@ -8,6 +8,15 @@
 import Foundation
 
 class SwiftFileManager: LocalFileManager {
+    
+    var ignoreWithPathComponents: [String] {
+        return ["/Carthage/"]
+    }
+    
+    var allowedEndings: [String] {
+        return [".swift"]
+    }
+    
     func fetchAllFiles(folderPath: String) -> [URL] {
         var files: [URL] = []
         
@@ -59,7 +68,9 @@ class SwiftFileManager: LocalFileManager {
                         
                          if (fileURL.path.contains("Tests")) {
                             //print("Ignore test files")
-                        } else {
+                         } else if (fileURL.path.contains("Example") && fileURL.path.contains("Carthage")) {
+                            // ignore
+                         } else {
                             files.append(fileURL)
                         }
                     }

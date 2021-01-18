@@ -8,6 +8,15 @@
 import Foundation
 
 class CPPFileManager: LocalFileManager {
+    
+    var ignoreWithPathComponents: [String] {
+        return []
+    }
+    
+    var allowedEndings: [String] {
+        return [".h", ".cpp"]
+    }
+    
     func fetchAllFiles(folderPath: String) -> [URL] {
         var files: [URL] = []
         
