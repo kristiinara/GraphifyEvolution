@@ -22,22 +22,30 @@ class Node {
     }
     
     var propertyString: String {
-        var propertyString = "\(self.properties)"
-        propertyString = propertyString.replacingOccurrences(of: "[", with: "{")
-        propertyString = propertyString.replacingOccurrences(of: "]", with: "}")
+        var res = ""
         
-        propertyString = propertyString.replacingOccurrences(of: ": \"", with: ": \'")
-        propertyString = propertyString.replacingOccurrences(of: "\",", with: "\',")
-        propertyString = propertyString.replacingOccurrences(of: "\"}", with: "\'}")
-        propertyString = propertyString.replacingOccurrences(of: "\"", with: "")
+        if self.properties.keys.count == 0 {
+            res += "{}"
+            return res
+        }
+        for key in self.properties.keys {
+            if let value = self.properties[key] {
+                if var value = value as? String {
+                    value = value.replacingOccurrences(of: "\"", with: "\\\"")
+                    value = value.replacingOccurrences(of: "\'", with: "\\\'")
+                    value = value.replacingOccurrences(of: "\n", with: "\\\n")
+                    
+                    res += " \(key): '\(value)',"
+                } else {
+                    res += " \(key): \(value),"
+                }
+            }
+    
+        } // TODO: do we need to handle arrays?
         
-        propertyString = propertyString.replacingOccurrences(of: "{:}", with: "{}")
-        
-        propertyString = propertyString.replacingOccurrences(of: "'", with: "\"")
-        
-        print("propertyString: \(propertyString)")
-        
-        return propertyString
+        res = String(res.dropLast()) // remove last ","
+        res = "{ \(res) }"
+        return res
     }
 }
 
