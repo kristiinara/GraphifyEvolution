@@ -1365,6 +1365,7 @@ class AppAnalysisController {
     func addCallAndUseConnectionsFrom(method: Method, app: App) {
         var allMethods: [String: Method] = [:]
         var allVariables: [String: Variable] = [:]
+        var allClasses: [String: Class] = [:]
         
         for classInstance in app.classes {
             for method in classInstance.methods {
@@ -1374,6 +1375,8 @@ class AppAnalysisController {
             for variable in classInstance.variables {
                 allVariables[variable.usr] = variable
             }
+            
+            allClasses[classInstance.usr] = classInstance
         }
         
         for usr in method.calledUsrs {
@@ -1381,6 +1384,8 @@ class AppAnalysisController {
                 method.relate(to: calledMethod, type: "CALLED") // TODO: check why no called methods
             } else if let usedVariable = allVariables[usr] {
                 method.relate(to: usedVariable, type: "USED")
+            } else if let usedClass = allClasses[usr] {
+                method.relate(to: usedClass, type: "CLASS_REF")
             } else {
                 if let external = externalObjects[usr] {
                     method.relate(to: external, type: "EXTERNAL_REF")
