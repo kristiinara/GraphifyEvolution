@@ -18,7 +18,7 @@ class SwiftFileManager: LocalFileManager {
     }
     
     func fetchAllFiles(folderPath: String) -> [URL] {
-        var files: [URL] = []
+        var files: [String: URL] = [:]
         
         let resourceKeys : [URLResourceKey] = [
             .creationDateKey,
@@ -50,9 +50,9 @@ class SwiftFileManager: LocalFileManager {
                 }
             }
             
-            if fileURL.path.contains("+") {
-                continue fileLoop
-            }
+//            if fileURL.path.contains("+") {
+//                continue fileLoop
+//            }
             
             do {
                 let resourceValues = try fileURL.resourceValues(forKeys: Set(resourceKeys))
@@ -66,12 +66,22 @@ class SwiftFileManager: LocalFileManager {
                         //TODO: fix size stuff
                         //self.classSizes.append(size)
                         
-                         if (fileURL.path.contains("Tests")) {
+                        if (fileURL.path.contains("Tests") ||  fileURL.path.contains("TestCase")) {
                             //print("Ignore test files")
-                         } else if (fileURL.path.contains("Example") && fileURL.path.contains("Carthage")) {
-                            // ignore
+//                         } else if ((fileURL.path.contains("Example") || fileURL.path.contains("Externals"))  && fileURL.path.contains("Carthage")) {
+//                            // ignore
+//                         } else if fileURL.path.components(separatedBy: "/Carthage/Checkouts/").count > 2 {
+//                            // ignore (carthage checkouts of charthage checkouts)
                          } else {
-                            files.append(fileURL)
+                            if let existingURL = files[name] {
+                                if existingURL.path.contains("Carthage") {
+                                    files[name] = fileURL
+                                } else {
+                                    // ignore, sometimes the same file exists in multiple libraries
+                                }
+                            } else {
+                                files[name] = fileURL
+                            }
                         }
                     }
                 }
@@ -80,6 +90,6 @@ class SwiftFileManager: LocalFileManager {
                 print("Error")
             }
         }
-        return files
+        return [URL] (files.values)
     }
 }

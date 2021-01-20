@@ -137,9 +137,12 @@ class AppAnalysisController {
                 combinedPaths.append(contentsOf: intersectionParentNew)
                 combinedPaths.append(contentsOf: instersectonAltParentNew)
                 
+                print("combinedPaths: \(combinedPaths)")
+                
                 pathLoop: for path in combinedPaths {
                     for ignore in fileManager.ignoreWithPathComponents {
                         if path.contains(ignore) {
+                            print("ignore path \(path), contains ignore: \(ignore)")
                             continue pathLoop
                         }
                     }
@@ -148,11 +151,13 @@ class AppAnalysisController {
                     for ending in fileManager.allowedEndings {
                         if path.hasSuffix(ending) {
                             correctEnding = true
+                            print("path \(path) has correct ending \(ending)")
                             break
                         }
                     }
                     
                     if !correctEnding {
+                        print("ignore path \(path), ending not correct")
                         continue pathLoop
                     }
                     
@@ -161,10 +166,10 @@ class AppAnalysisController {
                     var classesToAdd: [Class] = []
                     
                     for classInstance in classes {
-                        if let existingClass = addedClasses[classInstance.usr] {
+                        if let existingClass = addedClasses[classInstance.name] {
                             print("Class already added: \(classInstance.name) - \(classInstance.usr)")
                         } else {
-                            addedClasses[classInstance.usr] = classInstance
+                            addedClasses[classInstance.name] = classInstance
                             classesToAdd.append(classInstance)
                             classInstance.save()
                         }
@@ -178,7 +183,7 @@ class AppAnalysisController {
                 var notChangedClasses: [String: Class] = [:]
                 
                 for classInstance in parentClasses {
-                    if let addedClass = addedClasses[classInstance.usr] {
+                    if let addedClass = addedClasses[classInstance.name] {
                         addedClass.parent = classInstance
                         var properties: [String:String] = [:]
                         if let commit = appVersion.commit?.commit {
@@ -190,18 +195,18 @@ class AppAnalysisController {
                     } else if parent.unchangedPaths.contains(classInstance.path) {
                         finalClasses.append(classInstance)
                         print("add classes (unchanged from parent): \(classInstance.name)")
-                        notChangedClasses[classInstance.usr] = classInstance
+                        notChangedClasses[classInstance.name] = classInstance
                     } else if parent.removedPaths.contains(classInstance.path) {
                         // do nothing
                     } else {
                         print("remainingParentClass: \(classInstance.name) - commit: \(appVersion.commit?.commit), path: \(classInstance.path)")
-                        remainingParentClasses[classInstance.usr] = classInstance
+                        remainingParentClasses[classInstance.name] = classInstance
                     }
                 }
                 
                 if let altParent = appVersion.alternateParent {
                     for classInstance in altParentClasses {
-                        if let addedClass = addedClasses[classInstance.usr] {
+                        if let addedClass = addedClasses[classInstance.name] {
                             addedClass.alternateParent = classInstance
                             //addedClass.saveParent()
                             
@@ -226,7 +231,7 @@ class AppAnalysisController {
                             // rel for parents
                             
                         } else if altParent.unchangedPaths.contains(classInstance.path) {
-                            if let remainingParentClass = remainingParentClasses[classInstance.usr] {
+                            if let remainingParentClass = remainingParentClasses[classInstance.name] {
                                 finalClasses.append(classInstance)
                                 print("add classes (unchanged from altParent): \(classInstance.name)")
                                 classInstance.parent = remainingParentClass
@@ -248,7 +253,7 @@ class AppAnalysisController {
                                 variablesToBeHandled.append(contentsOf: variables)
                                 
                                 
-                            } else if let notChangedClass = notChangedClasses[classInstance.usr] {
+                            } else if let notChangedClass = notChangedClasses[classInstance.name] {
                                 // none were changed --> merge
                                 //finalClasses.append(notChangedClass)
                                 print("add classes (non changed -- merge): \(notChangedClass.name)")
@@ -283,7 +288,7 @@ class AppAnalysisController {
                             }
                         } else if altParent.removedPaths.contains(classInstance.path) {
                             // do nothing
-                        } else if let notChangedClass = notChangedClasses[classInstance.usr] {
+                        } else if let notChangedClass = notChangedClasses[classInstance.name] {
                             notChangedClass.alternateParent = classInstance
                             var properties: [String:String] = [:]
                             if let commit = appVersion.commit?.commit {
@@ -300,7 +305,7 @@ class AppAnalysisController {
                             variablesToBeHandled.append(contentsOf: variables)
                             
                             
-                        } else if let remainingParentClass = remainingParentClasses[classInstance.usr] {
+                        } else if let remainingParentClass = remainingParentClasses[classInstance.name] {
                             print("Found remainingParentClass: \(remainingParentClass.name) - \(remainingParentClass.usr)")
                             fatalError("Found not handled remainingParentClass \(remainingParentClass.name) - should not happen!")
                         } else {
@@ -342,8 +347,14 @@ class AppAnalysisController {
                     }
                     
                     for remainingParentClass in remainingParentClasses.values {
-                        print("add from remainingParentClasses: \(remainingParentClass.name)")
-                        finalClasses.append(remainingParentClass)
+                        if parent.changedPaths.contains(remainingParentClass.path) {
+                            // file was changed, so class was probably removed --> TODO: should check this
+                            // do not add
+                            print("RemainingParentClass missing, but from edited file, assume it was removed")
+                        } else {
+                            print("add from remainingParentClasses: \(remainingParentClass.name)")
+                            finalClasses.append(remainingParentClass)
+                        }
                     }
                 }
                 
