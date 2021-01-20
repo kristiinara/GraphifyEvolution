@@ -185,6 +185,8 @@ class AppAnalysisController {
                 for classInstance in parentClasses {
                     if let addedClass = addedClasses[classInstance.name] {
                         addedClass.parent = classInstance
+                        addedClass.version = classInstance.version + 1
+                        
                         var properties: [String:String] = [:]
                         if let commit = appVersion.commit?.commit {
                             properties["commit"] = commit
@@ -235,6 +237,7 @@ class AppAnalysisController {
                                 finalClasses.append(classInstance)
                                 print("add classes (unchanged from altParent): \(classInstance.name)")
                                 classInstance.parent = remainingParentClass
+                                classInstance.version = remainingParentClass.version + 1
                                 //classInstance.saveParent()
                                 
                                 var properties: [String:String] = [:]
@@ -925,6 +928,7 @@ class AppAnalysisController {
     }
  */
     
+    /*
     func handleMethods(newClass: Class, oldClass: Class, changes: [String: [FileChange]]) -> [Method] {
         var oldNames: [String] = oldClass.methods.map() { value in return value.name}
         print("oldNames: \(oldNames)")
@@ -998,6 +1002,7 @@ class AppAnalysisController {
         newClass.saveMethods()
         return methodsToBeHandled
     }
+ */
     
     func handleMethodsMerge(newClass: Class, changesParent: [String: [FileChange]], changesAddParent: [String: [FileChange]]) -> [Method] {
         
@@ -1017,6 +1022,7 @@ class AppAnalysisController {
                         if handledMethods[method.name] == nil {
                             newMethods.append(altMethod)
                             handledMethods[altMethod.name] = altMethod
+                            altMethod.saveParent()
                         }
                         
                         continue methodLoop
@@ -1030,6 +1036,7 @@ class AppAnalysisController {
                         if handledMethods[method.name] == nil {
                             newMethods.append(method)
                             handledMethods[method.name] = method
+                            method.saveParent()
                         }
                         
                         continue methodLoop
@@ -1044,6 +1051,7 @@ class AppAnalysisController {
                             newMethods.append(method)
                             handledMethods[method.name] = method
                             method.altParent = altMethod.parent
+                            method.saveAltParent()
                         }
                         
                         continue methodLoop
@@ -1055,7 +1063,8 @@ class AppAnalysisController {
                         if handledMethods[method.name] == nil {
                             oldMethods.append(method)
                             handledMethods[method.name] = method
-                            method.altParent = altMethod.parent
+                            method.altParent = altMethod
+                            method.saveAltParent()
                         }
                     }
                 }
@@ -1068,6 +1077,7 @@ class AppAnalysisController {
                             newMethods.append(altMethod)
                             handledMethods[altMethod.name] = altMethod
                             altMethod.altParent = method.parent
+                            altMethod.saveAltParent()
                         }
                         
                         continue methodLoop
@@ -1082,15 +1092,13 @@ class AppAnalysisController {
                             newMethods.append(method)
                             handledMethods[method.name] = method
                             method.altParent = altMethod.parent
+                            method.saveAltParent()
+                            method.saveParent()
                         }
                         
                         continue methodLoop
                     }
                 }
-            }
-            
-            for method in newMethods {
-                method.saveParent()
             }
             
             newClass.methods = newMethods + oldMethods
@@ -1122,6 +1130,7 @@ class AppAnalysisController {
                         if handledVariables[variable.name] == nil {
                             newVariables.append(altVariable)
                             handledVariables[altVariable.name] = altVariable
+                            altVariable.saveParent()
                         }
                         
                         continue variableLoop
@@ -1135,6 +1144,7 @@ class AppAnalysisController {
                         if handledVariables[variable.name] == nil {
                             newVariables.append(variable)
                             handledVariables[variable.name] = variable
+                            variable.saveParent()
                         }
                         
                         continue variableLoop
@@ -1149,6 +1159,7 @@ class AppAnalysisController {
                             newVariables.append(variable)
                             handledVariables[variable.name] = variable
                             variable.altParent = altVariable.parent
+                            variable.saveAltParent()
                         }
                         
                         continue variableLoop
@@ -1160,7 +1171,8 @@ class AppAnalysisController {
                         if handledVariables[variable.name] == nil {
                             oldVariables.append(variable)
                             handledVariables[variable.name] = variable
-                            variable.altParent = altVariable.parent
+                            variable.altParent = altVariable
+                            variable.saveAltParent()
                         }
                     }
                 }
@@ -1173,6 +1185,7 @@ class AppAnalysisController {
                             newVariables.append(altVariable)
                             handledVariables[altVariable.name] = altVariable
                             altVariable.altParent = variable.parent
+                            altVariable.saveAltParent()
                         }
                         
                         continue variableLoop
@@ -1187,6 +1200,8 @@ class AppAnalysisController {
                             newVariables.append(variable)
                             handledVariables[variable.name] = variable
                             variable.altParent = altVariable.parent
+                            variable.saveAltParent()
+                            variable.saveParent()
                         }
                         
                         continue variableLoop
@@ -1202,6 +1217,25 @@ class AppAnalysisController {
         
         print("Could not find parent \(newClass.parent) or altParent \(newClass.alternateParent)")
         return []
+    }
+    
+    func handleMethods(newClass: Class, oldClass: Class, changes: [String: [FileChange]]) -> [Method] {
+        
+        let methods = findNewAndUpdatedMethods(newClass: newClass, oldClass: oldClass, changes: changes)
+        
+        for method in methods.new {
+            method.save()
+        }
+        
+        for method in methods.updated {
+            method.save()
+            method.saveParent()
+        }
+        
+        newClass.methods = methods.new  + methods.updated + methods.old
+        newClass.saveMethods()
+        
+        return methods.new + methods.updated
     }
 
     
@@ -1381,6 +1415,11 @@ class AppAnalysisController {
             }
             
             allClasses[classInstance.usr] = classInstance
+            var parent = classInstance.parent
+            while parent != nil {
+                allClasses[parent!.usr] = classInstance
+                parent = parent?.parent
+            }
         }
         
         for usr in method.calledUsrs {

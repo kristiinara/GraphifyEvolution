@@ -29,12 +29,15 @@ class Variable {
     
     func saveParent() {
         parent?.relate(to: self, type: "CHANGED_TO")
-        altParent?.relate(to: self, type: "CHANGED_TO")
         
         if let parent = self.parent {
             self.version = parent.version + 1
         }
         self.save()
+    }
+    
+    func saveAltParent() {
+        altParent?.relate(to: self, type: "CHANGED_TO")
     }
     
     init(name: String, type: String, kind: VariableKind, code: String, usr: String) {

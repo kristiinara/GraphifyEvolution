@@ -71,6 +71,10 @@ class Class {
         }
     }
     
+    func saveAltParent() {
+        alternateParent?.relate(to: self, type: "CLASS_CHANGED_TO")
+    }
+    
     init() {
         self.name = ""
         self.path = ""
