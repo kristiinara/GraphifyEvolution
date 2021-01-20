@@ -148,6 +148,7 @@ extension Class: Neo4jObject {
         oldNode.properties["name"] = self.name
         oldNode.properties["path"] = self.path
         oldNode.properties["usr"] = self.usr
+        oldNode.properties["kind"] = self.type.rawValue
                
         oldNode.properties["code"] = self.code
         oldNode.properties["version_number"] = self.version

@@ -116,7 +116,7 @@ extension Method: Neo4jObject {
         let oldNode = self.node
         
         oldNode.properties["name"] = self.name
-       // oldNode["kind"] = self.kind as! String
+        oldNode.properties["kind"] = self.kind.rawValue
         oldNode.properties["usr"] = self.usr
         oldNode.properties["type"] = self.type
         oldNode.properties["code"] = self.code
