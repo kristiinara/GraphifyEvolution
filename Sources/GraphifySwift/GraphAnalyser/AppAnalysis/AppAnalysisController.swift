@@ -1433,6 +1433,7 @@ class AppAnalysisController {
             }
         }
         
+        //TODO: check if this logic is correct
         for classInstance in app.classes {
             for method in classInstance.methods {
                 if !methodsToBeHandled.keys.contains(method.usr) {
