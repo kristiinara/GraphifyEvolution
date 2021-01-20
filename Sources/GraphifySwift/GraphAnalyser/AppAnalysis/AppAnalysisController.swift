@@ -966,8 +966,8 @@ class AppAnalysisController {
                                         if method.name == oldMethod.name {
                                             print("prev. version of method found")
                                             method.version = oldMethod.version + 1
-                                            method.save()
                                             method.parent = oldMethod
+                                            method.saveParent()
                                             methodsToBeHandled.append(method)
                                             break
                                         }
@@ -1087,6 +1087,10 @@ class AppAnalysisController {
                         continue methodLoop
                     }
                 }
+            }
+            
+            for method in newMethods {
+                method.saveParent()
             }
             
             newClass.methods = newMethods + oldMethods
