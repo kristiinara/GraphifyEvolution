@@ -27,17 +27,30 @@ class Variable {
     var parent: Variable?
     var altParent: Variable?
     
+    var childrenIds: [Int] = []
+    
     func saveParent() {
-        parent?.relate(to: self, type: "CHANGED_TO")
-        
         if let parent = self.parent {
-            self.version = parent.version + 1
+            if let id = self.node.id {
+                if !parent.childrenIds.contains(id) && parent.node.id != id {
+                    self.version = parent.version + 1
+                    parent.relate(to: self, type: "CHANGED_TO")
+                    parent.childrenIds.append(id)
+                }
+            }
         }
         self.save()
     }
     
     func saveAltParent() {
-        altParent?.relate(to: self, type: "CHANGED_TO")
+        if let altParent = self.altParent {
+            if let id = self.node.id {
+                if !altParent.childrenIds.contains(id) && altParent.node.id != id {
+                    altParent.relate(to: self, type: "CHANGED_TO")
+                    altParent.childrenIds.append(id)
+                }
+            }
+        }
     }
     
     init(name: String, type: String, kind: VariableKind, code: String, usr: String) {
