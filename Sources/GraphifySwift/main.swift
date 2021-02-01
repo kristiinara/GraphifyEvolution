@@ -26,7 +26,7 @@ struct Application: ParsableCommand {
         var bulkJsonPath: String?
         
         enum Language: String, ExpressibleByArgument {
-            case swift, cpp
+            case swift, cpp, java
         }
         
         @Option(help: "Which language to analyse, current options: swift, cpp.")
@@ -43,6 +43,9 @@ struct Application: ParsableCommand {
             } else if language == .cpp {
                 syntaxAnalyser = CPPSyntaxAnalyser()
                 fileManager = CPPFileManager()
+            } else if language == .java {
+                syntaxAnalyser = JavaSyntaxAnalyser()
+                fileManager = JavaFileManager()
             }
             
             if let bulkPath = bulkJsonPath {

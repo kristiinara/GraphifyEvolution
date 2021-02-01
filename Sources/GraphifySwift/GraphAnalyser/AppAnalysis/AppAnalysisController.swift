@@ -81,7 +81,12 @@ class AppAnalysisController {
         var methodsToBeHandled: [Method] = []
         var variablesToBeHandled: [Variable] = []
         
-        var includePaths: [String] = fileManager.fetchAllFiles(folderPath: "\(appVersion.directoryPath.dropLast(".git".count))").map() { url in return url.path}
+        var pathWithoutGit = appVersion.directoryPath
+        if pathWithoutGit.contains(".git") {
+            pathWithoutGit = "\(appVersion.directoryPath.dropLast(".git".count))"
+        }
+        
+        var includePaths: [String] = fileManager.fetchAllFiles(folderPath: pathWithoutGit).map() { url in return url.path}
         print("all include paths: \(includePaths)")
         
         var isMerge = false
@@ -392,6 +397,7 @@ class AppAnalysisController {
             print("analyse \(filesToBeAnalysed.count) paths, changes: \(appVersion.parent?.changes.count)")
 
             for file in filesToBeAnalysed {
+                print("analyse file: \(file)")
                 var classes = self.syntaxAnalyser.analyseFile(filePath: file, includePaths: includePaths)
                 for classInstance in classes {
                     classInstance.save()
