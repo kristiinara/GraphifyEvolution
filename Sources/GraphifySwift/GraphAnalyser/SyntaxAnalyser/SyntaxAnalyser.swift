@@ -132,6 +132,7 @@ extension SyntaxAnalyser {
         if let name = json[constants.nameKey] as? String,
             let usr = json[constants.usrKey] as? String,
             let kind = json[constants.kindKey] as? String {
+            print("parse method: \(usr)")
             
             var methodKind: Method.MethodKind = .instanceMethod
             
@@ -201,6 +202,7 @@ extension SyntaxAnalyser {
         let instruction = Instruction(type: type, code: "")
         
         if let usr = json[constants.usrKey] as? String {
+            print("instruction with usr: \(usr)")
             instruction.calledUsr = usr
         }
         
@@ -265,6 +267,7 @@ extension SyntaxAnalyser {
     func getCodeForPath(path: String) -> String? {
         var dataString: String? = nil
         
+        print("Reaing file: \(path)")
         if let file = File(path: path)  {
             let fileContents = file.contents
             dataString = fileContents

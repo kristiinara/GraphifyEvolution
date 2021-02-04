@@ -67,14 +67,17 @@ class Method {
     
     var calledUsrs: [String] {
         var allUsrs: [String] = []
+        print("CalledUsrs for \(self.usr)")
         
         if let instructions = instructions {
+            print("Number of instructions: \(instructions.count)")
             for instruction in instructions {
-                if let usr = instruction.calledUsr {
-                    allUsrs.append(usr)
-                }
+                allUsrs.append(contentsOf: instruction.calledUsrs)
             }
+        } else {
+            print("no instructions")
         }
+        print("allUsrs: \(allUsrs)")
         
         return allUsrs
     }

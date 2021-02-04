@@ -9,12 +9,26 @@ import Foundation
 
 class JavaSyntaxAnalyser: SyntaxAnalyser {
     var constants: Kind = JavaKind()
+    var directoryPath: String?
     
     func reset() {
+        directoryPath = nil
     }
     
     func analyseFile(filePath: String, includePaths: [String]) -> [Class] {
-        return runJavaCommand(path: filePath)
+        if directoryPath == nil {
+            if filePath.contains("/src/") {
+                directoryPath = String(filePath.components(separatedBy: "/src/")[0]) + "/src/"
+            }
+        }
+        
+        if directoryPath != nil {
+            print("Running java command, directory path: \(directoryPath)")
+            return runJavaCommand(path: filePath)
+        }
+        
+        print("Directory path was nil - could not run java command")
+        return []
     }
     
     func runJavaCommand(path: String) -> [Class] {
@@ -22,7 +36,7 @@ class JavaSyntaxAnalyser: SyntaxAnalyser {
        // let res = Helper.shell(launchPath: "\(currentDirectory)/JavaAnalyser/gradlew", arguments: ["run", "--args='path'" , "--console=plain", "--quiet"])
         
         // Prerequisite: JavaAnalyser-uber.jar needs to be compiled first
-        let res = Helper.shell(launchPath: "/usr/bin/java", arguments: ["-jar", "\(currentDirectory)/JavaAnalyser/build/libs/JavaAnalyser-uber.jar", path])
+        let res = Helper.shell(launchPath: "/usr/bin/java", arguments: ["-jar", "\(currentDirectory)/JavaAnalyser/build/libs/JavaAnalyser-uber.jar", path, directoryPath!])
         
         var json = res
         json = json.replacingOccurrences(of: "=", with: ": ")
@@ -48,7 +62,8 @@ class JavaSyntaxAnalyser: SyntaxAnalyser {
                     print("json item: \(item)")
                     if let entities = item["key.entities"] as? [[String:Any]] {
                         for entity in entities {
-                            if let classInstance = parseClassFrom(json: entity, path: "") {
+                            if let classInstance = parseClassFrom(json: entity, path: path) {
+                                classInstance.path = path
                                 
                                 classes.append(classInstance)
                             }
@@ -66,11 +81,6 @@ class JavaSyntaxAnalyser: SyntaxAnalyser {
         }
         return classes
     }
- 
-    
-    var parsedString: String = """
-    [{'key.usr'='null', 'key.entities'=[{'key.usr'='JavaAnalyser', 'key.entities'=[], 'key.name'='JavaAnalyser', 'key.kind'='class com.github.javaparser.ast.PackageDeclaration'}, {'key.usr'='TestClass', 'key.entities'=[{'key.usr'='null', 'key.entities'=[], 'key.name'='null', 'key.kind'='class com.github.javaparser.ast.Modifier'}, {'key.usr'='null', 'key.entities'=[{'key.usr'='someVariable', 'key.entities'=[{'key.usr'='String', 'key.entities'=[], 'key.name'='String', 'key.kind'='class com.github.javaparser.ast.type.ClassOrInterfaceType'}, {'key.usr'='null', 'key.entities'=[], 'key.name'='null', 'key.kind'='class com.github.javaparser.ast.expr.StringLiteralExpr'}], 'key.name'='someVariable', 'key.kind'='class com.github.javaparser.ast.body.VariableDeclarator'}], 'key.name'='null', 'key.kind'='class com.github.javaparser.ast.body.FieldDeclaration'}, {'key.usr'='testMethod', 'key.entities'=[{'key.usr'='null', 'key.entities'=[], 'key.name'='null', 'key.kind'='class com.github.javaparser.ast.Modifier'}, {'key.usr'='null', 'key.entities'=[], 'key.name'='null', 'key.kind'='class com.github.javaparser.ast.type.VoidType'}, {'key.usr'='null', 'key.entities'=[{'key.usr'='null', 'key.entities'=[{'key.usr'='println', 'key.entities'=[{'key.usr'='out', 'key.entities'=[{'key.usr'='System', 'key.entities'=[], 'key.name'='System', 'key.kind'='class com.github.javaparser.ast.expr.NameExpr'}], 'key.name'='out', 'key.kind'='class com.github.javaparser.ast.expr.FieldAccessExpr'}, {'key.usr'='null', 'key.entities'=[{'key.usr'='null', 'key.entities'=[], 'key.name'='null', 'key.kind'='class com.github.javaparser.ast.expr.StringLiteralExpr'}, {'key.usr'='someVariable', 'key.entities'=[], 'key.name'='someVariable', 'key.kind'='class com.github.javaparser.ast.expr.NameExpr'}], 'key.name'='null', 'key.kind'='class com.github.javaparser.ast.expr.BinaryExpr'}], 'key.name'='println', 'key.kind'='class com.github.javaparser.ast.expr.MethodCallExpr'}], 'key.name'='null', 'key.kind'='class com.github.javaparser.ast.stmt.ExpressionStmt'}], 'key.name'='null', 'key.kind'='class com.github.javaparser.ast.stmt.BlockStmt'}], 'key.name'='testMethod', 'key.kind'='class com.github.javaparser.ast.body.MethodDeclaration'}], 'key.name'='TestClass', 'key.kind'='class com.github.javaparser.ast.body.ClassOrInterfaceDeclaration'}], 'key.name'='null', 'key.kind'='class com.github.javaparser.ast.CompilationUnit'}]
-    """
 }
 
 struct JavaKind: Kind {
@@ -78,9 +88,9 @@ struct JavaKind: Kind {
     let structKind = "-----"
     let protocolKind = "class com.github.javaparser.ast.body.ClassOrInterfaceDeclaration"
     
-    let staticVariableKind = "class com.github.javaparser.ast.body.VariableDeclarator"
-    let classVariableKind = "class com.github.javaparser.ast.body.VariableDeclarator"
-    let instanceVariableKind = "class com.github.javaparser.ast.body.VariableDeclarator"
+    let staticVariableKind = "class com.github.javaparser.ast.body.FieldDeclaration"
+    let classVariableKind = "class com.github.javaparser.ast.body.FieldDeclaration"
+    let instanceVariableKind = "class com.github.javaparser.ast.body.FieldDeclaration"
     
     let staticMethodKind = "class com.github.javaparser.ast.body.MethodDeclaration"
     let classMethodKind = "class com.github.javaparser.ast.body.MethodDeclaration"

@@ -21,6 +21,21 @@ class Instruction {
     var endLine: Int?
     
     var calledUsr: String? //TODO: check if we need something else here!
+    var calledUsrs: [String] {
+        var usrs: [String] = []
+        
+        if let calledUsr = self.calledUsr {
+            usrs.append(calledUsr)
+        }
+        
+        if let instructions = self.instructions {
+            for instruction in instructions {
+                usrs.append(contentsOf: instruction.calledUsrs)
+            }
+        }
+        
+        return usrs
+    }
     
     init(type: InstructionType, code: String) {
         self.type = type
