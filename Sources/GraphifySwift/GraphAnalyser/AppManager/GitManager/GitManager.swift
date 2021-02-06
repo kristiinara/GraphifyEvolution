@@ -46,9 +46,6 @@ class GitManager: AppManager {          // manager used for project evolution
         let nextCommit = self.commitsToBeAnalysed.removeFirst()
         print("Next commit: \(nextCommit.commit), parent: \(nextCommit.parent), check parent: \(nextCommit.parentCommit?.commit)")
         
-        let branch = runGetBranchCommand(forCommit: nextCommit)
-        nextCommit.branch = branch
-        
         let appVersion = AppVersion(directoryPath: path)
         //appVersion.changedFilePaths
         nextCommit.appVersion = appVersion
@@ -96,6 +93,43 @@ class GitManager: AppManager {          // manager used for project evolution
         }
         
         print("Total number of commits: \(self.commitsToBeAnalysed.count)")
+        
+        if let first = self.commitsToBeAnalysed.first {
+            correctMasterBranch(forCommit: first)
+        }
+    }
+    
+    func findLeafNodeCommits(forCommit: Commit) -> [Commit] {
+        var leafNodes: [Commit] = []
+        
+        if forCommit.children.count == 0 {
+            leafNodes.append(forCommit)
+        } else {
+            for childCommit in forCommit.children {
+                leafNodes.append(contentsOf: findLeafNodeCommits(forCommit: childCommit))
+            }
+        }
+        
+        return leafNodes
+    }
+    
+    func correctMasterBranch(forCommit: Commit) {
+        let deaultBranch = runDefaultBranchCommand()
+        
+        let leafNodeCommits = findLeafNodeCommits(forCommit: forCommit)
+        
+        for leafNodeCommit in leafNodeCommits {
+            if let branch = runGetLastBranchCommand(forCommit: leafNodeCommit) {
+                if deaultBranch.contains(branch) {
+                    leafNodeCommit.branch = branch
+                    var commit = leafNodeCommit
+                    while let parent = commit.parentCommit {
+                        parent.branch = branch
+                        commit = parent
+                    }
+                }
+            }
+        }
     }
     
     func addCommit(commit: Commit, commitsAdded: [String]) -> [String] {
@@ -103,6 +137,12 @@ class GitManager: AppManager {          // manager used for project evolution
         var commitsAdded = commitsAdded
         
         if !commitsAdded.contains(commit.commit) {
+            let branch = runGetBranchCommand(forCommit: commit)
+            commit.branch = branch
+            
+            let tag = runGetTagCommand(forCommit: commit)
+            commit.tag = tag
+            
             if let parentCommit = commit.parentCommit {
                 if !commitsAdded.contains(parentCommit.commit) {
                     //print("add parent")
@@ -144,8 +184,40 @@ class GitManager: AppManager {          // manager used for project evolution
         return GitManager(path: path)
     }
     
-    func runGetBranchCommand(forCommit: Commit) -> String? {
-      //  git name-rev --name-only --exclude=tags/*
+    func runDefaultBranchCommand() -> String {
+        //git rev-parse --abbrev-ref origin/HEAD
+        
+        if let path = self.path {
+            let notGitPath = String(path.dropLast(".git".count))
+            
+            let res = Helper.shell(launchPath: "/usr/bin/git", arguments: ["--git-dir", path, "--work-tree", notGitPath, "rev-parse", "--abbrev-ref", "origin/HEAD"])
+            
+            return res
+        } else {
+            fatalError("Path for gitManager not defined")
+        }
+    }
+    
+    func runGetTagCommand(forCommit: Commit) -> String? {
+        // git tag --points-at <commit>
+        if let path = self.path {
+            let notGitPath = String(path.dropLast(".git".count))
+            
+            let res = Helper.shell(launchPath: "/usr/bin/git", arguments: ["--git-dir", path, "--work-tree", notGitPath, "tag", "--points-at", forCommit.commit])
+            
+            if res.count > 0 {
+                return res
+            }
+        } else {
+            fatalError("Path for gitManager not defined")
+        }
+        
+        return nil
+    }
+    
+    func runGetLastBranchCommand(forCommit: Commit) -> String? {
+        //  git name-rev --name-only --exclude=tags/*
+        
         if let path = self.path {
             let notGitPath = String(path.dropLast(".git".count))
             
@@ -159,6 +231,41 @@ class GitManager: AppManager {          // manager used for project evolution
                 return String(first)
             }
             return nil
+        } else {
+            fatalError("Path for gitManager not defined")
+        }
+    }
+    
+    func runGetBranchCommand(forCommit: Commit) -> String? {
+      //  git name-rev --name-only --exclude=tags/*
+        // does not work correctly when some branches are merged and deleted
+     // git log <commit>..HEAD --ancestry-path --merges --oneline | tail -n 1
+        if let path = self.path {
+            let notGitPath = String(path.dropLast(".git".count))
+            
+            let res = Helper.shell(launchPath: "/usr/bin/git", arguments: ["--git-dir", path, "--work-tree", notGitPath, "log", "\(forCommit.commit)..HEAD", "--ancestry-path", "--merges", "--oneline"])
+            
+            let merges = res.split(separator: "\n")
+            
+            print("last merge commit: \(merges.last)")
+            
+            var lastMerge = ""
+            if merges.count > 0 {
+                lastMerge = String(merges[merges.count - 1])
+            } else {
+                return nil
+            }
+            
+            let splitValues = lastMerge.split(separator: " ")
+            var probableBranch = ""
+            if splitValues.count > 0 {
+                probableBranch = String(splitValues[splitValues.count - 1])
+            } else {
+                return nil
+            }
+            
+            print("Branch result: \(lastMerge), branch: \(probableBranch)")
+            return probableBranch
         } else {
             fatalError("Path for gitManager not defined")
         }

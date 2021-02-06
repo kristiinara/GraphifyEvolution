@@ -1522,9 +1522,9 @@ class AppAnalysisController {
         
         for usr in method.calledUsrs {
             if let calledMethod = allMethods[usr] {
-                method.relate(to: calledMethod, type: "CALLED") // TODO: check why no called methods
+                method.relate(to: calledMethod, type: "CALLS") // TODO: check why no called methods
             } else if let usedVariable = allVariables[usr] {
-                method.relate(to: usedVariable, type: "USED")
+                method.relate(to: usedVariable, type: "USES")
             } else if let usedClass = allClasses[usr] {
                 method.relate(to: usedClass, type: "CLASS_REF")
             } else {
@@ -1599,9 +1599,9 @@ class AppAnalysisController {
                 if !methodsToBeHandled.keys.contains(method.usr) {
                     for usr in method.calledUsrs {
                         if let calledMethod = methodsToBeHandled[usr] {
-                            method.relate(to: calledMethod, type: "CALLED") // TODO: check why no called methods
+                            method.relate(to: calledMethod, type: "CALLS") // TODO: check why no called methods
                         } else if let usedVariable = variablesToBeHandled[usr] {
-                            method.relate(to: usedVariable, type: "USED")
+                            method.relate(to: usedVariable, type: "USES")
                         } else {
                             print("Usr not found methodTo: \(usr)")
                         }

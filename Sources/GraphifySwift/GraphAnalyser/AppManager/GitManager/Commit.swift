@@ -24,6 +24,8 @@ class Commit: Codable {
     var appVersion: AppVersion?
     var fileChanges: [FileChange]?
     var branch: String?
+    var branchDebug: String?
+    var tag: String?
     
 //    init(commit: String, message: String) {
 //        self.commit = commit
