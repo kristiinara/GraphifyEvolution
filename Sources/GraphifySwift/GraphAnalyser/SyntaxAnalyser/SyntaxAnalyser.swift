@@ -50,6 +50,7 @@ protocol Kind {
     var startLineKey: String { get }
     var endLineKey: String { get }
     var pathKey: String { get }
+    var receiverUsrKey: String { get }
 }
 
 extension SyntaxAnalyser {
@@ -206,6 +207,14 @@ extension SyntaxAnalyser {
             instruction.calledUsr = usr
         }
         
+        if let receiverUsr = json[constants.receiverUsrKey] as? String {
+            instruction.receiverUsr = receiverUsr
+        }
+        
+        if let calledName = json[constants.nameKey] as? String {
+            instruction.calledName = calledName
+        }
+        
         if let startLine = json[constants.startLineKey] as? Int {
             instruction.startLine = startLine
         }
@@ -219,6 +228,7 @@ extension SyntaxAnalyser {
         if let entities = json[constants.entitiesKey] as? [[String: Any]] {
             for entity in entities {
                 if let subInstruction = parseInstructionFrom(json: entity) {
+                    subInstruction.parent = instruction
                     subInstructions.append(subInstruction)
                 }
             }

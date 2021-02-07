@@ -25,6 +25,19 @@ class Method {
         
     var instructions: [Instruction]? //Current idea: when instructions is nil, then object came from db, if not nil then read from structure analysis - used to calculate metrics
     
+    var allInstructions: [Instruction] {
+        var allInstructions: [Instruction] = []
+        
+        if let instructions = self.instructions {
+            allInstructions.append(contentsOf: instructions)
+            for instruction in instructions {
+                allInstructions.append(contentsOf: instruction.allInstructions)
+            }
+        }
+        
+        return allInstructions
+    }
+    
     var childrenIds: [Int] = []
     var parent: Method?
     var altParent: Method?
@@ -80,6 +93,25 @@ class Method {
         print("allUsrs: \(allUsrs)")
         
         return allUsrs
+    }
+    
+    func findInstructionWithUsr(usr: String) -> Instruction? {
+        if let instructions = self.instructions {
+            for instruction in instructions {
+                if let foundInstruction = instruction.findInstructionWithUsr(usr: usr) {
+                    return foundInstruction
+                }
+            }
+        }
+    
+        return nil
+    }
+    
+    func receiverUsrForUsr(usr: String) -> String? {
+        if let instruction = findInstructionWithUsr(usr: usr) {
+            return instruction.receiverUsr
+        }
+        return nil
     }
     
     var cyclomaticComplexity : Int {

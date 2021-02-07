@@ -75,6 +75,24 @@ class Class {
         alternateParent?.relate(to: self, type: "CLASS_CHANGED_TO")
     }
     
+    func methodWithName(name: String) -> Method? {
+        for method in self.methods {
+            if method.name == name {
+                return method
+            }
+        }
+        return nil
+    }
+    
+    func variableWithName(name:String) -> Variable? {
+        for variable in self.variables {
+            if variable.name == name {
+                return variable
+            }
+        }
+        return nil
+    }
+    
     init() {
         self.name = ""
         self.path = ""

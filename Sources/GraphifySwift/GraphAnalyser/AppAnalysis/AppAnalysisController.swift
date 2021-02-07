@@ -1520,23 +1520,55 @@ class AppAnalysisController {
             }
         }
         
-        for usr in method.calledUsrs {
-            if let calledMethod = allMethods[usr] {
-                method.relate(to: calledMethod, type: "CALLS") // TODO: check why no called methods
-            } else if let usedVariable = allVariables[usr] {
-                method.relate(to: usedVariable, type: "USES")
-            } else if let usedClass = allClasses[usr] {
-                method.relate(to: usedClass, type: "CLASS_REF")
-            } else {
-                if let external = externalObjects[usr] {
-                    method.relate(to: external, type: "EXTERNAL_REF")
+        usrLoop: for instruction in method.allInstructions {
+            if let usr = instruction.calledUsr {
+                if let calledMethod = allMethods[usr] {
+                    method.relate(to: calledMethod, type: "CALLS") // TODO: check why no called methods
+                } else if let usedVariable = allVariables[usr] {
+                    method.relate(to: usedVariable, type: "USES")
+                } else if let usedClass = allClasses[usr] {
+                    method.relate(to: usedClass, type: "CLASS_REF")
                 } else {
-                    let external = ExternalObject(usr: usr)
-                    external.save()
-                    externalObjects[usr] = external
-                    method.relate(to: external, type: "EXTERNAL_REF")
+                    if let external = externalObjects[usr] {
+                        method.relate(to: external, type: "EXTERNAL_REF")
+                    } else {
+                        if let receiverUsr = instruction.receiverUsr {
+                            if let classInstance = allClasses[receiverUsr] {
+                                var name: String?
+                                
+                                if let calledName = instruction.calledName {
+                                    name = calledName
+                                } else if let calledName = instruction.parent?.calledName {
+                                    name = calledName
+                                }
+                                
+                                if let name = name {
+                                    if let calledMethod = classInstance.methodWithName(name: name) {
+                                        method.relate(to: calledMethod, type: "CALLS")
+                                        continue usrLoop
+                                    } else if let usedVariable = classInstance.variableWithName(name: name) {
+                                        method.relate(to: usedVariable, type: "USES")
+                                        continue usrLoop
+                                    } else {
+                                        print("Class \(classInstance.name) no method or variable with name \(name)")
+                                    }
+                                } else {
+                                    print("Instruction does not have name: \(instruction.calledUsr)")
+                                }
+                            } else {
+                                print("No class for usr found: \(receiverUsr)")
+                            }
+                        } else {
+                            print("No receiverUsr for \(usr)")
+                        }
+                        
+                        let external = ExternalObject(usr: usr)
+                        external.save()
+                        externalObjects[usr] = external
+                        method.relate(to: external, type: "EXTERNAL_REF")
+                    }
+                    print("Usr not found (method from): \(usr)")
                 }
-                print("Usr not found (method from): \(usr)")
             }
         }
     }

@@ -111,6 +111,7 @@ struct JavaKind: Kind {
     let startLineKey = "key.startLine"
     let endLineKey = "key.endLine"
     let pathKey = "key.path"
+    let receiverUsrKey = "key.receiver_usr"
 }
 
 

@@ -14,13 +14,44 @@ class Instruction {
     }
     
     var instructions: [Instruction]?
+    var allInstructions: [Instruction] {
+        var allInstructions: [Instruction] = []
+        
+        if let instructions = self.instructions {
+            for instruction in instructions {
+                allInstructions.append(contentsOf: instruction.allInstructions)
+            }
+            allInstructions.append(contentsOf: instructions)
+        }
+        return allInstructions
+    }
         
     var type: InstructionType
     var code: String
     var startLine: Int?
     var endLine: Int?
+    var parent: Instruction?
     
     var calledUsr: String? //TODO: check if we need something else here!
+    var receiverUsr: String?
+    var calledName: String?
+    
+    func findInstructionWithUsr(usr: String) -> Instruction? {
+        if self.calledUsr == usr {
+            return self
+        }
+        
+        if let instructions = self.instructions {
+            for instruction in instructions {
+                if let foundInstruction = instruction.findInstructionWithUsr(usr: usr) {
+                    return foundInstruction
+                }
+            }
+        }
+    
+        return nil
+    }
+    
     var calledUsrs: [String] {
         var usrs: [String] = []
         
