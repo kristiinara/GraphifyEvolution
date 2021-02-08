@@ -1625,6 +1625,9 @@ class AppAnalysisController {
             }
         }
         
+        print("variables to be handled: \(variablesToBeHandled.keys)")
+        print("methods to be handled: \(methodsToBeHandled.keys)")
+        
         //TODO: check if this logic is correct
         for classInstance in app.classes {
             for method in classInstance.methods {

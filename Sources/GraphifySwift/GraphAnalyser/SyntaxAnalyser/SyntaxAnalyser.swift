@@ -108,6 +108,10 @@ extension SyntaxAnalyser {
                             }
                             
                         }
+                    } else {
+                        if let variable = tryParseVariableFrom(json: entity) {
+                            variables.append(variable)
+                        }
                     }
                 }
             }
@@ -236,6 +240,22 @@ extension SyntaxAnalyser {
         instruction.instructions = subInstructions
         
         return instruction
+    }
+    
+    // none found!
+    func tryParseVariableFrom(json: [String:Any]) -> Variable? {
+        if let usr = json[constants.usrKey] as? String,
+           let entities = json[constants.entitiesKey] as? [[String: Any]] {
+            for entity in entities {
+                if let attribute = entity["key.attribute"] as? String {
+                    if attribute == "source.decl.attribute.iboutlet" {
+                        let variable = Variable(name: usr, type: "?", kind: .instanceVariable, code: "", usr: usr)
+                        return variable
+                    }
+                }
+            }
+        }
+        return nil
     }
     
     func parseVariableFrom(json: [String:Any]) -> Variable? {
