@@ -161,9 +161,9 @@ class Neo4jClient {
         
         print("Relate: \(node.properties["name"]) \(node.id) - \(to.properties["name"]) \(to.id)")
         
+        
         if let id = node.id, let toId = to.id {
-            let transaction = "match (a:\(node.label)), (c:\(to.label)) where id(a) = \(id) and id(c) = \(toId) create (a)-[r:\(relationship.type)]->(c) return id(r)"
-            //TODO: add properties
+            let transaction = "match (a:\(node.label)), (c:\(to.label)) where id(a) = \(id) and id(c) = \(toId) create (a)-[r:\(relationship.type)\(relationship.properitesString)]->(c) return id(r)"
             
             let group = DispatchGroup()
             group.enter()
@@ -342,6 +342,26 @@ class Neo4jRelationship {
     let type: String
     let properties: [String:String]
     var id : Int?
+    
+    var properitesString: String {
+        var propertiesString = "{"
+        
+        for key in properties.keys {
+            var value = properties[key]!
+            value = value.replacingOccurrences(of: "\"", with: "\\\"")
+            value = value.replacingOccurrences(of: "\'", with: "\\\'")
+            value = value.replacingOccurrences(of: "\n", with: "\\\n")
+            
+            propertiesString += " \(key): '\(value)',"
+        }
+        
+        if properties.keys.count > 0 {
+            propertiesString = String(propertiesString.dropLast())
+        }
+        
+        propertiesString += " }"
+        return propertiesString
+    }
     
     init(node: Node, toNode: Node, type: String, properties: [String:String] = [:]) {
         self.node = node

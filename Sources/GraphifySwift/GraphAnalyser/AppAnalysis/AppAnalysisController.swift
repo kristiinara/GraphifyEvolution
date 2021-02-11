@@ -11,16 +11,18 @@ class AppAnalysisController {
     let appManager: AppManager
     let syntaxAnalyser: SyntaxAnalyser
     let fileManager: LocalFileManager
+    let externalAnalysers: [ExternalAnalyser]
     
     var appVersions: [AppVersion] = [] //TODO: do we really need this?
     var apps: [App] = []
     
     var externalObjects: [String: ExternalObject] = [:]
     
-    init(appManager: AppManager, syntaxAnalyser: SyntaxAnalyser, fileManager: LocalFileManager) {
+    init(appManager: AppManager, syntaxAnalyser: SyntaxAnalyser, fileManager: LocalFileManager, externalAnalysers: [ExternalAnalyser]) {
         self.appManager = appManager
         self.syntaxAnalyser = syntaxAnalyser
         self.fileManager = fileManager
+        self.externalAnalysers = externalAnalysers
     }
     
     func runAnalysis() {
@@ -93,6 +95,8 @@ class AppAnalysisController {
         if appVersion.parent != nil && appVersion.alternateParent != nil {
             isMerge = true
         }
+        
+        var newClassVersions: [Class] = []
         
         if let parent = appVersion.parent {
             if let parentApp = appVersion.parent?.appVersion.analysedVersion {
@@ -386,6 +390,7 @@ class AppAnalysisController {
                     }
                 }
                 
+                newClassVersions.append(contentsOf: addedClasses.values)
                 
             } else {
                 // Previous app version not yet analysed --> analyse whole app?
@@ -430,9 +435,10 @@ class AppAnalysisController {
                 finalClasses.append(contentsOf: classes)
                 print("add classes (no parent, new app): \(classes.map() { val in return val.name } )")
             }
+            newClassVersions.append(contentsOf: finalClasses)
         }
         
-        var app = App(name: "name2", classes: finalClasses)
+        var app = App(name: "name2", homePath: pathWithoutGit, classes: finalClasses)
         appVersion.analysedVersion = app
         print("new app with nr of classes: \(finalClasses.count)")
         
@@ -471,6 +477,19 @@ class AppAnalysisController {
         }
         addCallAndUseConnectionsTo(methods: methodsToBeHandled, variables: variablesToBeHandled, app: app)
         
+        print("running external analysers for \(newClassVersions.map() {value in return value.name} )")
+        for externalAnalyser in self.externalAnalysers {
+            if externalAnalyser.supportedLevel == .applicationLevel {
+                externalAnalyser.analyseApp(app: app)
+            } else if externalAnalyser.supportedLevel == .classLevel {
+                for classInstance in newClassVersions {
+                    externalAnalyser.analyseClass(classInstance: classInstance, app: app)
+                }
+            } else {
+                print("Unsupported external analyer level \(externalAnalyser.supportedLevel)")
+            }
+            externalAnalyser.reset()
+        }
     }
     
     

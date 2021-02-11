@@ -32,6 +32,13 @@ struct Application: ParsableCommand {
         @Option(help: "Which language to analyse, current options: swift, cpp.")
         var language: Language = .swift
         
+        enum ExternalAnalysis: String, ExpressibleByArgument {
+            case duplication
+        }
+        
+        @Option(help: "Which external analysis should be run during analysis.")
+        var externalAnalysis: [ExternalAnalysis] = []
+        
         mutating func run() {
             var appManager: AppManager?
             var syntaxAnalyser: SyntaxAnalyser?
@@ -46,6 +53,13 @@ struct Application: ParsableCommand {
             } else if language == .java {
                 syntaxAnalyser = JavaSyntaxAnalyser()
                 fileManager = JavaFileManager()
+            }
+            
+            var externalAnalysers: [ExternalAnalyser] = []
+            for value in externalAnalysis {
+                if value == .duplication {
+                    externalAnalysers.append(DuplicationAnalyser())
+                }
             }
             
             if let bulkPath = bulkJsonPath {
@@ -67,7 +81,7 @@ struct Application: ParsableCommand {
             }
             
             if let appManager = appManager, let syntaxAnalyser = syntaxAnalyser, let fileManager = fileManager {
-                let appAnalysisController = AppAnalysisController(appManager: appManager, syntaxAnalyser: syntaxAnalyser, fileManager: fileManager)
+                let appAnalysisController = AppAnalysisController(appManager: appManager, syntaxAnalyser: syntaxAnalyser, fileManager: fileManager, externalAnalysers: externalAnalysers)
                 
                 appAnalysisController.runAnalysis()
             } else {

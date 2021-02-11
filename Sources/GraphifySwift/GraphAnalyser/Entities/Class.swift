@@ -75,6 +75,45 @@ class Class {
         alternateParent?.relate(to: self, type: "CLASS_CHANGED_TO")
     }
     
+    var minMaxLineNumbers: (min: Int, max: Int) {
+        var minLineNumber = -1
+        var maxLineNumber = -1
+        
+        for variable in self.variables {
+            if let startLine = variable.startLine {
+                if startLine < minLineNumber || minLineNumber < 0 {
+                    minLineNumber = startLine
+                }
+            }
+            
+            if let endLine = variable.endLine {
+                if endLine > maxLineNumber {
+                    maxLineNumber = endLine
+                }
+            }
+        }
+        
+        for method in self.methods {
+            if let startLine = method.startLine {
+                if startLine < minLineNumber || minLineNumber < 0 {
+                    minLineNumber = startLine
+                }
+            }
+            
+            if let endLine = method.endLine {
+                if endLine > maxLineNumber {
+                    maxLineNumber = endLine
+                }
+            }
+        }
+        
+        return (min: minLineNumber, max: maxLineNumber)
+    }
+    
+    var maxLineNumber: Int {
+        return 0
+    }
+    
     func methodWithName(name: String) -> Method? {
         for method in self.methods {
             if method.name == name {

@@ -13,10 +13,11 @@ class App {
     //var code: String
     var versionNumber: Int = 1
     
-    var usr: String? // USR??
+    var usr: String?
     var commit: Commit?
     var parentCommit: Commit?
     var alternateParentCommit: Commit?
+    var homePath: String
     
     var classes: [Class]
     
@@ -36,8 +37,9 @@ class App {
         }
     }
     
-    init(name: String, classes: [Class]) {
+    init(name: String, homePath: String, classes: [Class]) {
         self.name = name
+        self.homePath = homePath
         self.classes = classes
         
         //self.save()
