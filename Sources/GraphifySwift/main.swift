@@ -33,7 +33,7 @@ struct Application: ParsableCommand {
         var language: Language = .swift
         
         enum ExternalAnalysis: String, ExpressibleByArgument {
-            case duplication
+            case duplication, insider
         }
         
         @Option(help: "Which external analysis should be run during analysis.")
@@ -59,6 +59,8 @@ struct Application: ParsableCommand {
             for value in externalAnalysis {
                 if value == .duplication {
                     externalAnalysers.append(DuplicationAnalyser())
+                } else if value == .insider {
+                    externalAnalysers.append(InsiderSecAnalysis(language: language))
                 }
             }
             

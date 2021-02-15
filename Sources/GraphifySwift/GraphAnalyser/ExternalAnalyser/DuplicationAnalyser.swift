@@ -24,16 +24,22 @@ class DuplicationAnalyser: ExternalAnalyser {
         self.handledDuplicates = []
     }
     
+    func checkIfSetupCorrectly() -> Bool {
+        // TODO: add check to see if jscpd is installed
+        return true
+    }
+    
     func analyseApp(app: App) {
-        fatalError("ExternalAnalyser does not support app level analysis")
+        fatalError("DuplicationAnalyser does not support app level analysis")
     }
     
     func analyseClass(classInstance: Class, app: App) {
         print("looking for duplicates in class \(classInstance.name) - \(classInstance.path)")
         if self.json == nil {
             let ignore = [".build/**","**/Carthage/**"] // TODO: make it possible to change this
+            let appIdentifier = app.appIdentifier
             
-            analyseFolder(homePath: app.homePath, ignore: ignore)
+            analyseFolder(homePath: app.homePath, ignore: ignore, appIdentifier: appIdentifier)
             
             guard let json = self.json else {
                 print("No json data available!")
@@ -104,11 +110,13 @@ class DuplicationAnalyser: ExternalAnalyser {
         }
     }
     
-    func analyseFolder(homePath: String, ignore: [String]) {
+    func analyseFolder(homePath: String, ignore: [String], appIdentifier: String) {
         var path = homePath
         if !path.hasSuffix("/") {
             path = "\(path)/"
         }
+        
+        let currentDirectory = FileManager.default.currentDirectoryPath
         
         let task = Process()
         task.launchPath = "/usr/bin/env"
@@ -119,38 +127,14 @@ class DuplicationAnalyser: ExternalAnalyser {
             "--format", "swift",
             "--reporters", "json",
             "--absolute",
-            "--output", "\(homePath)/jscpd-report/",
+            "--output", "\(currentDirectory)/ExternalAnalysers/DuplicationAnalyser/reports/\(appIdentifier)/",
             "--ignore ", ignore.joined(separator: ",")
         ]
         task.launch()
         task.waitUntilExit()
         
-        self.json = self.jsonFromPath(path:"\(homePath)/jscpd-report/jscpd-report.json")
+        self.json = JsonHandler.jsonFromPath(path:"\(currentDirectory)/ExternalAnalysers/DuplicationAnalyser/reports/\(appIdentifier)/jscpd-report.json")
     }
-     
-     func jsonFromData(data: Data) -> [String: Any]? {
-         do {
-             //create json object from data
-             if let json = try JSONSerialization.jsonObject(with: data, options: .mutableContainers) as? [String: Any] {
-                 return json
-             } else {
-                 return nil
-             }
-         } catch let error {
-             print(error.localizedDescription)
-             return nil
-         }
-     }
-     
-     func jsonFromPath(path: String) -> [String: Any]? {
-         do {
-             let data = try Data(contentsOf: URL(fileURLWithPath: path))
-             return self.jsonFromData(data: data)
-         } catch let error {
-             print(error.localizedDescription)
-             return nil
-         }
-     }
     
     func parseDuplicates(json: [[String: Any]]) {
         var count = 0

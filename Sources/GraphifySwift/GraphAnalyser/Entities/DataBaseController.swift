@@ -135,6 +135,24 @@ class Neo4jClient {
         return node
     }
     
+    func mergeNodeSync(node:Node) -> Node? {
+        let transaction = "merge (n:\(node.label) \(node.propertyString)) return id(n)"
+        
+        let group = DispatchGroup()
+        group.enter()
+        
+        requestWithDefaultCompletition(transaction: transaction) { id in
+            node.id = id
+            group.leave()
+        }
+        group.wait()
+        
+        if node.id == nil {
+            return nil
+        }
+        return node
+    }
+    
     func updateNodeSync(node: Node) {
         //TODO: return result object?
         

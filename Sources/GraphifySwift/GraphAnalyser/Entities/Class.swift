@@ -114,6 +114,28 @@ class Class {
         return 0
     }
     
+    func methodAtLineNumber(line: Int) -> Method? {
+        for method in self.methods {
+            if let startLine = method.startLine, let endLine = method.endLine {
+                if startLine <= line && endLine >= line {
+                    return method
+                }
+            }
+        }
+        return nil
+    }
+    
+    func variableAtLineNumber(line: Int) -> Variable? {
+        for variable in self.variables {
+            if let startLine = variable.startLine, let endLine = variable.endLine {
+                if startLine <= line && endLine >= line {
+                    return variable
+                }
+            }
+        }
+        return nil
+    }
+    
     func methodWithName(name: String) -> Method? {
         for method in self.methods {
             if method.name == name {

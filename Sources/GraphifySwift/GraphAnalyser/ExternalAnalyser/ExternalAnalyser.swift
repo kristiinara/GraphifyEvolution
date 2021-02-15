@@ -12,6 +12,8 @@ protocol ExternalAnalyser {
     func analyseClass(classInstance:Class, app:App)
     func reset()
     
+    func checkIfSetupCorrectly() -> Bool
+    
     var supportedLanguages: [Application.Analyse.Language] { get }
     var supportedLevel: Level { get }
     var readme: String { get }

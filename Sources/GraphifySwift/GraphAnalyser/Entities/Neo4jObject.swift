@@ -45,6 +45,18 @@ extension Neo4jObject {
         fatalError("Failing to insert new object \(Self.nodeType)")
     }
     
+    func newNodeWithMerge(node: Node) -> Node {
+        
+        if let client = DatabaseController.currentDatabase.client {
+            if let newNode = client.mergeNodeSync(node: node) {
+                return newNode
+            }
+            fatalError("Failing to insert new object \(Self.nodeType)")
+        }
+        
+        fatalError("Failing to insert new object \(Self.nodeType)")
+    }
+    
     func save() -> Bool {
         print("save \(Self.nodeType)")
         if let client = DatabaseController.currentDatabase.client {

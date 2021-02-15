@@ -17,7 +17,15 @@ class SwiftFileManager: LocalFileManager {
         return [".swift"]
     }
     
+    func fetchProjectFiles(folderPath: String) -> [URL] {
+        return fetchAllFiles(folderPath: folderPath, ignore: self.ignoreWithPathComponents)
+    }
+    
     func fetchAllFiles(folderPath: String) -> [URL] {
+        return fetchAllFiles(folderPath: folderPath, ignore: [])
+    }
+    
+    func fetchAllFiles(folderPath: String, ignore: [String]) -> [URL] {
         var files: [String: URL] = [:]
         
         let resourceKeys : [URLResourceKey] = [
@@ -37,8 +45,6 @@ class SwiftFileManager: LocalFileManager {
                 print("directoryEnumerator error at \(url): ", error)
                 return true
         })!
-        
-        let ignore: [String] = []
         
         fileLoop: for case let fileURL as URL in enumerator {
             // ignoring files that contain the ignore string, but only looking at path relative to after the base url

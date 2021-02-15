@@ -16,6 +16,10 @@ class JavaFileManager: LocalFileManager {
         return [".java"]
     }
     
+    func fetchProjectFiles(folderPath: String) -> [URL] {
+        return fetchAllFiles(folderPath: folderPath)
+    }
+    
     func fetchAllFiles(folderPath: String) -> [URL] {
         var files: [URL] = []
         

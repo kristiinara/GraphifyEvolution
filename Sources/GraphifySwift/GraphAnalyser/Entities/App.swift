@@ -37,6 +37,13 @@ class App {
         }
     }
     
+    var appIdentifier: String {
+        if let commit = self.commit?.commit {
+            return "\(self.name)-\(commit)"
+        }
+        return self.name
+    }
+    
     init(name: String, homePath: String, classes: [Class]) {
         self.name = name
         self.homePath = homePath

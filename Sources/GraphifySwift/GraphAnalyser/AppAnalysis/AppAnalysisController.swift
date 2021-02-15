@@ -397,13 +397,13 @@ class AppAnalysisController {
             }
         } else {
             // No parent, analyse all swift files, completely new app
-            var filesToBeAnalysed = includePaths
+            var filesToBeAnalysed = fileManager.fetchProjectFiles(folderPath: pathWithoutGit)
 
             print("analyse \(filesToBeAnalysed.count) paths, changes: \(appVersion.parent?.changes.count)")
 
             for file in filesToBeAnalysed {
                 print("analyse file: \(file)")
-                var classes = self.syntaxAnalyser.analyseFile(filePath: file, includePaths: includePaths)
+                var classes = self.syntaxAnalyser.analyseFile(filePath: file.path, includePaths: includePaths)
                 for classInstance in classes {
                     classInstance.save()
 
