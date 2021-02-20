@@ -199,6 +199,47 @@ class Neo4jClient {
         }
     }
     
+    func runQuery(transaction: String) {
+        let group = DispatchGroup()
+        group.enter()
+        
+        requestNoReturn(transaction: transaction) { success in
+            print("Query completed, success? \(success)")
+            group.leave()
+        }
+        
+        group.wait()
+    }
+    
+    private func requestNoReturn(transaction: String, completition: @escaping (Bool) -> Void ) {
+        print("requestNoReturn")
+        let parameters = [
+            "statements": [[
+                "statement" : transaction
+                ]]
+        ]
+        print("running transaction: \(transaction)")
+        
+        requestWithParameters(parameters) { [unowned self] json in
+//            guard let self = self else {
+//                completition(nil)
+//                return
+//            }
+            
+            print("request finished")
+            let success = self.defaultErrorHandling(json: json)
+            
+//            print("----- JSON result (success? \(success)): -----")
+//            print(json ?? "Empty response")
+            
+            if success {
+                completition(true)
+            } else {
+                completition(false)
+            }
+        }
+    }
+    
     private func requestWithDefaultCompletition(transaction: String, completition: @escaping (Int?) -> Void) {
         print("requestWithDefaultCompletition")
         let parameters = [

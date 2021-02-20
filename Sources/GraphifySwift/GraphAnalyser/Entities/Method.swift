@@ -10,7 +10,7 @@ import Theo
 
 class Method {
     enum MethodKind: String {
-        case instanceMethod, classMethod, staticMethod
+        case instanceMethod, classMethod, staticMethod, setMethod, getMethod, constructor
     }
         
     var name: String
@@ -152,13 +152,6 @@ extension Method: Neo4jObject {
     typealias ObjectType = Method
     static var nodeType = "Method"
     
-    /*
-    static func initFrom(node: Node) -> Class {
-
-        return classInstance
-    }
- */
-    
     var updatedNode: Node {
         let oldNode = self.node
         
@@ -173,6 +166,9 @@ extension Method: Neo4jObject {
         oldNode.properties["number_of_instructions"] = self.numberOfInstructions
         oldNode.properties["cyclomatic_complexity"] = self.cyclomaticComplexity
         oldNode.properties["max_nesting_depth"] = self.maxNestingDepth
+        oldNode.properties["is_getter"] = self.kind == .getMethod
+        oldNode.properties["is_setter"] = self.kind == .setMethod
+        oldNode.properties["is_constructor"] = self.kind == .constructor
         
         self.nodeSet = oldNode
         

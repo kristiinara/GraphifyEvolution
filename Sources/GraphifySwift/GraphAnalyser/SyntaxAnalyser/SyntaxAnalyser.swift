@@ -141,6 +141,7 @@ extension SyntaxAnalyser {
             
             var methodKind: Method.MethodKind = .instanceMethod
             
+            //TODO: specify if set, get or constructor!
             if kind == constants.instanceMethodKind {
                 methodKind = .instanceMethod
             } else if kind == constants.classMethodKind {

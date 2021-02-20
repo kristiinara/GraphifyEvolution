@@ -31,6 +31,10 @@ class Class {
     var potentialMethods: [Method]?
     var potentialVariables: [Variable]?
     
+    var id: Int? {
+        return self.nodeSet?.id
+    }
+    
     func saveMethods() {
         for method in methods {
             method.save()

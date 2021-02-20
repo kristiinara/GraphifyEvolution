@@ -33,7 +33,7 @@ struct Application: ParsableCommand {
         var language: Language = .swift
         
         enum ExternalAnalysis: String, ExpressibleByArgument {
-            case duplication, insider
+            case duplication, insider, smells, metrics
         }
         
         @Option(help: "Which external analysis should be run during analysis.")
@@ -61,6 +61,13 @@ struct Application: ParsableCommand {
                     externalAnalysers.append(DuplicationAnalyser())
                 } else if value == .insider {
                     externalAnalysers.append(InsiderSecAnalysis(language: language))
+                } else if value == .smells {
+                    externalAnalysers.append(MetricsAnalyser()) // needs to run before code smell analysis
+                    externalAnalysers.append(CodeSmellAnalyser())
+                } else if value == .metrics {
+                    if !externalAnalysis.contains(.smells) {
+                        externalAnalysers.append(MetricsAnalyser())
+                    }
                 }
             }
             
