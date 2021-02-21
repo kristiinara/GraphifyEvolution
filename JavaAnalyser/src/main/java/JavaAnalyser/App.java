@@ -32,12 +32,13 @@ public class App {
         App newApp = new App();
 
         if(args.length < 2 || args.length > 3) {
-            System.out.println("Wrong number of arguments: " + args.length + ". Should be 1 or 2.");
+            System.out.println("Wrong number of arguments: " + args.length + ". Should be 2 or 3.");
         }
 
         String path = args[0];
         String projectFolderPath = args[1];
         String jdkPath = "/Library/Java/JavaVirtualMachines/jdk-13.0.2.jdk/"; // default value
+        //String jdkPath = "/Library/Java/JavaVirtualMachines/openjdk-12.0.1.jdk/";
 
         if(args.length == 3) {
            jdkPath = args[2];
