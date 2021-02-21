@@ -15,6 +15,10 @@ class JavaSyntaxAnalyser: SyntaxAnalyser {
         directoryPath = nil
     }
     
+    func reset(with directoryPath: String) {
+        self.directoryPath = directoryPath
+    }
+    
     func analyseFile(filePath: String, includePaths: [String]) -> [Class] {
         if directoryPath == nil {
             if filePath.contains("/src/") {

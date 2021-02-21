@@ -88,6 +88,8 @@ class AppAnalysisController {
             pathWithoutGit = "\(appVersion.directoryPath.dropLast(".git".count))"
         }
         
+        self.syntaxAnalyser.reset(with: pathWithoutGit)
+        
         var includePaths: [String] = fileManager.fetchAllFiles(folderPath: pathWithoutGit).map() { url in return url.path}
         print("all include paths: \(includePaths)")
         
@@ -488,7 +490,6 @@ class AppAnalysisController {
             } else {
                 print("Unsupported external analyer level \(externalAnalyser.supportedLevel)")
             }
-            externalAnalyser.reset()
         }
     }
     

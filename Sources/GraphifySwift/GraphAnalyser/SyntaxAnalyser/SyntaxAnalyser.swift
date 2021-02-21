@@ -12,6 +12,7 @@ protocol SyntaxAnalyser {
     var constants: Kind { get }
     
     func reset()
+    func reset(with directoryPath: String)
     func analyseFile(filePath: String, includePaths: [String]) -> [Class]
     
     func parseClassFrom(json: [String:Any], path: String) -> Class?
@@ -54,6 +55,10 @@ protocol Kind {
 }
 
 extension SyntaxAnalyser {
+    func reset(with directoryPath: String) {
+        reset()
+    }
+    
     func parseClassFrom(json: [String:Any], path: String) -> Class? {
         print("class from: \(json)")
         if let name = json[constants.nameKey] as? String,

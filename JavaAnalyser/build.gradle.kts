@@ -40,7 +40,7 @@ tasks.withType<Jar> {
     }
 }
 
-tasks.register<Jar>("uberJar") {
+tasks.register<Jar>("uberuberJarJar") {
     archiveClassifier.set("uber")
 
     from(sourceSets.main.get().output)

@@ -93,23 +93,28 @@ public class App {
             ResolvedMethodDeclaration resolvedMethodDeclaration = methodDeclaration.resolve();
 
             name = resolvedMethodDeclaration.getName();
-            ResolvedType resolvedReturnType = resolvedMethodDeclaration.getReturnType();
-            String returnType = null;
+            try {
+                ResolvedType resolvedReturnType = resolvedMethodDeclaration.getReturnType();
+                String returnType = null;
 
-            if(resolvedReturnType.isPrimitive()) {
-                returnType = resolvedReturnType.asPrimitive().name();
-            } else if (resolvedReturnType.isReferenceType()) {
-                returnType = resolvedReturnType.asReferenceType().getQualifiedName();
-            } else {
-                returnType = "not defined!";
+                if (resolvedReturnType.isPrimitive()) {
+                    returnType = resolvedReturnType.asPrimitive().name();
+                } else if (resolvedReturnType.isReferenceType()) {
+                    returnType = resolvedReturnType.asReferenceType().getQualifiedName();
+                } else {
+                    returnType = "not defined!";
+                }
+                type = returnType;
+            } catch (UnsolvedSymbolException e) {
+                //
+                type = "?";
             }
 
-            //String returnType = resolvedMethodDeclaration.getReturnType().toString();
-            //resolvedMethodDeclaration.isAbstract();
-            String declaringType = resolvedMethodDeclaration.declaringType().getQualifiedName();
+                //String returnType = resolvedMethodDeclaration.getReturnType().toString();
+                //resolvedMethodDeclaration.isAbstract();
+                String declaringType = resolvedMethodDeclaration.declaringType().getQualifiedName();
 
-            usr = declaringType+ "." + name;
-            type = returnType;
+                usr = declaringType + "." + name;
 
         } else if(node.getClass() == FieldDeclaration.class) {
             FieldDeclaration fieldDeclaration = (FieldDeclaration)node;
@@ -118,12 +123,16 @@ public class App {
             name = resolvedFieldDeclaration.getName();
             String declaringType = resolvedFieldDeclaration.declaringType().getQualifiedName();
 
-            if(resolvedFieldDeclaration.getType().isPrimitive()) {
-                type = resolvedFieldDeclaration.getType().asPrimitive().name();
-            } else if (resolvedFieldDeclaration.getType().isReferenceType()) {
-                type = resolvedFieldDeclaration.getType().asReferenceType().getQualifiedName();
-            } else {
-                type = "not defined!";
+            try {
+                if (resolvedFieldDeclaration.getType().isPrimitive()) {
+                    type = resolvedFieldDeclaration.getType().asPrimitive().name();
+                } else if (resolvedFieldDeclaration.getType().isReferenceType()) {
+                    type = resolvedFieldDeclaration.getType().asReferenceType().getQualifiedName();
+                } else {
+                    type = "not defined!";
+                }
+            } catch (UnsolvedSymbolException e) {
+                type = "?";
             }
 
             usr = declaringType + "." + name;
@@ -145,15 +154,23 @@ public class App {
         if(node.getClass() == NameExpr.class) {
             NameExpr nameExpr = (NameExpr)node;
 
-            ResolvedType resolvedType = nameExpr.calculateResolvedType();
+            try {
+                ResolvedType resolvedType = nameExpr.calculateResolvedType();
 
-            if(resolvedType.isPrimitive()) {
-                type = resolvedType.asPrimitive().name();
-            } else {
-                if(resolvedType.isReferenceType()) {
-                    String qualifiedName = resolvedType.asReferenceType().getQualifiedName();
-                    type = qualifiedName;
+                if (resolvedType.isPrimitive()) {
+                    type = resolvedType.asPrimitive().name();
+                } else {
+                    if (resolvedType.isReferenceType()) {
+                        String qualifiedName = resolvedType.asReferenceType().getQualifiedName();
+                        type = qualifiedName;
+                    }
                 }
+            } catch (UnsolvedSymbolException e) {
+                type = "?";
+            } catch (UnsupportedOperationException e) {
+                type = "?";
+            } catch (RuntimeException e) {
+                type = "?";
             }
 
             try {
@@ -166,6 +183,8 @@ public class App {
                 }
             } catch (UnsolvedSymbolException exception) {
                 //System.out.println("Cannot solve: " + nameExpr);
+            } catch (UnsupportedOperationException e) {
+                //
             }
         }
 
@@ -173,14 +192,21 @@ public class App {
             MethodCallExpr methodCallExpr = (MethodCallExpr)node;
 
             String scope = "";
-            if(methodCallExpr.getScope().isPresent()) {
-                Expression methodScope = methodCallExpr.getScope().get();
-                ResolvedType resolvedType = methodScope.calculateResolvedType();
-                if(resolvedType.isReferenceType()) {
-                    scope = resolvedType.asReferenceType().getQualifiedName();
-                } else {
-                    scope = resolvedType.toString();
+
+            try {
+                if (methodCallExpr.getScope().isPresent()) {
+                    Expression methodScope = methodCallExpr.getScope().get();
+                    ResolvedType resolvedType = methodScope.calculateResolvedType();
+                    if (resolvedType.isReferenceType()) {
+                        scope = resolvedType.asReferenceType().getQualifiedName();
+                    } else {
+                        scope = resolvedType.toString();
+                    }
                 }
+            } catch (UnsolvedSymbolException e) {
+                scope = "?";
+            } catch (RuntimeException e) {
+                scope = "??";
             }
 
             String methodName = methodCallExpr.getNameAsString();
@@ -190,17 +216,34 @@ public class App {
         } else if(node.getClass() == FieldAccessExpr.class) {
             FieldAccessExpr fieldAccessExpr = (FieldAccessExpr)node;
             Expression fieldScope = fieldAccessExpr.getScope();
-            String scope = fieldScope.calculateResolvedType().asReferenceType().getQualifiedName();
+            String scope;
+            try {
+                scope = fieldScope.calculateResolvedType().asReferenceType().getQualifiedName();
+            } catch (UnsolvedSymbolException e) {
+                scope = "?";
+            } catch (UnsupportedOperationException e) {
+                scope = "?";
+            } catch (RuntimeException e) {
+                scope = "?";
+            }
 
             String fieldName = fieldAccessExpr.getNameAsString();
             String fullName = scope + "." + fieldName;
             usr = fullName;
         }
 
-        Optional<Range> optRange = node.getRange();
-        Range range = optRange.get();
-        int startLine = range.begin.line;
-        int endLine = range.end.line;
+        int startLine;
+        int endLine;
+
+        try {
+            Optional<Range> optRange = node.getRange();
+            Range range = optRange.get();
+            startLine = range.begin.line;
+            endLine = range.end.line;
+        } catch (NoSuchElementException e) {
+            startLine = -1;
+            endLine = -1;
+        }
 
         if(usr == null) {
             usr = name;

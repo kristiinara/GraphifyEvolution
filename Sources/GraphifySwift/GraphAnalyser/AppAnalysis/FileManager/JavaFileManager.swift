@@ -9,7 +9,7 @@ import Foundation
 class JavaFileManager: LocalFileManager {
     
     var ignoreWithPathComponents: [String] {
-        return []
+        return ["/test/"]
     }
     
     var allowedEndings: [String] {
@@ -41,7 +41,7 @@ class JavaFileManager: LocalFileManager {
                 return true
         })!
         
-        let ignore: [String] = []
+        let ignore: [String] = self.ignoreWithPathComponents
         
         fileLoop: for case let fileURL as URL in enumerator {
             // ignoring files that contain the ignore string, but only looking at path relative to after the base url
@@ -72,7 +72,7 @@ class JavaFileManager: LocalFileManager {
                         //TODO: fix size stuff
                         //self.classSizes.append(size)
                         
-                         if (fileURL.path.contains("Tests")) {
+                         if (fileURL.path.contains("/test/")) {
                             //print("Ignore test files")
                         } else {
                             files.append(fileURL)
