@@ -44,7 +44,7 @@ class BulkAppManager: AppManager {
         // use appManager to create these app versions
     }
     
-    func newAppManager(path: String) -> AppManager {
+    func newAppManager(path: String, appKey: String?) -> AppManager {
         fatalError("BulkAppManager does not allow generation of new app managers")
     }
 }

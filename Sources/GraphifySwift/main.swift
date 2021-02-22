@@ -81,10 +81,10 @@ struct Application: ParsableCommand {
                 }
             } else {
                 if(evolution) {
-                    appManager = GitManager(path: path)
+                    appManager = GitManager(path: path, appKey: appKey)
                     print("single project analysis + evolution")
                 } else {
-                    appManager = SimpleAppManager(path: path)
+                    appManager = SimpleAppManager(path: path, appKey: appKey)
                     print("single project analysis without evolution")
                 }
             }

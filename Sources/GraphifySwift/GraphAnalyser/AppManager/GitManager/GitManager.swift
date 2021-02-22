@@ -9,11 +9,14 @@ import Foundation
 
 class GitManager: AppManager {          // manager used for project evolution
     let path: String?
+    var appKey: String?
+    
     var commits: [Commit]?  //TODO: change type, maybe create new class/structure?
     var commitsToBeAnalysed: [Commit] = []
     
-    init(path: String) {
+    init(path: String, appKey: String?) {
         self.path = path
+        self.appKey = appKey
     }
     
     init() {
@@ -47,6 +50,7 @@ class GitManager: AppManager {          // manager used for project evolution
         print("Next commit: \(nextCommit.commit), parent: \(nextCommit.parent), check parent: \(nextCommit.parentCommit?.commit)")
         
         let appVersion = AppVersion(directoryPath: path)
+        appVersion.appKey = appKey
         //appVersion.changedFilePaths
         nextCommit.appVersion = appVersion
         
@@ -180,8 +184,8 @@ class GitManager: AppManager {          // manager used for project evolution
         return changes
     }
     
-    func newAppManager(path: String) -> AppManager {
-        return GitManager(path: path)
+    func newAppManager(path: String, appKey: String?) -> AppManager {
+        return GitManager(path: path, appKey: appKey)
     }
     
     func runDefaultBranchCommand() -> String {

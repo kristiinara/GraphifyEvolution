@@ -10,6 +10,7 @@ import Theo
 
 class App {
     var name: String
+    var appKey: String?
     //var code: String
     var versionNumber: Int = 1
     
@@ -89,6 +90,7 @@ extension App: Neo4jObject {
         let oldNode = self.node
         
         oldNode.properties["name"] = self.name
+        oldNode.properties["appKey"] = self.appKey
         oldNode.properties["usr"] = self.usr
         oldNode.properties["version_number"] = self.versionNumber
         oldNode.properties["commit"] = self.commit?.commit

@@ -9,5 +9,5 @@ import Foundation
 
 protocol AppManager {
     func nextAppVersion() -> AppVersion?
-    func newAppManager(path: String) -> AppManager
+    func newAppManager(path: String, appKey: String?) -> AppManager
 }

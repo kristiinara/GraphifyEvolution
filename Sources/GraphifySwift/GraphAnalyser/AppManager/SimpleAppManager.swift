@@ -7,12 +7,15 @@
 
 import Foundation
 
-class SimpleAppManager: AppManager {    // manager used for single project
+class SimpleAppManager: AppManager {
+    // manager used for single project
     let path: String?
+    var appKey: String?
     var appVersionAnalysed = false
     
-    init(path: String) {
+    init(path: String, appKey: String?) {
         self.path = path
+        self.appKey = appKey
     }
     
     init() {
@@ -30,6 +33,7 @@ class SimpleAppManager: AppManager {    // manager used for single project
         if !appVersionAnalysed {
             appVersionAnalysed = true
             var appVersion = AppVersion(directoryPath: path)
+            appVersion.appKey = self.appKey
         //appVersion.changedFilePaths.append(self.path) //TODO: replace with actual paths
         
             return appVersion
@@ -38,7 +42,7 @@ class SimpleAppManager: AppManager {    // manager used for single project
         }
     }
     
-    func newAppManager(path: String) -> AppManager {
-        return SimpleAppManager(path: path)
+    func newAppManager(path: String, appKey: String?) -> AppManager {
+        return SimpleAppManager(path: path, appKey: appKey)
     }
 }

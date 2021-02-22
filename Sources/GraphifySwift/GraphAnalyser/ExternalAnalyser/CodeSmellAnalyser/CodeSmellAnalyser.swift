@@ -452,6 +452,7 @@ protocol MetricsQuery: CodeSmellQuery {
 }
 
 struct Metrics {
+    /*
     static let veryHighNumberOfInstructionsMethod = 35 // from tool
     static let veryHighLackOfCohesionInMethods = 1 // metrics query
     static let veryHighNumberOfMethods = 1 // metrics query
@@ -462,6 +463,43 @@ struct Metrics {
     static let veryHighClassComplexity = 3 // from tool
     static let veryHighNumberOfCalledMethods = 3 // metrics query
     static let highNumberOfCallsBetweenClasses = 2 // calculated in smell query
+ */
+    
+    static let veryHighNumberOfAttributes = 13.5
+    static let veryLowNumberOfAttributes = 0
+    static let veryHighNumberOfMethods = 13.5
+    static let veryLowNumberOfMethods = 0
+    static let veryHighNumberOfInstructionsClass = 147.5
+    static let medianNumberOfInstructionsClass = 20
+    static let veryHighNumberOfComments = 29.5
+    static let veryHighClassComplexity = 33.5
+    static let LowComplexityMethodRatio = 1
+    static let medianCouplingBetweenObjectClasses = 0
+    static let veryHighNumberOfMethodsAndAttributes = 24.5
+    static let lowNumberOfMethodsAndAttributes = 2
+    static let veryHighLackOfCohesionInMethods = 17.5
+    static let highNumberOfCallsBetweenClasses = 5
+        
+    // method related
+    static let veryHighCyclomaticComplexity = 6
+    static let highCyclomaticComplexity = 3
+    static let veryHighNumberOfCalledMethods = 2.5
+    static let veryHighNumberOfCallers = 2.5
+    static let veryHighNumberOfInstructionsMethod = 30.5
+    static let highNumberOfInstructionsMethod = 14
+    static let lowNumberOfInstructionsMethod = 3
+    static let veryHighNumberOfParameters = 2.5
+    static let veryHighNumberOfChainedMessages = 2.5
+    static let veryHighNumberOfSwitchStatements = 0 // will not work!
+        
+    // variable related
+    static let veryHighPrimitiveVariableUse = 6
+    
+    // interface related
+    static let veryHighNumberOfMethodsInterface = 5
+        
+    // other metrics
+    static let shorTermMemoryCap = 7
 }
 
 

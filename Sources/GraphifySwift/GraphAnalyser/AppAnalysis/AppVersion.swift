@@ -13,6 +13,7 @@ class AppVersion {
     var alternateParent: AppVersionParent?
     var directoryPath: String
     var commit: Commit?
+    var appKey: String?
     var changedFilePaths: [String]? { //TODO: check where we are using this and if it makes sense! (also how about if it is a  merge!)
         var paths: [String] = []
         

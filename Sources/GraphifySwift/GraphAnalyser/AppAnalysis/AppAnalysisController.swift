@@ -440,7 +440,8 @@ class AppAnalysisController {
             newClassVersions.append(contentsOf: finalClasses)
         }
         
-        var app = App(name: "name2", homePath: pathWithoutGit, classes: finalClasses)
+        let name = String(pathWithoutGit.split(separator: "/").last!)
+        var app = App(name: name, homePath: pathWithoutGit, classes: finalClasses)
         appVersion.analysedVersion = app
         print("new app with nr of classes: \(finalClasses.count)")
         
@@ -451,7 +452,7 @@ class AppAnalysisController {
                 parentApp.children.append(app)
                 app.parent = parentApp
                 app.versionNumber = parentApp.versionNumber + 1
-                app.name = "\(app.versionNumber)"
+                //app.name = "\(app.versionNumber)"
                 app.parentCommit = parentApp.commit
                 
                 print("parentapp number of children: \(parentApp.children.count)")
@@ -467,6 +468,7 @@ class AppAnalysisController {
         }
         
         app.commit = appVersion.commit
+        app.appKey = appVersion.appKey
         
         if(app.parent == nil) {
             print("app has no parent")
