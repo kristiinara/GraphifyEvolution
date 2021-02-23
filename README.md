@@ -1,5 +1,5 @@
 # GraphifySwiftEvolution
-GraphifySwiftEvolution is mainly built to analyse evolution of iOS applications in bulk, but it also supports other languages such as java and c++. The tool is built in a modular manner so that it could be easliy extended. Extensions for other languages, dependency managers, external analysers etc. are welcome (see [developer guide](developer_guide.md)).
+GraphifySwiftEvolution is mainly built to analyse evolution of iOS applications in bulk, but it also supports other languages such as java and c++. The tool is built in a modular manner so that it could be easliy extended. Extensions for other languages, dependency managers, external analysers etc. are welcome (see [developer guide](documentation/developer_guide.md)).
 
 GraphifySwiftEvolution is an extension of the tool [GraphifySwift](https://github.com/kristiinara/GraphifySwift).
 
@@ -39,11 +39,11 @@ Bulk analysis of java projects:
 
 #### Analysing the application database
 
-GraphifySwiftEvolution enters structural information about the analysed applications and additional infromation gained from external analysers into a neo4j database. Cypher queries can be written and excecuted in the neo4j browser for data extraction and analysis. Some example queries are explained [here](example_queries.md).
+GraphifySwiftEvolution enters structural information about the analysed applications and additional infromation gained from external analysers into a neo4j database. Cypher queries can be written and excecuted in the neo4j browser for data extraction and analysis. Some example queries are explained [here](documentation/example_queries.md).
     
 ## Database structure
 
-More on the database structure [here](db_structure.md).
+More on the database structure [here](documentation/db_structure.md).
 
 ## Tool architecture
 
@@ -58,5 +58,5 @@ GraphifySwiftEvolution consists of 8 main elements:
 * ExternalAnalyser (Duplication, InsiderSec, Metrics, Smells)
 * Database (neo4j)
 
-Depending on user input implementations for [LocalFileManager](local_file_manager.md), [AppManager](app_manager.md), [DependencyManager](dependency_manager.md) and [SyntaxAnalyser](syntax_analyser.md) are chosen. New implementations for these protocols can be easily added, the requirements for each are described on the respective pages. 
+Depending on user input implementations for [LocalFileManager](documentation/local_file_manager.md), [AppManager](documentation/documentation/app_manager.md), [DependencyManager](documentation/dependency_manager.md) and [SyntaxAnalyser](documentation/syntax_analyser.md) are chosen. New implementations for these protocols can be easily added, the requirements for each are described on the respective pages. 
     
