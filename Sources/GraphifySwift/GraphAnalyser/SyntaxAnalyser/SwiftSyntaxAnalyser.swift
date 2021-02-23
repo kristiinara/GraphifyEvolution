@@ -113,7 +113,11 @@ class SwiftSyntaxAnalyser: SyntaxAnalyser {
             }
         }
         
-        return allLineNumbers.max()!
+        if let max = allLineNumbers.max() {
+            return max
+        }
+        
+        return -1
     }
 }
 

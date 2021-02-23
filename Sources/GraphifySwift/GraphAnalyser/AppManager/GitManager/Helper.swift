@@ -9,6 +9,24 @@ import Foundation
 
 class Helper {
     static func shell(launchPath path: String, arguments args: [String]) -> String {
+        var output = shellOptinal(launchPath: path, arguments: args)
+        
+        if let output = output {
+            return output
+        }
+        
+        // domething failed, try again once!
+        output = shellOptinal(launchPath: path, arguments: args)
+        
+        if let output = output {
+            return output
+        }
+        
+        print("Helper.shell did not return anything")
+        return ""
+    }
+    
+    static func shellOptinal(launchPath path: String, arguments args: [String]) -> String? {
         print("Helper.shell")
         let task = Process()
         task.launchPath = path
@@ -23,6 +41,6 @@ class Helper {
         let output = String(data: data, encoding: .utf8)
         task.waitUntilExit()
 
-        return(output!)
+        return(output)
     }
 }

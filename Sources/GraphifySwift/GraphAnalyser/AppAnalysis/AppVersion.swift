@@ -78,40 +78,55 @@ class AppVersionParent {
             
             if fileChange.type == .removed {
                 print("change: removed")
-                let oldPath = fileChange.oldPath!
                 
-                removedPaths.append(oldPath)
+                if let oldPath = fileChange.oldPath {
+                    removedPaths.append(oldPath)
+                } else {
+                    print("No oldPath for removed file")
+                }
+                
                 continue
             }
             
             if fileChange.type == .renamed {
                 print("change: renamed")
-                let oldPath = fileChange.oldPath!
-                let newPath = fileChange.newPath!
-                renamedPaths[oldPath] = newPath
+                if let oldPath = fileChange.oldPath, let newPath = fileChange.newPath {
+                    renamedPaths[oldPath] = newPath
+                } else {
+                    print("No newPath or oldPath for renamed file")
+                }
+                
                 continue
             }
             
             if fileChange.type == .added {
                 print("change: added")
-                let newPath = fileChange.newPath!
-                addedPaths.append(newPath)
+                if let newPath = fileChange.newPath {
+                    addedPaths.append(newPath)
+                } else {
+                    print("No newPath for new file")
+                }
+                
                 continue
             }
             
             if fileChange.type == .changed {
                 print("change: changed")
-                let newPath = fileChange.newPath!
-                changedPaths.append(newPath)
                 
-                var changesOnpath: [FileChange] = []
+                if let newPath = fileChange.newPath {
+                    changedPaths.append(newPath)
                 
-                if let existingChanges = changesForPaths[newPath] {
-                    changesOnpath = existingChanges
+                    var changesOnpath: [FileChange] = []
+                
+                    if let existingChanges = changesForPaths[newPath] {
+                        changesOnpath = existingChanges
+                    }
+                
+                    changesOnpath.append(fileChange)
+                    changesForPaths[newPath] = changesOnpath
+                } else {
+                    print("No newPath for changed file")
                 }
-                
-                changesOnpath.append(fileChange)
-                changesForPaths[newPath] = changesOnpath
                 
                 //TODO: can it happen that something is changed and renamed?
                 continue

@@ -15,7 +15,16 @@ class GitManager: AppManager {          // manager used for project evolution
     var commitsToBeAnalysed: [Commit] = []
     
     init(path: String, appKey: String?) {
-        self.path = path
+        var gitPath = path
+        if !path.contains(".git") {
+            if path.hasSuffix("/") {
+                gitPath = "\(path).git"
+            } else {
+                gitPath = "\(path)/.git"
+            }
+        }
+        
+        self.path = gitPath
         self.appKey = appKey
     }
     

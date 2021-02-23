@@ -73,10 +73,10 @@ struct Application: ParsableCommand {
             
             if let bulkPath = bulkJsonPath {
                 if(evolution) {
-                    appManager = BulkAppManager(jsonPath: bulkPath, appManager: GitManager())
+                    appManager = BulkAppManager(folderPath: path, jsonPath: bulkPath, appManager: GitManager())
                     print("bulk analysis + evolution")
                 } else {
-                    appManager = BulkAppManager(jsonPath: bulkPath, appManager: SimpleAppManager())
+                    appManager = BulkAppManager(folderPath: path, jsonPath: bulkPath, appManager: SimpleAppManager())
                     print("bulk analysis without evolution")
                 }
             } else {

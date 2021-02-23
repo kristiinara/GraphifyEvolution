@@ -40,7 +40,12 @@ class JavaSyntaxAnalyser: SyntaxAnalyser {
        // let res = Helper.shell(launchPath: "\(currentDirectory)/JavaAnalyser/gradlew", arguments: ["run", "--args='path'" , "--console=plain", "--quiet"])
         
         // Prerequisite: JavaAnalyser-uber.jar needs to be compiled first
-        let res = Helper.shell(launchPath: "/usr/bin/java", arguments: ["-jar", "\(currentDirectory)/JavaAnalyser/build/libs/JavaAnalyser-uber.jar", path, directoryPath!])
+        
+        guard let directoryPath = self.directoryPath else {
+            fatalError("Directorypath for JavaSyntaxAnalyser not specified")
+        }
+        
+        let res = Helper.shell(launchPath: "/usr/bin/java", arguments: ["-jar", "\(currentDirectory)/JavaAnalyser/build/libs/JavaAnalyser-uber.jar", path, directoryPath])
         
         var json = res
         json = json.replacingOccurrences(of: "=", with: ": ")

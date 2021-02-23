@@ -94,18 +94,24 @@ class CPPSyntaxAnalyser: SyntaxAnalyser {
                 for item in items {
                     print("json item: \(item)")
                     if let classInstance = parseClassFrom(json: item, path: path) {
-                        if self.classes == nil {
-                            self.classes = [:]
+                        var classes: [String: [Class]]
+                        
+                        if let existing = self.classes {
+                            classes = existing
+                        } else {
+                            classes = [:]
                         }
                         
                         var classesForPath: [Class] = []
                         
-                        if let existingClassesForPath = self.classes![classInstance.path] {
+                        if let existingClassesForPath = classes[classInstance.path] {
                             classesForPath = existingClassesForPath
                         }
                         
                         classesForPath.append(classInstance)
-                        self.classes![classInstance.path] = classesForPath
+                        classes[classInstance.path] = classesForPath
+                        
+                        self.classes = classes
                     }
                 }
               }
