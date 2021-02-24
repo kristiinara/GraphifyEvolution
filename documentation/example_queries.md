@@ -23,7 +23,7 @@ We can then save the results as a .csv file and plot it using R. We can observe 
 
 ![Evolution of long methods in Tweetometer app](../example_data/long_methods.png)
 
-Did methods become too long over time?
+## Did methods become too long over time?
 
 To analyse if methods were created as long methods or if they became too long over time we can query the count of changes before a method became long method with the following query: 
 
@@ -44,7 +44,7 @@ To analyse if methods were created as long methods or if they became too long ov
 
 The result of this query shows that of 180 unique long method instances 174 methods were too long when they were added. Three methods became too long after one change, two became too long after two changes and one became too long after one change. 
 
-Can we find commits that removed vulnerabilities from code?
+## Can we find commits that removed vulnerabilities from code?
 
 We ran app analysis with the InsiderSecAnalyser enabled, which saved vulnerabilities into the application database as nodes and added relationships to vulnerable classes and methods. The following query finds commits that removed a vulnerability from a class:
 
