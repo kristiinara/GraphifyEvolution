@@ -41,6 +41,32 @@ The syntax analyser for c++ calls a python script that uses clang to parse c++ f
 ### JavaSyntaxAnalyser
 The syntax analyser for Java calls a small Java program that uses JavaParser to parse Java files. Similarly to CPPSyntaxAnalyser nodes returned from JavaParser are traversed and the Java program outputs a json file similar to SourceKittens format. 
 
+## Json structure
+The json structre that SyntaxAnalyser can find classes from by default is the following
+
+    {
+        "key.name": "key of application",
+        "key.usr": "unique identifier",
+        "key.kind": "class kind",
+        "key.path": "class path",
+        "key.entities": [ 
+             // includes declared methods and variables
+            {
+                "key.name": "name of method",
+                "key.usr": "unique identifier",
+                "key.kind": "method kind",
+                "key.startLine": 4,
+                "key.endLine": 6,
+                "key.entities": [
+                       // instructions
+                ]
+            },
+            {
+               // ...
+            }
+        ]
+    }
+
 ## Issues
 Todo list: 
 - Free methods (i.e. methods that do not belong to a class) are currently not handled
