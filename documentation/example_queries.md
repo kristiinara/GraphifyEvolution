@@ -49,10 +49,10 @@ The result of this query shows that of 180 unique long method instances 174 meth
 We ran app analysis with the InsiderSecAnalyser enabled, which saved vulnerabilities into the application database as nodes and added relationships to vulnerable classes and methods. The following query finds commits that removed a vulnerability from a class:
 
     MATCH 
-        (c:Class)-[:HAS_VULNERABILITY]->(v:Vulnerability) 
+        (prev_app)-[:APP_OWNS_CLASS]->(c:Class)-[:HAS_VULNERABILITY]->(v:Vulnerability) 
     MATCH 
         (c)-[:CLASS_CHANGED_TO]->(c2)
-                    <-[:APP_OWNS_CLASS]-(app:App) 
+                    <-[:APP_OWNS_CLASS]-(app:App)<-[:CHANGED_TO]-(prev_app)
     WHERE 
         NOT (c2)-[:HAS_VULNERABILITY]->() 
     RETURN 
