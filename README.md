@@ -7,6 +7,8 @@ GraphifySwiftEvolution is an extension of the tool [GraphifySwift](https://githu
 
 ### Prerequisites
 
+GraphifySwiftEvolution is written in swift and can currently only run on Mac OS. There are plans on trying to make the tool also work on linux. Currently there is no linux support as the Foundation framework is not yet fully implemented for linux. 
+
 Neo4j database server needs to be running before GraphifySwiftEvolution is run. Data url and authorization token for neo4j are currently hardcoded in DatabaseController and need to match the neo4j server configuration. 
 
 Clone this repository. To build GraphifySwiftEvolution run `swift build` in the project folder. When the build succeeds the GraphifySwiftEvolution executable can be found in .build/debug.
@@ -59,4 +61,11 @@ GraphifySwiftEvolution consists of 8 main elements:
 * Database (neo4j)
 
 Depending on user input implementations for [LocalFileManager](documentation/local_file_manager.md), [AppManager](documentation/documentation/app_manager.md), [DependencyManager](documentation/dependency_manager.md) and [SyntaxAnalyser](documentation/syntax_analyser.md) are chosen. New implementations for these protocols can be easily added, the requirements for each are described on the respective pages. 
+
+## Known issues and future plans
+
+- GraphifySwiftEvolution is written in swift and can currently only run on Mac OS. There are plans on trying to make the tool also work on linux. Currently there is no linux support as the Foundation framework is not yet fully implemented for linux. 
+- Additional dependency managers need to be implemented so that more applications could be analysed
+- A switch for verbose logging should be added
+- Class implementations and method arguments are not yet handled by the syntax analyser
     
