@@ -1,6 +1,6 @@
 # Example queries
 
-We analysed 20 open source applications (including 3000 app versions - dataset can be found (here)[/example_data/overview.md]) and ran through three example scenarios: 
+We analysed 20 open source applications (including 3000 app versions - dataset can be found (here)[..//example_data/overview.md]) and ran through three example scenarios: 
 - How did the number of long methods evolve in Tweetometer app?
 - Did methods become too long over time?
 - Can we find commits that removed vulnerabilities from code?
@@ -21,7 +21,7 @@ As an example we chose the Tweetometer app that has 373 analysed app versions an
 
 We can then save the results as a .csv file and plot it using R. We can observe how the number of long methods grew in the first half of the project development, then plateaued. At the end almost all long methods were removed. The trend is shown in the following figure: 
 
-![Evolution of long methods in Tweetometer app](example_data/long_methods.png)
+![Evolution of long methods in Tweetometer app](../example_data/long_methods.png)
 
 Did methods become too long over time?
 
