@@ -62,6 +62,8 @@ GraphifySwiftEvolution consists of 8 main elements:
 
 Depending on user input implementations for [LocalFileManager](documentation/local_file_manager.md), [AppManager](documentation/documentation/app_manager.md), [DependencyManager](documentation/dependency_manager.md) and [SyntaxAnalyser](documentation/syntax_analyser.md) are chosen. New implementations for these protocols can be easily added, the requirements for each are described on the respective pages. 
 
+AppAnalysisController is described [here](app_analysis_controller.md). 
+
 ## Known issues and future plans
 
 - GraphifySwiftEvolution is written in swift and can currently only run on Mac OS. There are plans on trying to make the tool also work on linux. Currently there is no linux support as the Foundation framework is not yet fully implemented for linux. 
