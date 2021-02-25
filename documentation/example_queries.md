@@ -7,7 +7,7 @@ We analysed 20 open source applications (including 3000 app versions - dataset c
 
 ## How did the number of long methods evolve in Tweetometer app?
 
-As an example we chose the Tweetometer app that has 373 analysed app versions and 14 long methods. We can query all long methods from the app Tweetometer with the following query:
+As an example we chose the Tweetometer app that has 173 analysed app versions and 17 long methods. We can query all long methods from the app Tweetometer with the following query:
 
     MATCH (app:App)-[:APP_OWNS_CLASS]->()
         -[:CLASS_OWNS_METHOD]->(method:Method) 
@@ -29,20 +29,20 @@ To analyse if methods were created as long methods or if they became too long ov
 
     MATCH (m:Method) 
     WHERE 
-        m.number_of_instructions > 30.5 
+        m.is_long_method = true
     OPTIONAL MATCH 
         p=(:Method)-[:CHANGED_TO*]->(m) 
     OPTIONAL MATCH 
         (m2)-[:CHANGED_TO]->(m) 
     WHERE 
-        m2.number_of_instructions > 30.5 
+        m2.is_long_method = true
     WITH 
         m, count(relationships(p)) as changes, m2 
     WHERE 
         m2 is null 
     RETURN count(*), changes
 
-The result of this query shows that of 180 unique long method instances 174 methods were too long when they were added. Three methods became too long after one change, two became too long after two changes and one became too long after one change. 
+The result of this query shows that of 140 unique long method instances 130 methods were too long when they were added. Six methods became too long after one change, three became too long after two changes and one became too long after three changes. 
 
 ## Can we find commits that removed vulnerabilities from code?
 
@@ -58,4 +58,4 @@ We ran app analysis with the InsiderSecAnalyser enabled, which saved vulnerabili
     RETURN 
         app.name, collect(distinct app.commit), count(v)
 
-We found removed vulnerabilities in two applications. In Lockdown application three vulnerabilities were removed in three different classes in one commit. In Arex application four vulnerabilities were removed in the same class during two different commits. 
+We found removed vulnerabilities in one application. In Arex application two vulnerabilities were removed in the same class during one commit. 
