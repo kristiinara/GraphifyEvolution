@@ -139,6 +139,7 @@
 * __classPath__ - path of vulnerable file
 * __recommendation__ - recommendation for removing vulnerability
 
+#### Added relationships
 * Class
   * HAS_VULNERABILITY Vulnerability
 * Method
