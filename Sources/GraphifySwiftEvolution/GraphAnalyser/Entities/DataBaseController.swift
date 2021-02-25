@@ -177,7 +177,7 @@ class Neo4jClient {
     func relateSync(node: Node, to: Node, relationship: Neo4jRelationship) {
         //TODO: return result object
         
-        print("Relate: \(node.properties["name"]) \(node.id) - \(to.properties["name"]) \(to.id)")
+        //print("Relate: \(node.properties["name"]) \(node.id) - \(to.properties["name"]) \(to.id)")
         
         
         if let id = node.id, let toId = to.id {
@@ -204,7 +204,7 @@ class Neo4jClient {
         group.enter()
         
         requestNoReturn(transaction: transaction) { success in
-            print("Query completed, success? \(success)")
+            //print("Query completed, success? \(success)")
             group.leave()
         }
         
@@ -212,13 +212,13 @@ class Neo4jClient {
     }
     
     private func requestNoReturn(transaction: String, completition: @escaping (Bool) -> Void ) {
-        print("requestNoReturn")
+        //print("requestNoReturn")
         let parameters = [
             "statements": [[
                 "statement" : transaction
                 ]]
         ]
-        print("running transaction: \(transaction)")
+        //print("running transaction: \(transaction)")
         
         requestWithParameters(parameters) { [unowned self] json in
 //            guard let self = self else {
@@ -226,7 +226,7 @@ class Neo4jClient {
 //                return
 //            }
             
-            print("request finished")
+            //print("request finished")
             let success = self.defaultErrorHandling(json: json)
             
 //            print("----- JSON result (success? \(success)): -----")
@@ -241,13 +241,13 @@ class Neo4jClient {
     }
     
     private func requestWithDefaultCompletition(transaction: String, completition: @escaping (Int?) -> Void) {
-        print("requestWithDefaultCompletition")
+        //print("requestWithDefaultCompletition")
         let parameters = [
             "statements": [[
                 "statement" : transaction
                 ]]
         ]
-        print("running transaction: \(transaction)")
+        //print("running transaction: \(transaction)")
         
         requestWithParameters(parameters) { [unowned self] json in
 //            guard let self = self else {
@@ -255,7 +255,7 @@ class Neo4jClient {
 //                return
 //            }
             
-            print("request finished")
+            //print("request finished")
             let success = self.defaultErrorHandling(json: json)
             
 //            print("----- JSON result (success? \(success)): -----")
@@ -270,7 +270,7 @@ class Neo4jClient {
     }
     
     private func requestWithParameters(_ parameters: [String: Any], completition: @escaping ([String: Any]?) -> Void) {
-        print("requestWithParameters")
+        //print("requestWithParameters")
         //create the session object
         let session = URLSession.shared
         

@@ -56,26 +56,26 @@ class GitManager: AppManager {          // manager used for project evolution
         }
         
         let nextCommit = self.commitsToBeAnalysed.removeFirst()
-        print("Next commit: \(nextCommit.commit), parent: \(nextCommit.parent), check parent: \(nextCommit.parentCommit?.commit)")
+        //print("Next commit: \(nextCommit.commit), parent: \(nextCommit.parent), check parent: \(nextCommit.parentCommit?.commit)")
         
         let appVersion = AppVersion(directoryPath: path)
         appVersion.appKey = appKey
         //appVersion.changedFilePaths
         nextCommit.appVersion = appVersion
         
-        print("finding parent commit")
+        //print("finding parent commit")
         if let parentCommit = nextCommit.parentCommit {
             let changes = self.getChangesForCommit(commit: nextCommit, toCommit: parentCommit)
             
             if let parentAppVersion = parentCommit.appVersion {
-                print("found parent commit")
+                //print("found parent commit")
                 appVersion.parent = AppVersionParent(appVersion: parentAppVersion, changes: changes)
                 
             }
             
             if let altParentCommit = nextCommit.alternateParentCommit {
                 if let altParentVersion = altParentCommit.appVersion {
-                    print("found alternateparent commit")
+                    //print("found alternateparent commit")
                     let altChanges = self.getChangesForCommit(commit: nextCommit, toCommit: altParentCommit)
                     
                     appVersion.alternateParent = AppVersionParent(appVersion: altParentVersion, changes: altChanges)
@@ -105,7 +105,7 @@ class GitManager: AppManager {          // manager used for project evolution
             }
         }
         
-        print("Total number of commits: \(self.commitsToBeAnalysed.count)")
+        //print("Total number of commits: \(self.commitsToBeAnalysed.count)")
         
         if let first = self.commitsToBeAnalysed.first {
             correctMasterBranch(forCommit: first)
@@ -188,7 +188,7 @@ class GitManager: AppManager {          // manager used for project evolution
     
     
     func getChangesForCommit(commit: Commit, toCommit: Commit) -> [FileChange] {
-        print("getChangesForCommit")
+        //print("getChangesForCommit")
         let changes = runGitDiffCommand(forCommit: commit, toCommit: toCommit)
         return changes
     }
@@ -236,11 +236,11 @@ class GitManager: AppManager {          // manager used for project evolution
             
             let res = Helper.shell(launchPath: "/usr/bin/git", arguments: ["--git-dir", path, "--work-tree", notGitPath, "name-rev", "--name-only", "--exclude=tags/*", forCommit.commit ])
             
-            print("Branch result: \(res)")
+            //print("Branch result: \(res)")
             let split = res.split(separator: "~")
             
             if let first = split.first {
-                print("setting branch: \(first)")
+                //print("setting branch: \(first)")
                 return String(first)
             }
             return nil
@@ -260,7 +260,7 @@ class GitManager: AppManager {          // manager used for project evolution
             
             let merges = res.split(separator: "\n")
             
-            print("last merge commit: \(merges.last)")
+            //print("last merge commit: \(merges.last)")
             
             var lastMerge = ""
             if merges.count > 0 {
@@ -277,7 +277,7 @@ class GitManager: AppManager {          // manager used for project evolution
                 return nil
             }
             
-            print("Branch result: \(lastMerge), branch: \(probableBranch)")
+            //print("Branch result: \(lastMerge), branch: \(probableBranch)")
             return probableBranch
         } else {
             fatalError("Path for gitManager not defined")
@@ -285,12 +285,12 @@ class GitManager: AppManager {          // manager used for project evolution
     }
     
     func runGitCheckoutCommand(forCommit: Commit) {
-        print("runGitCheckoutCommand")
+        //print("runGitCheckoutCommand")
         if let path = self.path {
             let notGitPath = String(path.dropLast(".git".count))
             
            // var res = Helper.shell(launchPath: "/usr/bin/git", arguments: ["--git-dir", path, "--work-tree", notGitPath, "status"])
-           // print("Status command result: \(res)")
+           // //print("Status command result: \(res)")
             var res = Helper.shell(launchPath: "/usr/bin/git", arguments: ["--git-dir", path, "--work-tree", notGitPath, "stash"])
             res = Helper.shell(launchPath: "/usr/bin/git", arguments: ["--git-dir", path, "--work-tree", notGitPath, "checkout", forCommit.commit])
             //print("Checkout command result: \(res)")
@@ -320,7 +320,7 @@ class GitManager: AppManager {          // manager used for project evolution
     }
     
     func runGitDiffCommand(forCommit: Commit, toCommit: Commit) -> [FileChange] {
-        print("runGitDiffCommand")
+        //print("runGitDiffCommand")
         // git diff -r a35ecb4b3a18f72888197bae92d38293981da335 --unified=0
         
         if forCommit.parent != "" {
@@ -341,7 +341,7 @@ class GitManager: AppManager {          // manager used for project evolution
                     let line = String(lineSubString)
                     
                     if line.starts(with: "diff") {
-                        print("diff")
+                        //print("diff")
                         if let current = currentFileChange {
                             fileChanges.append(current)
                             currentFileChange = nil
@@ -352,9 +352,9 @@ class GitManager: AppManager {          // manager used for project evolution
                     }
                     
                     if line.starts(with: "--- a/") {
-                        print("-- a/")
+                        //print("-- a/")
                         oldFile = String(line.dropFirst("--- a/".count))
-                        //print("line: \(line), oldFile: \(oldFile)")
+                        ////print("line: \(line), oldFile: \(oldFile)")
                         if oldFile == "/dev/null" {
                             oldFile = nil
                         }
@@ -363,7 +363,7 @@ class GitManager: AppManager {          // manager used for project evolution
                     }
                     
                     if line.starts(with: "+++ b/") {
-                        print("+++ b/")
+                        //print("+++ b/")
                         newFile = String(line.dropFirst("+++ b/".count))
                         //print("line: \(line), oldFile: \(newFile)")
                         if newFile == "/dev/null" {
@@ -374,8 +374,8 @@ class GitManager: AppManager {          // manager used for project evolution
                     }
                     
                     if line.starts(with: "@@") {
-                        print("@@")
-                        print("line: \(line)")
+                        //print("@@")
+                        //print("line: \(line)")
                         
                         if currentFileChange == nil {
                             //print("Line: \(line)")
@@ -406,21 +406,21 @@ class GitManager: AppManager {          // manager used for project evolution
                         // TODO: fix error from: ["@@", "-1", "+1", "@@"] --> no "," in numbers, normally -1,9 for example instead of -1
                         if values[1].contains(",") {
                             let oldString = String("\(values[1])".replacingOccurrences(of: "-", with: "")).split(separator: ",")
-                            print("oldString: \(oldString)")
+                            //print("oldString: \(oldString)")
                             
                             oldLineNumbers = (start: Int(oldString[0])!, length: Int(oldString[1])!)
                         } else {
-                            print("values1: \(values[1])")
+                            //print("values1: \(values[1])")
                             oldLineNumbers = (start: Int("\(values[1])".trimmingCharacters(in: .whitespacesAndNewlines).dropFirst())!, length: 0)
                         }
                         
                         if values[2].contains(",") {
                             let newString = String("\(values[2])".replacingOccurrences(of: "+", with: "")).split(separator: ",")
-                            print("newString: \(newString)")
+                            //print("newString: \(newString)")
                             
                             newLineNumbers = (start: Int(newString[0])!, length: Int(newString[1])!)
                         } else {
-                            print("values2: \(values[2])")
+                            //print("values2: \(values[2])")
                             let test = "\(values[2])".trimmingCharacters(in: .whitespacesAndNewlines).dropFirst()
                             
                             let start = Int(test)!

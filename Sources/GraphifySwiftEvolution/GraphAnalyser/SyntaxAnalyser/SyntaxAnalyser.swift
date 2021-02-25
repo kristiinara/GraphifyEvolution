@@ -60,14 +60,14 @@ extension SyntaxAnalyser {
     }
     
     func parseClassFrom(json: [String:Any], path: String) -> Class? {
-        print("class from: \(json)")
+        //print("class from: \(json)")
         if let name = json[constants.nameKey] as? String,
             let usr = json[constants.usrKey] as? String {
             
             var classType: Class.ClassType = .classType
             
             if let kind = json[constants.kindKey] as? String {
-                print("kind: \(kind)")
+                //print("kind: \(kind)")
                 if kind == constants.classKind {
                     classType = .classType
                 } else if kind == constants.structKind {
@@ -86,9 +86,9 @@ extension SyntaxAnalyser {
                 path = existingPath
             }
             
-            if let codeFromFile = getCodeForPath(path: path) {
-                dataString = codeFromFile
-            }
+//            if let codeFromFile = getCodeForPath(path: path) {
+//                dataString = codeFromFile
+//            }
             
             var methods: [Method] = []
             var variables: [Variable] = []
@@ -142,7 +142,7 @@ extension SyntaxAnalyser {
         if let name = json[constants.nameKey] as? String,
             let usr = json[constants.usrKey] as? String,
             let kind = json[constants.kindKey] as? String {
-            print("parse method: \(usr)")
+            //print("parse method: \(usr)")
             
             var methodKind: Method.MethodKind = .instanceMethod
             
@@ -213,7 +213,7 @@ extension SyntaxAnalyser {
         let instruction = Instruction(type: type, code: "")
         
         if let usr = json[constants.usrKey] as? String {
-            print("instruction with usr: \(usr)")
+            //print("instruction with usr: \(usr)")
             instruction.calledUsr = usr
         }
         
@@ -303,7 +303,7 @@ extension SyntaxAnalyser {
     func getCodeForPath(path: String) -> String? {
         var dataString: String? = nil
         
-        print("Reaing file: \(path)")
+        //print("Reaing file: \(path)")
         if let file = File(path: path)  {
             let fileContents = file.contents
             dataString = fileContents

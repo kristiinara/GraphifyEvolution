@@ -13,4 +13,6 @@ protocol LocalFileManager {
     
     var ignoreWithPathComponents: [String] {get}
     var allowedEndings: [String] {get}
+    
+    var dependencyManager: DependencyManager {get}
 }

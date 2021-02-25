@@ -74,10 +74,10 @@ class AppVersionParent {
         var changesForPaths: [String:[FileChange]] = [:]
         
         for fileChange in changes {
-            print("change for files: \(fileChange.oldPath) - \(fileChange.newPath)")
+            //print("change for files: \(fileChange.oldPath) - \(fileChange.newPath)")
             
             if fileChange.type == .removed {
-                print("change: removed")
+                //print("change: removed")
                 
                 if let oldPath = fileChange.oldPath {
                     removedPaths.append(oldPath)
@@ -89,7 +89,7 @@ class AppVersionParent {
             }
             
             if fileChange.type == .renamed {
-                print("change: renamed")
+                //print("change: renamed")
                 if let oldPath = fileChange.oldPath, let newPath = fileChange.newPath {
                     renamedPaths[oldPath] = newPath
                 } else {
@@ -100,7 +100,7 @@ class AppVersionParent {
             }
             
             if fileChange.type == .added {
-                print("change: added")
+                //print("change: added")
                 if let newPath = fileChange.newPath {
                     addedPaths.append(newPath)
                 } else {
@@ -111,7 +111,7 @@ class AppVersionParent {
             }
             
             if fileChange.type == .changed {
-                print("change: changed")
+                //print("change: changed")
                 
                 if let newPath = fileChange.newPath {
                     changedPaths.append(newPath)

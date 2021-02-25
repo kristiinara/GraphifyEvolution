@@ -46,13 +46,16 @@ struct Application: ParsableCommand {
             
             if language == .swift {
                 syntaxAnalyser = SwiftSyntaxAnalyser()
-                fileManager = SwiftFileManager()
+                let dependencyManager = SimpleDependencyManager(ignore: ["/Carthage/"])
+                fileManager = SwiftFileManager(dependencyManager: dependencyManager)
             } else if language == .cpp {
                 syntaxAnalyser = CPPSyntaxAnalyser()
-                fileManager = CPPFileManager()
+                let dependencyManager = SimpleDependencyManager(ignore: [])
+                fileManager = CPPFileManager(dependencyManager: dependencyManager)
             } else if language == .java {
                 syntaxAnalyser = JavaSyntaxAnalyser()
-                fileManager = JavaFileManager()
+                let dependencyManager = SimpleDependencyManager(ignore: [])
+                fileManager = JavaFileManager(dependencyManager: dependencyManager)
             }
             
             var externalAnalysers: [ExternalAnalyser] = []

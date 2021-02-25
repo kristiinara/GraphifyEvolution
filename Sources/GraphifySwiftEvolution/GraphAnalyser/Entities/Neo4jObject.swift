@@ -33,7 +33,7 @@ extension Neo4jObject {
     }
     
     func newNode() -> Node {
-        print("newNode \(Self.nodeType)")
+        //print("newNode \(Self.nodeType)")
         
         if let client = DatabaseController.currentDatabase.client {
             if let newNode = client.createAndReturnNodeSync(node: Node(label: Self.nodeType, properties: [:])) {
@@ -58,7 +58,7 @@ extension Neo4jObject {
     }
     
     func save() -> Bool {
-        print("save \(Self.nodeType)")
+        //print("save \(Self.nodeType)")
         if let client = DatabaseController.currentDatabase.client {
             var res = client.updateNodeSync(node: self.updatedNode)
         }
@@ -66,7 +66,7 @@ extension Neo4jObject {
     }
     
     func relate(_ relationship: Neo4jRelationship) -> Bool {
-        print("relate \(Self.nodeType) - \(relationship.type) - \(relationship.toNode.label)")
+        //print("relate \(Self.nodeType) - \(relationship.type) - \(relationship.toNode.label)")
         if let client = DatabaseController.currentDatabase.client {
             client.relateSync(node: relationship.node, to: relationship.toNode, relationship: relationship) //TODO: fix: does not need that much info
 

@@ -37,7 +37,7 @@ class MetricsAnalyser: ExternalAnalyser {
         for query in self.queries {
             if let transaction = query.queryStringFor(classInstance: classInstance) {
                 let res = databaseController.client?.runQuery(transaction: transaction)
-                print("Analysed code smell \(query.name), for \(classInstance.name), success? \(res)")
+                //print("Analysed code smell \(query.name), for \(classInstance.name), success? \(res)")
             } else {
                 print("No transaction for: \(query.name), classInstance: \(classInstance.name) id: \(classInstance.id)")
             }
@@ -91,7 +91,7 @@ class CodeSmellAnalyser: ExternalAnalyser {
         for query in self.queries {
             if let transaction = query.queryStringFor(classInstance: classInstance) {
                 let res = databaseController.client?.runQuery(transaction: transaction)
-                print("Analysed code smell \(query.name), for \(classInstance.name), success? \(res)")
+                //print("Analysed code smell \(query.name), for \(classInstance.name), success? \(res)")
             } else {
                 print("No transaction for: \(query.name), classInstance: \(classInstance.name) id: \(classInstance.id)")
             }

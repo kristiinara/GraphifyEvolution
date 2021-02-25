@@ -9,12 +9,18 @@ import Foundation
 
 class CPPFileManager: LocalFileManager {
     
+    let dependencyManager: DependencyManager
+    
     var ignoreWithPathComponents: [String] {
-        return []
+        return self.dependencyManager.ignoreWithPathComponents
     }
     
     var allowedEndings: [String] {
         return [".h", ".cpp"]
+    }
+    
+    init(dependencyManager: DependencyManager) {
+        self.dependencyManager = dependencyManager
     }
     
     func fetchProjectFiles(folderPath: String) -> [URL] {

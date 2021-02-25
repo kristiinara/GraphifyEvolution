@@ -1,32 +1,32 @@
 //
-//  SwiftFileManager.swift
-//  
+//  JavaFileManager.swift
+//  GraphifySwift
 //
-//  Created by Kristiina Rahkema on 26.10.2020.
+//  Created by Kristiina Rahkema on 01.02.2021.
 //
 
 import Foundation
-
-class SwiftFileManager: LocalFileManager {
+class JavaFileManager: LocalFileManager {
+    let dependencyManager: DependencyManager
     
     var ignoreWithPathComponents: [String] {
-        return ["/Carthage/"]
+        return ["/test/"] + self.dependencyManager.ignoreWithPathComponents
     }
     
     var allowedEndings: [String] {
-        return [".swift"]
+        return [".java"]
+    }
+    
+    init(dependencyManager: DependencyManager) {
+        self.dependencyManager = dependencyManager
     }
     
     func fetchProjectFiles(folderPath: String) -> [URL] {
-        return fetchAllFiles(folderPath: folderPath, ignore: self.ignoreWithPathComponents)
+        return fetchAllFiles(folderPath: folderPath)
     }
     
     func fetchAllFiles(folderPath: String) -> [URL] {
-        return fetchAllFiles(folderPath: folderPath, ignore: [])
-    }
-    
-    func fetchAllFiles(folderPath: String, ignore: [String]) -> [URL] {
-        var files: [String: URL] = [:]
+        var files: [URL] = []
         
         let resourceKeys : [URLResourceKey] = [
             .creationDateKey,
@@ -46,6 +46,8 @@ class SwiftFileManager: LocalFileManager {
                 return true
         })!
         
+        let ignore: [String] = self.ignoreWithPathComponents
+        
         fileLoop: for case let fileURL as URL in enumerator {
             // ignoring files that contain the ignore string, but only looking at path relative to after the base url
             for ignorePath in ignore {
@@ -56,38 +58,29 @@ class SwiftFileManager: LocalFileManager {
                 }
             }
             
-//            if fileURL.path.contains("+") {
-//                continue fileLoop
-//            }
+            /*
+            if !(fileURL.path.contains("/src/") || fileURL.path.contains("/include/")) {
+                continue fileLoop
+            }
+ */
+        
             
             do {
                 let resourceValues = try fileURL.resourceValues(forKeys: Set(resourceKeys))
                 //print(fileURL.path, resourceValues.creationDate!, resourceValues.isDirectory!)
                 
                 if let name = resourceValues.name {
-                    if name.hasSuffix(".swift") || name.hasSuffix(".h") {
+                    if name.hasSuffix(".java") {
                         //let size = resourceValues.fileSize!
                         //print("\(fileURL.path)")
                         //self.app.size = self.app.size + size
                         //TODO: fix size stuff
                         //self.classSizes.append(size)
                         
-                        if (fileURL.path.contains("Tests") ||  fileURL.path.contains("TestCase")) {
+                         if (fileURL.path.contains("/test/")) {
                             //print("Ignore test files")
-//                         } else if ((fileURL.path.contains("Example") || fileURL.path.contains("Externals"))  && fileURL.path.contains("Carthage")) {
-//                            // ignore
-//                         } else if fileURL.path.components(separatedBy: "/Carthage/Checkouts/").count > 2 {
-//                            // ignore (carthage checkouts of charthage checkouts)
-                         } else {
-                            if let existingURL = files[name] {
-                                if existingURL.path.contains("Carthage") {
-                                    files[name] = fileURL
-                                } else {
-                                    // ignore, sometimes the same file exists in multiple libraries
-                                }
-                            } else {
-                                files[name] = fileURL
-                            }
+                        } else {
+                            files.append(fileURL)
                         }
                     }
                 }
@@ -96,6 +89,6 @@ class SwiftFileManager: LocalFileManager {
                 print("Error")
             }
         }
-        return [URL] (files.values)
+        return files
     }
 }

@@ -37,9 +37,9 @@ class SwiftSyntaxAnalyser: SyntaxAnalyser {
                     if let classInstance = self.parseClassFrom(json: entity, path: filePath) {
                         classInstance.path = filePath
                         classes.append(classInstance)
-                        print("classInstance: \(classInstance.name) found")
+                        //print("classInstance: \(classInstance.name) found")
                     } else {
-                        print("no class instance in: \(entity)")
+                        //print("no class instance in: \(entity)")
                     }
                 }
             }
