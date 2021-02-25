@@ -1,6 +1,6 @@
 # Example queries
 
-We analysed 20 open source applications (including 3000 app versions - dataset can be found (here)[../example_data/overview.md]) and ran through three example scenarios: 
+We analysed 20 open source applications (including 3000 app versions - dataset can be found [here](../example_data/overview.md)) and ran through three example scenarios: 
 - How did the number of long methods evolve in Tweetometer app?
 - Did methods become too long over time?
 - Can we find commits that removed vulnerabilities from code?
