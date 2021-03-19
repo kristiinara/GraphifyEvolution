@@ -207,6 +207,45 @@ class AppAnalysisController {
                         classInstance.relate(to: addedClass, type: "CLASS_CHANGED_TO", properties: properties)
                         
                     } else if parent.unchangedPaths.contains(classInstance.path) {
+                        let refClasses = self.syntaxAnalyser.analyseFile(filePath: classInstance.path, includePaths: includePaths)
+                        for refClass in refClasses {
+                            if refClass.name == classInstance.name {
+                                if refClass.usr != classInstance.usr {
+                                    print("class \(classInstance.name) usr: \(classInstance.usr) changed to \(refClass.usr)")
+                                    classInstance.usr = refClass.usr
+                                    classInstance.save()
+                                }
+                                
+                                for method in classInstance.methods {
+                                    if let potMethods = refClass.potentialMethods {
+                                        for refMethod in potMethods {
+                                            if method.name == refMethod.name {
+                                                if method.usr != refMethod.usr {
+                                                    method.usr = refMethod.usr
+                                                    method.save()
+                                                    print("update method usr")
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                
+                                for variable in classInstance.variables {
+                                    if let potVariables = refClass.potentialVariables {
+                                        for refVariable in potVariables {
+                                            if refVariable.name == variable.name {
+                                                if variable.usr != refVariable.usr {
+                                                    variable.usr = refVariable.usr
+                                                    variable.save()
+                                                    print("update variable usr")
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        
                         finalClasses.append(classInstance)
                         //print("add classes (unchanged from parent): \(classInstance.name)")
                         notChangedClasses[classInstance.name] = classInstance
@@ -245,6 +284,46 @@ class AppAnalysisController {
                             // rel for parents
                             
                         } else if altParent.unchangedPaths.contains(classInstance.path) {
+                            let refClasses = self.syntaxAnalyser.analyseFile(filePath: classInstance.path, includePaths: includePaths)
+                            for refClass in refClasses {
+                                if refClass.name == classInstance.name {
+                                    if refClass.usr != classInstance.usr {
+                                        print("class \(classInstance.name) usr: \(classInstance.usr) changed to \(refClass.usr)")
+                                        classInstance.usr = refClass.usr
+                                        classInstance.save()
+                                    }
+                                    
+                                    for method in classInstance.methods {
+                                        if let potMethods = refClass.potentialMethods {
+                                            for refMethod in potMethods {
+                                                if method.name == refMethod.name {
+                                                    if method.usr != refMethod.usr {
+                                                        method.usr = refMethod.usr
+                                                        method.save()
+                                                        print("update method usr")
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                    
+                                    for variable in classInstance.variables {
+                                        if let potVariables = refClass.potentialVariables {
+                                            for refVariable in potVariables {
+                                                if refVariable.name == variable.name {
+                                                    if variable.usr != refVariable.usr {
+                                                        variable.usr = refVariable.usr
+                                                        variable.save()
+                                                        print("update variable usr")
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            
                             if let remainingParentClass = remainingParentClasses[classInstance.name] {
                                 finalClasses.append(classInstance)
                                 //print("add classes (unchanged from altParent): \(classInstance.name)")
@@ -479,7 +558,10 @@ class AppAnalysisController {
         for method in methodsToBeHandled {
             addCallAndUseConnectionsFrom(method: method, app: app)
         }
-        addCallAndUseConnectionsTo(methods: methodsToBeHandled, variables: variablesToBeHandled, app: app)
+        
+        if app.parent != nil {
+            addCallAndUseConnectionsTo(methods: methodsToBeHandled, variables: variablesToBeHandled, classes: newClassVersions, app: app)
+        }
         
         print("running external analysers for \(newClassVersions.map() {value in return value.name} )")
         for externalAnalyser in self.externalAnalysers {
@@ -871,6 +953,12 @@ class AppAnalysisController {
                     for oldMethod in oldClass.methods {
                         if method.name == oldMethod.name {
                             oldMethods.append(oldMethod)
+                            
+//                            if method.usr != oldMethod.usr {
+//                                print("update method usr")
+//                                oldMethod.usr = method.usr //  update usr
+//                                oldMethod.save()
+//                            }
                         }
                     }
                 }
@@ -997,6 +1085,7 @@ class AppAnalysisController {
                     if let external = externalObjects[usr] {
                         method.relate(to: external, type: "EXTERNAL_REF")
                     } else {
+                        /*
                         if let receiverUsr = instruction.receiverUsr {
                             if let classInstance = allClasses[receiverUsr] {
                                 var name: String?
@@ -1026,6 +1115,7 @@ class AppAnalysisController {
                         } else {
                             //print("No receiverUsr for \(usr)")
                         }
+                        */
                         
                         let external = ExternalObject(usr: usr)
                         external.save()
@@ -1038,80 +1128,65 @@ class AppAnalysisController {
         }
     }
     
-    func addCallAndUseConnectionsTo(methods: [Method], variables: [Variable], app: App) {
-        var methodsToBeHandled: [String: Method] = [:]
-        var variablesToBeHandled: [String: Variable] = [:]
+    func addCallAndUseConnectionsTo(methods: [Method], variables: [Variable], classes: [Class], app: App) {
         
-        var allMethods: [String: Method] = [:]
-        var allVariables: [String: Variable] = [:]
-        
-        for classInstance in app.classes {
-            for method in classInstance.methods {
-                allMethods[method.usr] = method
+        if let appId = app.node.id {
+            var methodIds: [Int] = []
+            for method in methods {
+                if let id = method.node.id {
+                    methodIds.append(id)
+                }
             }
             
-            for variable in classInstance.variables {
-                allVariables[variable.usr] = variable
+            var variableIds: [Int] = []
+            for variable in variables {
+                if let id = variable.node.id {
+                    variableIds.append(id)
+                }
             }
-        }
-        
-        for method in methods {
-            methodsToBeHandled[method.usr] = method
             
-            var count = 0
-            var parent = method.parent
-            while let existingParent = parent {
-                count += 1
-                if count > 100 {
-                    print("too many method parents")
-                    break
-                    
+            var classIds: [Int] = []
+            for classInstance in classes {
+                if let id = classInstance.node.id {
+                    classIds.append(id)
                 }
-                methodsToBeHandled[existingParent.usr] = method
-                parent = existingParent.parent
-                //print("method parent \(method.name) \(method.version)")
             }
-        }
-        
-        for variable in variables {
-            variablesToBeHandled[variable.usr] = variable
             
-            var count = 0
-            var parent = variable.parent
-            while let existingParent = parent {
-                count += 1
-                if count > 100 {
-                    print("too many variable parents")
-                    break
-                }
-                variablesToBeHandled[existingParent.usr] = variable
-                parent = existingParent.parent
-                //print("variable parent \(variable.name) \(variable.version)")
-            }
-        }
-        
-        //print("variables to be handled: \(variablesToBeHandled.keys)")
-        //print("methods to be handled: \(methodsToBeHandled.keys)")
-        
-        //TODO: check if this logic is correct
-        for classInstance in app.classes {
-            for method in classInstance.methods {
-                if !methodsToBeHandled.keys.contains(method.usr) {
-                    for usr in method.calledUsrs {
-                        if let calledMethod = methodsToBeHandled[usr] {
-                            method.relate(to: calledMethod, type: "CALLS") // TODO: check why no called methods
-                        } else if let usedVariable = variablesToBeHandled[usr] {
-                            method.relate(to: usedVariable, type: "USES")
-                        } else {
-                            //print("Usr not found methodTo: \(usr)")
-                        }
-                    }
-                }
+            var transactions: [String] = []
+            transactions.append("""
+            match (a2:App) match (a1:App) where (a1)-[:CHANGED_TO]->(a2)
+            and id(a2) = \(appId)
+            match (a2)-[:APP_OWNS_CLASS]->(c3:Class)<-[:CLASS_CHANGED_TO]-(c1:Class)<-[:APP_OWNS_CLASS]-(a1)
+            match (c3)-[:CLASS_OWNS_METHOD]->(m3:Method)<-[:CHANGED_TO]-(m1)<-[:CLASS_OWNS_METHOD]-(c1)
+            where id(m3) in \(methodIds)
+            match (a2)-[:APP_OWNS_CLASS]->(c2)-[:CLASS_OWNS_METHOD]-(m2:Method) where (m2)-[:CALLS]->(m1)
+            create (m2)-[r:CALLS]->(m3) return id(r)
+            """)
+            
+            transactions.append("""
+            match (a2:App) match (a1:App) where (a1)-[:CHANGED_TO]->(a2)
+            and id(a2) = \(appId)
+            match (a2)-[:APP_OWNS_CLASS]->(c3:Class)<-[:CLASS_CHANGED_TO]-(c1:Class)<-[:APP_OWNS_CLASS]-(a1)
+            match (c3)-[:CLASS_OWNS_VARIABLE]->(m3:Variable)<-[:CHANGED_TO]-(m1:Variable)<-[:CLASS_OWNS_VARIABLE]-(c1)
+            where id(m3) in \(variableIds)
+            match (a2)-[:APP_OWNS_CLASS]->(c2)-[:CLASS_OWNS_METHOD]-(m2:Method) where (m2)-[:USES]->(m1)
+            create (m2)-[r:USES]->(m3) return id(r)
+            """)
+            
+            transactions.append("""
+            match (a2:App) match (a1:App) where (a1)-[:CHANGED_TO]->(a2)
+            and id(a2) = \(appId)
+            match (a2)-[:APP_OWNS_CLASS]->(c3:Class)<-[:CLASS_CHANGED_TO]-(c1:Class)<-[:APP_OWNS_CLASS]-(a1)
+            where id(c3) in \(classIds)
+             match (a2)-[:APP_OWNS_CLASS]->(c2)-[:CLASS_OWNS_METHOD]-(m2:Method)-[rel:CLASS_REF]->(c1)
+            with distinct m2, c3, rel
+            create (m2)-[r:CLASS_REF]->(c3) return id(r)
+            """)
+            
+            for transaction in transactions {
+                print("running transaction: \(transaction)")
+                DatabaseController.currentDatabase.client?.runQuery(transaction: transaction)
             }
         }
     }
 }
-
-//class BulkAnalysisController {
-//
-//}

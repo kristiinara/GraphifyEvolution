@@ -10,6 +10,8 @@ import Foundation
 class GitManager: AppManager {          // manager used for project evolution
     let path: String?
     var appKey: String?
+    var startCommit: String?
+    var started = false
     
     var commits: [Commit]?  //TODO: change type, maybe create new class/structure?
     var commitsToBeAnalysed: [Commit] = []
@@ -55,8 +57,20 @@ class GitManager: AppManager {          // manager used for project evolution
             return nil
         }
         
-        let nextCommit = self.commitsToBeAnalysed.removeFirst()
+        var nextCommit = self.commitsToBeAnalysed.removeFirst()
         //print("Next commit: \(nextCommit.commit), parent: \(nextCommit.parent), check parent: \(nextCommit.parentCommit?.commit)")
+        
+        if let startCommit = self.startCommit {
+            print("Searching for startCommit: \(startCommit)")
+            if self.started == false {
+                while nextCommit.commit != startCommit {
+                    nextCommit = self.commitsToBeAnalysed.removeFirst()
+                }
+                print("found correct commit: \(nextCommit.commit)")
+                self.started = true
+            }
+        }
+        
         
         let appVersion = AppVersion(directoryPath: path)
         appVersion.appKey = appKey

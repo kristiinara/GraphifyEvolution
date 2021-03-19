@@ -91,7 +91,7 @@ class SwiftSyntaxAnalyser: SyntaxAnalyser {
                 }
                 
                 //print("no key.line \(object["key.line"])")
-                res.append(object)
+                res.append(newObject)
             }
         }
         
@@ -104,8 +104,8 @@ class SwiftSyntaxAnalyser: SyntaxAnalyser {
         var allLineNumbers: [Int] = [-1]
         
         for object in json {
-            if let lineNumber = object["key.line"] as? Int {
-                allLineNumbers.append(lineNumber)
+            if let lineNumber = object["key.line"] as? Int64 {
+                allLineNumbers.append(Int(lineNumber))
                 
                 if let entities = object["key.entities"] as? [[String: Any]]{
                     allLineNumbers.append(maxLine(json: entities))

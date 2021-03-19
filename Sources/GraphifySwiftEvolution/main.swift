@@ -25,6 +25,9 @@ struct Application: ParsableCommand {
         @Option(help: "Provide path to json file if bulk of apps should be analysed at once")
         var bulkJsonPath: String?
         
+        @Option(help: "Provide starting commit if needed")
+        var startCommit: String?
+        
         enum Language: String, ExpressibleByArgument {
             case swift, cpp, java
         }
@@ -84,7 +87,12 @@ struct Application: ParsableCommand {
                 }
             } else {
                 if(evolution) {
-                    appManager = GitManager(path: path, appKey: appKey)
+                    let gitManager = GitManager(path: path, appKey: appKey)
+                    if let startCommit = startCommit {
+                        gitManager.startCommit = startCommit
+                    }
+                    appManager = gitManager
+                    
                     print("single project analysis + evolution")
                 } else {
                     appManager = SimpleAppManager(path: path, appKey: appKey)
