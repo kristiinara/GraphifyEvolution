@@ -1,6 +1,6 @@
 # Developer guide
 
-GraphifySwiftEvolution is build in a modular manner. 
+GraphifyEvolution is build in a modular manner. 
 
 Support for new languages can be added by implementing [SyntaxAnalyser](syntax_analyser.md). Currently languages swift, java and c++ are supported. 
 
