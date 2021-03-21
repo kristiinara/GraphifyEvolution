@@ -561,6 +561,10 @@ class AppAnalysisController {
         
         if app.parent != nil {
             addCallAndUseConnectionsTo(methods: methodsToBeHandled, variables: variablesToBeHandled, classes: newClassVersions, app: app)
+            
+            if app.alternateApp != nil {
+                addCallAndUseConnectionsTo(app: app)
+            }
         }
         
         print("running external analysers for \(newClassVersions.map() {value in return value.name} )")
@@ -1182,6 +1186,56 @@ class AppAnalysisController {
             with distinct m2, c3, rel
             create (m2)-[r:CLASS_REF]->(c3) return id(r)
             """)
+            
+            for transaction in transactions {
+                print("running transaction: \(transaction)")
+                DatabaseController.currentDatabase.client?.runQuery(transaction: transaction)
+            }
+        }
+    }
+    
+    func addCallAndUseConnectionsTo(app:App) {
+        if let appId = app.node.id {
+            var transactions: [String] = []
+            
+            transactions.append("""
+            match
+                (parent:App)-[:CHANGED_TO]->(app:App)<-[:CHANGED_TO]-(alt_parent:App)
+            where id(app) = \(appId)
+            match
+                (app)-[:APP_OWNS_CLASS]->(class:Class)<-[:APP_OWNS_CLASS]-(alt_parent)
+            where not (parent)-[:APP_OWNS_CLASS]->(class)
+            match
+                (app)-[:APP_OWNS_CLASS]->(other_class:Class)<-[:APP_OWNS_CLASS]-(parent)
+            where not (alt_parent)-[:APP_OWNS_CLASS]->(other_class)
+            match
+                (other_class)-[:CLASS_OWNS_METHOD]-(method:Method)-[:CLASS_REF]->(prev_class:Class)-[:CLASS_CHANGED_TO*1..]->(class)
+            where not (method)-[:CLASS_REF]->(class)
+            and not (prev_class)-[:CHANGED_TO*1..]->()<-[:CLASS_REF]-(method)
+            create (method)-[r:CLASS_REF]->(class)
+            return id(r)
+            """
+            )
+            
+            transactions.append("""
+                match (other_method:Method)<-[:CALLS]-(method:Method)<-[:CLASS_OWNS_METHOD]-(:Class)<-[:APP_OWNS_CLASS]-(app:App)-[:APP_OWNS_CLASS]->(:Class)-[:CLASS_OWNS_METHOD]->(n_method:Method)
+                where
+                id(app) = \(appId) and
+                (other_method)-[:CHANGED_TO*1..]->(n_method) and not (method)-[:CALLS]->(n_method)
+                and not (other_method)-[:CHANGED_TO*1..]->()<-[:CALLS]-(method)
+                create (method)-[r:CALLS]->(n_method)
+                return id(r)
+                """)
+            
+            transactions.append("""
+                match (other_variable:Variable)<-[:USES]-(method:Method)<-[:CLASS_OWNS_METHOD]-(:Class)<-[:APP_OWNS_CLASS]-(app:App)-[:APP_OWNS_CLASS]->(:Class)-[:CLASS_OWNS_VARIABLE]->(n_variable:Variable)
+                where
+                id(app) = \(appId) and
+                (other_variable)-[:CHANGED_TO*1..]->(n_variable) and not (method)-[:USES]->(n_variable)
+                and not (other_variable)-[:CHANGED_TO*1..]->()<-[:USES]-(method)
+                create (method)-[r:USES]->(n_variable)
+                return id(r)
+                """)
             
             for transaction in transactions {
                 print("running transaction: \(transaction)")
