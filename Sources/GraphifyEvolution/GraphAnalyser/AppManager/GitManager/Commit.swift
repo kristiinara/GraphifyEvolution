@@ -20,6 +20,7 @@ class Commit: Codable {
    // var body: String
     var author: String
     var date: String
+    var timestamp: String
     var message: String
     var appVersion: AppVersion?
     var fileChanges: [FileChange]?
@@ -39,6 +40,6 @@ class Commit: Codable {
     }
     
     private enum CodingKeys: String, CodingKey {
-        case commit, abbCommit, tree, abbTree, author, date, message, parent, abbParent
+        case commit, abbCommit, tree, abbTree, author, date, timestamp, message, parent, abbParent
     }
 }

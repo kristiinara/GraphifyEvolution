@@ -99,6 +99,7 @@ extension App: Neo4jObject {
         oldNode.properties["branch_debug"] = self.commit?.branchDebug
         oldNode.properties["tag"] = self.commit?.tag
         oldNode.properties["time"] = self.commit?.date
+        oldNode.properties["timestamp"] = self.commit?.timestamp
         oldNode.properties["author"] = self.commit?.author
         oldNode.properties["message"] = self.commit?.message
         oldNode.properties["parent_commit"] = self.parentCommit?.commit

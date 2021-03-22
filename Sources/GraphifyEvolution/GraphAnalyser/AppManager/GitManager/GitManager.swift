@@ -477,7 +477,7 @@ class GitManager: AppManager {          // manager used for project evolution
     
     func runGitLogCommand() {
         if let path = self.path {
-            let res = Helper.shell(launchPath: "/usr/bin/git", arguments: ["--git-dir", path, "log", "--pretty=format:{%n \"commit\": \"%H\",%n \"abbCommit\": \"%h\",%n \"tree\": \"%T\", %n \"abbTree\": \"%t\", %n \"parent\": \"%P\", %n \"abbParent\": \"%p\", %n \"author\": \"%aN <%aE>\",%n \"date\": \"%ad\",%n \"message\": \"%f\"},"])
+            let res = Helper.shell(launchPath: "/usr/bin/git", arguments: ["--git-dir", path, "log", "--pretty=format:{%n \"commit\": \"%H\",%n \"abbCommit\": \"%h\",%n \"tree\": \"%T\", %n \"abbTree\": \"%t\", %n \"parent\": \"%P\", %n \"abbParent\": \"%p\", %n \"author\": \"%aN <%aE>\",%n \"date\": \"%ad\",%n \"timestamp\": \"%ct\",%n \"message\": \"%f\"},"])
            var json = "[\(res.dropLast())]"
             
             let decoder = JSONDecoder()
@@ -495,6 +495,7 @@ class GitManager: AppManager {          // manager used for project evolution
                 
                 var commitDict: [String: Commit] = [:]
                 for commit in allCommits {
+                    
                     commitDict[commit.commit] = commit
                 }
                 
