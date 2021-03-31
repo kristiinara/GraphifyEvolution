@@ -13,8 +13,8 @@ class AppAnalysisController {
     let fileManager: LocalFileManager
     let externalAnalysers: [ExternalAnalyser]
     
-    var appVersions: [AppVersion] = [] //TODO: do we really need this?
-    var apps: [App] = []
+    //var appVersions: [AppVersion] = [] //TODO: do we really need this?
+    //var apps: [App] = []
     
     var externalObjects: [String: ExternalObject] = [:]
     
@@ -45,10 +45,10 @@ class AppAnalysisController {
         
         //print("Results: ")
         
-        for app in self.apps {
+        //for app in self.apps {
             //print("app: \(app.name)")
             //printApp(app: app, prefix: "  ")
-        }
+        //}
     }
     
     func printApp(app: App, prefix: String) {
@@ -199,52 +199,60 @@ class AppAnalysisController {
                         addedClass.parent = classInstance
                         addedClass.version = classInstance.version + 1
                         
-                        var properties: [String:String] = [:]
+                        var properties: [String: Any] = [:]
                         if let commit = appVersion.commit?.commit {
                             properties["commit"] = commit
+                        }
+                        
+                        if let changesForPath = parent.changesForPaths[addedClass.path] {
+                            let lineDifferences = findChangedLines(newClass: addedClass, oldClass: classInstance, changes: changesForPath)
+                            
+                            properties["added_lines"] = lineDifferences.added
+                            properties["deleted_lines"] = lineDifferences.deleted
+                            properties["changed_lines"] = lineDifferences.changed
                         }
                         
                         classInstance.relate(to: addedClass, type: "CLASS_CHANGED_TO", properties: properties)
                         
                     } else if parent.unchangedPaths.contains(classInstance.path) {
-                        let refClasses = self.syntaxAnalyser.analyseFile(filePath: classInstance.path, includePaths: includePaths)
-                        for refClass in refClasses {
-                            if refClass.name == classInstance.name {
-                                if refClass.usr != classInstance.usr {
-                                    print("class \(classInstance.name) usr: \(classInstance.usr) changed to \(refClass.usr)")
-                                    classInstance.usr = refClass.usr
-                                    classInstance.save()
-                                }
-                                
-                                for method in classInstance.methods {
-                                    if let potMethods = refClass.potentialMethods {
-                                        for refMethod in potMethods {
-                                            if method.name == refMethod.name {
-                                                if method.usr != refMethod.usr {
-                                                    method.usr = refMethod.usr
-                                                    method.save()
-                                                    print("update method usr")
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                                
-                                for variable in classInstance.variables {
-                                    if let potVariables = refClass.potentialVariables {
-                                        for refVariable in potVariables {
-                                            if refVariable.name == variable.name {
-                                                if variable.usr != refVariable.usr {
-                                                    variable.usr = refVariable.usr
-                                                    variable.save()
-                                                    print("update variable usr")
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
+//                        let refClasses = self.syntaxAnalyser.analyseFile(filePath: classInstance.path, includePaths: includePaths)
+//                        for refClass in refClasses {
+//                            if refClass.name == classInstance.name {
+//                                if refClass.usr != classInstance.usr {
+//                                    print("class \(classInstance.name) usr: \(classInstance.usr) changed to \(refClass.usr)")
+//                                    classInstance.usr = refClass.usr
+//                                    classInstance.save()
+//                                }
+//
+//                                for method in classInstance.methods {
+//                                    if let potMethods = refClass.potentialMethods {
+//                                        for refMethod in potMethods {
+//                                            if method.name == refMethod.name {
+//                                                if method.usr != refMethod.usr {
+//                                                    method.usr = refMethod.usr
+//                                                    method.save()
+//                                                    print("update method usr")
+//                                                }
+//                                            }
+//                                        }
+//                                    }
+//                                }
+//
+//                                for variable in classInstance.variables {
+//                                    if let potVariables = refClass.potentialVariables {
+//                                        for refVariable in potVariables {
+//                                            if refVariable.name == variable.name {
+//                                                if variable.usr != refVariable.usr {
+//                                                    variable.usr = refVariable.usr
+//                                                    variable.save()
+//                                                    print("update variable usr")
+//                                                }
+//                                            }
+//                                        }
+//                                    }
+//                                }
+//                            }
+//                        }
                         
                         finalClasses.append(classInstance)
                         //print("add classes (unchanged from parent): \(classInstance.name)")
@@ -264,9 +272,17 @@ class AppAnalysisController {
                             //addedClass.saveParent()
                             
                             
-                            var properties: [String:String] = [:]
+                            var properties: [String: Any] = [:]
                             if let commit = appVersion.commit?.commit {
                                 properties["commit"] = commit
+                            }
+                            
+                            if let changesForPath = parent.changesForPaths[addedClass.path] {
+                                let lineDifferences = findChangedLines(newClass: addedClass, oldClass: classInstance, changes: changesForPath)
+                                
+                                properties["addedLines"] = lineDifferences.added
+                                properties["deletedLines"] = lineDifferences.deleted
+                                properties["changedLines"] = lineDifferences.changed
                             }
                             
                             classInstance.relate(to: addedClass, type: "CLASS_CHANGED_TO", properties: properties)
@@ -284,44 +300,44 @@ class AppAnalysisController {
                             // rel for parents
                             
                         } else if altParent.unchangedPaths.contains(classInstance.path) {
-                            let refClasses = self.syntaxAnalyser.analyseFile(filePath: classInstance.path, includePaths: includePaths)
-                            for refClass in refClasses {
-                                if refClass.name == classInstance.name {
-                                    if refClass.usr != classInstance.usr {
-                                        print("class \(classInstance.name) usr: \(classInstance.usr) changed to \(refClass.usr)")
-                                        classInstance.usr = refClass.usr
-                                        classInstance.save()
-                                    }
-                                    
-                                    for method in classInstance.methods {
-                                        if let potMethods = refClass.potentialMethods {
-                                            for refMethod in potMethods {
-                                                if method.name == refMethod.name {
-                                                    if method.usr != refMethod.usr {
-                                                        method.usr = refMethod.usr
-                                                        method.save()
-                                                        print("update method usr")
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                    
-                                    for variable in classInstance.variables {
-                                        if let potVariables = refClass.potentialVariables {
-                                            for refVariable in potVariables {
-                                                if refVariable.name == variable.name {
-                                                    if variable.usr != refVariable.usr {
-                                                        variable.usr = refVariable.usr
-                                                        variable.save()
-                                                        print("update variable usr")
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
+//                            let refClasses = self.syntaxAnalyser.analyseFile(filePath: classInstance.path, includePaths: includePaths)
+//                            for refClass in refClasses {
+//                                if refClass.name == classInstance.name {
+//                                    if refClass.usr != classInstance.usr {
+//                                        print("class \(classInstance.name) usr: \(classInstance.usr) changed to \(refClass.usr)")
+//                                        classInstance.usr = refClass.usr
+//                                        classInstance.save()
+//                                    }
+//
+//                                    for method in classInstance.methods {
+//                                        if let potMethods = refClass.potentialMethods {
+//                                            for refMethod in potMethods {
+//                                                if method.name == refMethod.name {
+//                                                    if method.usr != refMethod.usr {
+//                                                        method.usr = refMethod.usr
+//                                                        method.save()
+//                                                        print("update method usr")
+//                                                    }
+//                                                }
+//                                            }
+//                                        }
+//                                    }
+//
+//                                    for variable in classInstance.variables {
+//                                        if let potVariables = refClass.potentialVariables {
+//                                            for refVariable in potVariables {
+//                                                if refVariable.name == variable.name {
+//                                                    if variable.usr != refVariable.usr {
+//                                                        variable.usr = refVariable.usr
+//                                                        variable.save()
+//                                                        print("update variable usr")
+//                                                    }
+//                                                }
+//                                            }
+//                                        }
+//                                    }
+//                                }
+//                            }
                             
                             
                             if let remainingParentClass = remainingParentClasses[classInstance.name] {
@@ -334,9 +350,17 @@ class AppAnalysisController {
                                     remainingParentClass.alternateParent = classInstance
                                     //classInstance.saveParent()
                                     
-                                    var properties: [String:String] = [:]
+                                    var properties: [String: Any] = [:]
                                     if let commit = appVersion.commit?.commit {
                                         properties["commit"] = commit
+                                    }
+                                    
+                                    if let changesForPath = parent.changesForPaths[classInstance.path] {
+                                        let lineDifferences = findChangedLines(newClass: classInstance, oldClass: remainingParentClass, changes: changesForPath)
+                                        
+                                        properties["addedLines"] = lineDifferences.added
+                                        properties["deletedLines"] = lineDifferences.deleted
+                                        properties["changedLines"] = lineDifferences.changed
                                     }
                                     
                                     remainingParentClass.relate(to: classInstance, type: "CLASS_CHANGED_TO", properties: properties)
@@ -399,9 +423,18 @@ class AppAnalysisController {
                             
                             if notChangedClass.parent?.node.id != classInstance.node.id && classInstance.node.id != notChangedClass.alternateParent?.node.id {
                                 notChangedClass.alternateParent = classInstance
-                                var properties: [String:String] = [:]
+                                
+                                var properties: [String: Any] = [:]
                                 if let commit = appVersion.commit?.commit {
                                     properties["commit"] = commit
+                                }
+                                
+                                if let changesForPath = parent.changesForPaths[notChangedClass.path] {
+                                    let lineDifferences = findChangedLines(newClass: notChangedClass, oldClass: classInstance, changes: changesForPath)
+                                    
+                                    properties["addedLines"] = lineDifferences.added
+                                    properties["deletedLines"] = lineDifferences.deleted
+                                    properties["changedLines"] = lineDifferences.changed
                                 }
                                 
                                 classInstance.relate(to: notChangedClass, type: "CLASS_CHANGED_TO", properties: properties)
@@ -534,16 +567,38 @@ class AppAnalysisController {
                 //app.name = "\(app.versionNumber)"
                 app.parentCommit = parentApp.commit
                 
+        
+                var properties: [String:Int] = [:]
+                /*
+                properties["added_lines"] = appVersionParent.changedLines.added
+                properties["removed_lines"] = appVersionParent.changedLines.removed
+                properties["changed_lines"] = appVersionParent.changedLines.changed
+                */
+                
+                parentApp.relate(to: app, type: "CHANGED_TO", properties: properties)
+                
                 //print("parentapp number of children: \(parentApp.children.count)")
             }
             
-            if let alternateParentApp = appVersion.alternateParent?.appVersion.analysedVersion {
-                app.alternateApp = alternateParentApp
-                app.alternateParentCommit = alternateParentApp.commit
+            if let alternateAppVersion = appVersion.alternateParent {
+                if let alternateParentApp = alternateAppVersion.appVersion.analysedVersion {
+                    app.alternateApp = alternateParentApp
+                    app.alternateParentCommit = alternateParentApp.commit
+                    
+                    var properties: [String:Int] = [:]
+                    /*
+                    properties["added_lines"] = appVersionParent.changedLines.added
+                    properties["removed_lines"] = appVersionParent.changedLines.removed
+                    properties["changed_lines"] = appVersionParent.changedLines.changed
+                    */
+ 
+                    alternateParentApp.relate(to: app, type: "CHANGED_TO", properties: properties)
+                }
             }
+            
         } else {
             print("appversion has no parent")
-            self.appVersions.append(appVersion)
+            //self.appVersions.append(appVersion)
         }
         
         app.commit = appVersion.commit
@@ -551,7 +606,7 @@ class AppAnalysisController {
         
         if(app.parent == nil) {
             print("app has no parent")
-            self.apps.append(app)
+            //self.apps.append(app)
         }
         app.save()
         
@@ -578,6 +633,11 @@ class AppAnalysisController {
             } else {
                 print("Unsupported external analyer level \(externalAnalyser.supportedLevel)")
             }
+        }
+        
+        print("Externalanalysers reset")
+        for externalAnalyser in self.externalAnalysers {
+            externalAnalyser.reset()
         }
     }
     
@@ -920,35 +980,37 @@ class AppAnalysisController {
                         for fileChange in changesForpath {
                             for change in fileChange.changes {
                                 //print("change lines: \(change.newLines)")
-                                if !(startLine < change.newLines.start && endLine < change.newLines.start) && !(startLine > (change.newLines.start + change.newLines.length) && endLine > (change.newLines.start + change.newLines.length)) {
-                                    //print("match")
-                                    
-                                    
-                                    if oldNames.contains(method.name) {
-                                        //print("old name contains method.name")
+                                if let newLines = change.newLines {
+                                    if !(startLine < newLines.start && endLine < newLines.start) && !(startLine > (newLines.start + newLines.length) && endLine > (newLines.start + newLines.length)) {
+                                        //print("match")
                                         
-                                    }
-                                    
-                                    for oldMethod in oldClass.methods {
-                                        if method.name == oldMethod.name {
-                                            if method.node.id == nil || method.node.id != oldMethod.node.id {
-                                                //print("prev. version of method found")
-                                                if isAlt {
-                                                    method.altParent = oldMethod
+                                        
+                                        if oldNames.contains(method.name) {
+                                            //print("old name contains method.name")
+                                            
+                                        }
+                                        
+                                        for oldMethod in oldClass.methods {
+                                            if method.name == oldMethod.name {
+                                                if method.node.id == nil || method.node.id != oldMethod.node.id {
+                                                    //print("prev. version of method found")
+                                                    if isAlt {
+                                                        method.altParent = oldMethod
+                                                    } else {
+                                                        method.parent = oldMethod
+                                                    }
                                                 } else {
-                                                    method.parent = oldMethod
+                                                    //print("prev version of method found, but is itself")
                                                 }
-                                            } else {
-                                                //print("prev version of method found, but is itself")
                                             }
                                         }
+                                        
+                                        updatedMethods.append(method)
+                                        
+                                        continue methodLoop
+                                    } else {
+                                        //print("no match")
                                     }
-                                    
-                                    updatedMethods.append(method)
-                                    
-                                    continue methodLoop
-                                } else {
-                                    //print("no match")
                                 }
                             }
                         }
@@ -972,6 +1034,78 @@ class AppAnalysisController {
         }
         
         return (new: newMethods, updated: updatedMethods, oldMethods)
+    }
+    
+    func findChangedLines(newClass: Class, oldClass: Class, changes: [FileChange]) -> (changed: Int, added: Int, deleted: Int) {
+        var changed = 0
+        var added = 0
+        var deleted = 0
+        
+        print("findChangedLines")
+        
+        for fileChange in changes {
+            for change in fileChange.changes {
+                let newLines = changedLines(classInstance: newClass, lines: change.newLines)
+                let oldLines = changedLines(classInstance: oldClass, lines: change.oldLines)
+                
+                let difference = newLines - oldLines
+                
+                print("difference: \(difference)")
+                
+                if difference > 0 {
+                    changed += oldLines
+                    added += difference
+                } else {
+                    changed += newLines
+                    deleted += -1 * difference
+                }
+            }
+        }
+        print("return \((changed: changed, added: added, deleted: deleted))")
+        
+        return (changed: changed, added: added, deleted: deleted)
+    }
+    
+    func changedLines(classInstance: Class, lines: (start: Int, length: Int)?) -> Int {
+        var start = -1
+        var end = -1
+        
+        if let lines = lines {
+            print("changedLines, classInstance \(classInstance.name), lines: \(lines)")
+            
+            if lines.length == 0 {
+                return 0
+            }
+            
+            let minLine = classInstance.minMaxLineNumbers.min
+            let maxLine = classInstance.minMaxLineNumbers.max
+            
+            print("minLine: \(minLine), maxLine: \(maxLine)")
+            
+            if lines.start > maxLine {
+                // no match
+            } else if lines.start + lines.length < minLine {
+                // no match
+            } else {
+                if lines.start < minLine {
+                    start = minLine
+                } else {
+                    start = lines.start
+                }
+                
+                if lines.start + lines.length > maxLine {
+                    end = maxLine
+                } else {
+                    end = lines.start + lines.length
+                }
+            }
+            
+            print("end: \(end), start: \(start), difference: \(end - start + 1)")
+            
+            return end - start + 1
+        }
+        
+        return 0
     }
     
     func findNewAndUpdatedVariables(newClass: Class, oldClass: Class, changes: [String: [FileChange]]) -> (new: [Variable], updated: [Variable], old: [Variable]) {
@@ -1010,31 +1144,33 @@ class AppAnalysisController {
                         for fileChange in changesForpath {
                             for change in fileChange.changes {
                                 //print("change lines: \(change.newLines)")
-                                if !(startLine < change.newLines.start && endLine < change.newLines.start) && !(startLine > (change.newLines.start + change.newLines.length) && endLine > (change.newLines.start + change.newLines.length)) {
-                                    //print("match")
-                                    
-                                    
-                                    if oldNames.contains(variable.name) {
-                                        //print("old name contains variable.name")
+                                if let newLines = change.newLines {
+                                    if !(startLine < newLines.start && endLine < newLines.start) && !(startLine > (newLines.start + newLines.length) && endLine > (newLines.start + newLines.length)) {
+                                        //print("match")
                                         
-                                    }
-                                    
-                                    for oldVariable in oldClass.variables {
-                                        if variable.name == oldVariable.name {
-                                            if variable.node.id == nil || variable.node.id != oldVariable.node.id {
-                                                //print("prev. version of variable found")
-                                                variable.parent = oldVariable
-                                            } else {
-                                                //print("prev version of variable found, but it is itself")
+                                        
+                                        if oldNames.contains(variable.name) {
+                                            //print("old name contains variable.name")
+                                            
+                                        }
+                                        
+                                        for oldVariable in oldClass.variables {
+                                            if variable.name == oldVariable.name {
+                                                if variable.node.id == nil || variable.node.id != oldVariable.node.id {
+                                                    //print("prev. version of variable found")
+                                                    variable.parent = oldVariable
+                                                } else {
+                                                    //print("prev version of variable found, but it is itself")
+                                                }
                                             }
                                         }
+                                        
+                                        updatedVariables.append(variable)
+                                        
+                                        continue variableLoop
+                                    } else {
+                                        //print("no match")
                                     }
-                                    
-                                    updatedVariables.append(variable)
-                                    
-                                    continue variableLoop
-                                } else {
-                                    //print("no match")
                                 }
                             }
                         }

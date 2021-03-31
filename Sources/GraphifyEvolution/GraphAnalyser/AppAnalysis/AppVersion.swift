@@ -63,6 +63,31 @@ class AppVersionParent {
     let renamedPaths: [String:String]
     let changesForPaths: [String:[FileChange]]
     
+    /*
+    var changedLines: (changed: Int, added: Int, removed: Int) {
+        var changed = 0
+        var added = 0
+        var removed = 0
+        
+        for fileChange in self.changes {
+            if fileChange.type == .changed {
+                for change in fileChange.changes {
+                    let newLines = change.newLines.length - change.oldLines.length
+                    if newLines > 0 {
+                        added += newLines
+                        changed += change.newLines.length - newLines
+                    } else {
+                        removed += -1 * newLines
+                        changed += change.oldLines.length - newLines
+                    }
+                }
+            }
+        }
+        return (changed: changed, added: added, removed: removed)
+    }
+ */
+    
+    
     init(appVersion: AppVersion, changes: [FileChange]) {
         self.appVersion = appVersion
         self.changes = changes

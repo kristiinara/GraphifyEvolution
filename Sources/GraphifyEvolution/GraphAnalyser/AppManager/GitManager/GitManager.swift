@@ -413,8 +413,8 @@ class GitManager: AppManager {          // manager used for project evolution
                          +    let doors: [Door]
                          */
                         
-                        var oldLineNumbers = (start: 0, length: 0)
-                        var newLineNumbers = (start: 0, length: 0)
+                        var oldLineNumbers: (start: Int, length: Int?) = (start: 0, length: nil)
+                        var newLineNumbers: (start: Int, length: Int?) = (start: 0, length: nil)
                         
                         
                         // TODO: fix error from: ["@@", "-1", "+1", "@@"] --> no "," in numbers, normally -1,9 for example instead of -1
@@ -425,7 +425,7 @@ class GitManager: AppManager {          // manager used for project evolution
                             oldLineNumbers = (start: Int(oldString[0])!, length: Int(oldString[1])!)
                         } else {
                             //print("values1: \(values[1])")
-                            oldLineNumbers = (start: Int("\(values[1])".trimmingCharacters(in: .whitespacesAndNewlines).dropFirst())!, length: 0)
+                            oldLineNumbers = (start: Int("\(values[1])".trimmingCharacters(in: .whitespacesAndNewlines).dropFirst())!, length: nil)
                         }
                         
                         if values[2].contains(",") {
@@ -438,7 +438,7 @@ class GitManager: AppManager {          // manager used for project evolution
                             let test = "\(values[2])".trimmingCharacters(in: .whitespacesAndNewlines).dropFirst()
                             
                             let start = Int(test)!
-                            newLineNumbers = (start: start, length: 0)
+                            newLineNumbers = (start: start, length: nil)
                         }
                         
                         

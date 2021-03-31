@@ -23,20 +23,8 @@ class App {
     var classes: [Class]
     
     var children: [App] = []
-    weak var parent: App? {
-        didSet {
-            if let parent = self.parent {
-                parent.relate(to: self, type: "CHANGED_TO")
-            }
-        }
-    }
-    var alternateApp: App? {
-        didSet {
-            if let alternateApp = self.alternateApp {
-                alternateApp.relate(to: self, type: "CHANGED_TO")
-            }
-        }
-    }
+    weak var parent: App? 
+    weak var alternateApp: App?
     
     var appIdentifier: String {
         if let commit = self.commit?.commit {

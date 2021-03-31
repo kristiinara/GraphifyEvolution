@@ -399,19 +399,24 @@ class Neo4jRelationship {
     let node: Node
     let toNode: Node
     let type: String
-    let properties: [String:String]
+    let properties: [String:Any]
     var id : Int?
     
     var properitesString: String {
         var propertiesString = "{"
         
         for key in properties.keys {
-            var value = properties[key]!
-            value = value.replacingOccurrences(of: "\"", with: "\\\"")
-            value = value.replacingOccurrences(of: "\'", with: "\\\'")
-            value = value.replacingOccurrences(of: "\n", with: "\\\n")
-            
-            propertiesString += " \(key): '\(value)',"
+            let value = properties[key]!
+            if let intValue = value as? Int {
+                propertiesString += " \(key): \(intValue),"
+            } else {
+                var stringValue = "\(value)"
+                stringValue = stringValue.replacingOccurrences(of: "\"", with: "\\\"")
+                stringValue = stringValue.replacingOccurrences(of: "\'", with: "\\\'")
+                stringValue = stringValue.replacingOccurrences(of: "\n", with: "\\\n")
+                
+                propertiesString += " \(key): '\(value)',"
+            }
         }
         
         if properties.keys.count > 0 {
@@ -422,7 +427,7 @@ class Neo4jRelationship {
         return propertiesString
     }
     
-    init(node: Node, toNode: Node, type: String, properties: [String:String] = [:]) {
+    init(node: Node, toNode: Node, type: String, properties: [String: Any] = [:]) {
         self.node = node
         self.toNode = toNode
         self.type = type

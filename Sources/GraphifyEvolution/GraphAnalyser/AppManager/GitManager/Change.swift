@@ -13,21 +13,30 @@ class Change {
     }
     
     var type: ChangeType {
-        if oldLines.length == 0 && newLines.length == 0 {
+        if oldLines == nil && newLines == nil {
             return .confused
-        } else if oldLines.length == 0 {
-            return .added
-        } else if newLines.length == 0 {
-            return .removed
-        } else {
-            return .changed
         }
+        
+        if oldLines == nil {
+            return .added
+        }
+        
+        if newLines == nil {
+            return .removed
+        }
+        
+        return .changed
     }
-    var oldLines: (start: Int, length: Int)
-    var newLines: (start: Int, length: Int)
+    var oldLines: (start: Int, length: Int)?
+    var newLines: (start: Int, length: Int)?
     
-    init(oldLines: (start: Int, length: Int), newLines: (start: Int, length: Int)) {
-        self.oldLines = oldLines
-        self.newLines = newLines
+    init(oldLines: (start: Int, length: Int?), newLines: (start: Int, length: Int?)) {
+        if let oldLength = oldLines.length {
+            self.oldLines = (start: oldLines.start, length: oldLength)
+        }
+        
+        if let newLength = newLines.length {
+            self.newLines = (start: newLines.start, length: newLength)
+        }
     }
 }
