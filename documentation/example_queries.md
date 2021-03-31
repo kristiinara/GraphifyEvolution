@@ -41,7 +41,7 @@ To analyse if methods were created as long methods or if they became too long ov
         m2 is null 
     RETURN count(*), changes
 
-The result of this query shows that of 225 unique long method instances 131 methods were too long when they were added. Ten methods became too long after one and two changes, four became too long after three changes and one became too long after three, five and six changes. 
+The result of this query shows that of 158 unique long method instances 131 methods were too long when they were added. Ten methods became too long after one and two changes, four became too long after three changes and one became too long after three, five and six changes. 
 
 ## Can we find commits that removed vulnerabilities from code?
 
