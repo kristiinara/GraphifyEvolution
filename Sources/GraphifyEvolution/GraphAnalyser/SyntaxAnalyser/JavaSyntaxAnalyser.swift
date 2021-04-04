@@ -20,22 +20,15 @@ class JavaSyntaxAnalyser: SyntaxAnalyser {
     }
     
     func analyseFile(filePath: String, includePaths: [String]) -> [Class] {
-        if directoryPath == nil {
-            if filePath.contains("/src/") {
-                directoryPath = String(filePath.components(separatedBy: "/src/")[0]) + "/src/"
-            }
-        }
-        
-        if directoryPath != nil {
-            print("Running java command, directory path: \(directoryPath)")
-            return runJavaCommand(path: filePath)
+        if let directoryPath = self.directoryPath {
+            return runJavaCommand(path: filePath, directoryPath: directoryPath)
         }
         
         print("Directory path was nil - could not run java command")
         return []
     }
     
-    func runJavaCommand(path: String) -> [Class] {
+    func runJavaCommand(path: String, directoryPath: String) -> [Class] {
         let currentDirectory = FileManager.default.currentDirectoryPath
        // let res = Helper.shell(launchPath: "\(currentDirectory)/JavaAnalyser/gradlew", arguments: ["run", "--args='path'" , "--console=plain", "--quiet"])
         
