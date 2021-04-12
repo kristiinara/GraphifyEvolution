@@ -52,8 +52,8 @@ class JavaSyntaxAnalyser: SyntaxAnalyser {
 
         do {
             
-            print("--------- json:")
-            print("json: \(json)")
+            //print("--------- json:")
+            //print("json: \(json)")
             
             if let data = json.data(using: .utf8) {
               let myJson = try JSONSerialization.jsonObject(with: data,
@@ -61,7 +61,7 @@ class JavaSyntaxAnalyser: SyntaxAnalyser {
 
               if let items = myJson as? [[String: Any]] {
                 for item in items {
-                    print("json item: \(item)")
+                    //print("json item: \(item)")
                     if let entities = item["key.entities"] as? [[String:Any]] {
                         for entity in entities {
                             if let classInstance = parseClassFrom(json: entity, path: path) {
