@@ -3,8 +3,7 @@
  */
 package JavaAnalyser;
 
-import com.github.javaparser.Range;
-import com.github.javaparser.StaticJavaParser;
+import com.github.javaparser.*;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.NodeList;
@@ -18,65 +17,69 @@ import com.github.javaparser.resolution.declarations.ResolvedMethodDeclaration;
 import com.github.javaparser.resolution.declarations.ResolvedValueDeclaration;
 import com.github.javaparser.resolution.types.ResolvedType;
 import com.github.javaparser.symbolsolver.JavaSymbolSolver;
+import com.github.javaparser.symbolsolver.model.resolution.TypeSolver;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.CombinedTypeSolver;
+import com.github.javaparser.symbolsolver.resolution.typesolvers.JarTypeSolver;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.JavaParserTypeSolver;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.ReflectionTypeSolver;
+import com.github.javaparser.symbolsolver.utils.SymbolSolverCollectionStrategy;
+import com.github.javaparser.utils.ProjectRoot;
+import com.github.javaparser.utils.SourceRoot;
 
+import javax.swing.text.html.Option;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 
 public class App {
 
     public static void main(String[] args) {
-        App newApp = new App();
+        //System.out.println("---");
 
-        if(args.length < 2 || args.length > 3) {
+        if(args.length < 2 ) {//|| args.length > 3) {
             System.out.println("Wrong number of arguments: " + args.length + ". Should be 2 or 3.");
         }
 
         String path = args[0];
         String projectFolderPath = args[1];
-        String jdkPath = "/Library/Java/JavaVirtualMachines/jdk-13.0.2.jdk/"; // default value
-        //String jdkPath = "/Library/Java/JavaVirtualMachines/openjdk-12.0.1.jdk/";
+        String jdkPath = "/Library/Java/JavaVirtualMachines/openjdk-11.0.2.jdk/";
 
         if(args.length == 3) {
-           jdkPath = args[2];
+            jdkPath = args[2];
         }
 
-        Map<String,Object> resultData = new HashMap<String,Object>();
-
-        CombinedTypeSolver combinedSolver = new CombinedTypeSolver(
-                new JavaParserTypeSolver(new File(projectFolderPath)),
+        /*CombinedTypeSolver combinedSolver = new CombinedTypeSolver(
                 new JavaParserTypeSolver(new File(jdkPath)),
                 new ReflectionTypeSolver()
         );
-        JavaSymbolSolver symbolSolver = new JavaSymbolSolver(combinedSolver);
-        StaticJavaParser.getConfiguration().setSymbolResolver(symbolSolver);
+        */
 
-        try {
-            File file = new File(path);
-            CompilationUnit cunit = StaticJavaParser.parse(file);
+       // ParserConfiguration parserConfiguration = new ParserConfiguration().setSymbolResolver(new JavaSymbolSolver(combinedSolver));
 
-            List<CompilationUnit> compilations = new ArrayList<>();
-            compilations.add(cunit);
+        //SymbolSolverCollectionStrategy symbolSolverCollectionStrategy = new SymbolSolverCollectionStrategy(parserConfiguration);
+        SymbolSolverCollectionStrategy symbolSolverCollectionStrategy = new SymbolSolverCollectionStrategy();
+        ProjectRoot projectRoot = symbolSolverCollectionStrategy.collect(Paths.get(projectFolderPath));
 
-            ArrayList<Map<String,Object>> objects = new ArrayList<Map<String,Object>>();
+        String[] split = path.split("/src/main/java/");
+        String last = split[split.length - 1];
 
-            for(CompilationUnit cu : compilations) {
-                //tryFindingTypes(cu);
+        ArrayList<Map<String,Object>> objects = new ArrayList<Map<String,Object>>();
 
-                NodeList<TypeDeclaration<?>> nodes = cu.getTypes();
+        for( SourceRoot sourceRoot : projectRoot.getSourceRoots()) {
+            try {
+                CompilationUnit cu = sourceRoot.parse("", last);
 
-                Map<String,Object> object = handleNode(cu);
-                objects.add(object);
+                objects.add(handleNode(cu));
+                break;
 
+            } catch (ParseProblemException e) {
+               // System.out.println("not found path for sourceRoot: " + sourceRoot);
             }
-            System.out.println(objects);
-
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
         }
+        System.out.println(objects);
     }
 
     public static Map<String,Object> handleNode(Node node) {
