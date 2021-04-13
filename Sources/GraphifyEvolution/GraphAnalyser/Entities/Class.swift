@@ -246,6 +246,7 @@ extension Class: Neo4jObject {
                
         oldNode.properties["code"] = self.code
         oldNode.properties["version_number"] = self.version
+        oldNode.properties["number_of_lines"] = self.minMaxLineNumbers.max - self.minMaxLineNumbers.min + 1
         
         self.nodeSet = oldNode
         

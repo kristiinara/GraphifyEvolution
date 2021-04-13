@@ -88,6 +88,8 @@ extension App: Neo4jObject {
         oldNode.properties["tag"] = self.commit?.tag
         oldNode.properties["time"] = self.commit?.date
         oldNode.properties["timestamp"] = self.commit?.timestamp
+        oldNode.properties["author_timestamp"] = self.commit?.authorTimestamp
+        oldNode.properties["repository_url"] = self.commit?.url
         oldNode.properties["author"] = self.commit?.author
         oldNode.properties["message"] = self.commit?.message
         oldNode.properties["parent_commit"] = self.parentCommit?.commit
