@@ -8,7 +8,7 @@
 import Foundation
 
 class SimpleDependencyManager: DependencyManager {
-    func updateDependencies() {
+    func updateDependencies(path: String) {
         // do nothing
     }
     

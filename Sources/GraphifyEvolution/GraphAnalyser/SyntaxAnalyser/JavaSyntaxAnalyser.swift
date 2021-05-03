@@ -86,17 +86,17 @@ class JavaSyntaxAnalyser: SyntaxAnalyser {
 }
 
 struct JavaKind: Kind {
-    let classKind = "class com.github.javaparser.ast.body.ClassOrInterfaceDeclaration"
+    let classKind = "ClassDeclaration"
     let structKind = "-----"
-    let protocolKind = "class com.github.javaparser.ast.body.ClassOrInterfaceDeclaration"
+    let protocolKind = "InterfaceDeclaration"
     
-    let staticVariableKind = "class com.github.javaparser.ast.body.FieldDeclaration"
-    let classVariableKind = "class com.github.javaparser.ast.body.FieldDeclaration"
-    let instanceVariableKind = "class com.github.javaparser.ast.body.FieldDeclaration"
+    let staticVariableKind = "StaticVariableDeclaration"
+    let classVariableKind = "----"
+    let instanceVariableKind = "InstanceVariableDeclaration"
     
-    let staticMethodKind = "class com.github.javaparser.ast.body.MethodDeclaration"
-    let classMethodKind = "class com.github.javaparser.ast.body.MethodDeclaration"
-    let instanceMethodKind = "class com.github.javaparser.ast.body.MethodDeclaration"
+    let staticMethodKind = "StaticMethodDeclaration"
+    let classMethodKind = "----"
+    let instanceMethodKind = "InstanceMethodDeclaration"
     
     let callInstructionKind = "class com.github.javaparser.ast.expr.MethodCallExpr"
     let ifInstructionKind = "class com.github.javaparser.ast.stmt.IfStmt"
@@ -114,6 +114,18 @@ struct JavaKind: Kind {
     let endLineKey = "key.endLine"
     let pathKey = "key.path"
     let receiverUsrKey = "key.receiver_usr"
+    
+    
+    // TODO: add/use
+    let modifiersKey = "key.modifiers"
+    let parentsKey = "key.parents"
+    let annotationsKey = "key.annotations"
+    let parametersKey = "key.parameters"
+    
+    let annotationKind = "Annotation"
+    let modifierKind = "Modifier"
+    let classReferenceKind = "ClassReference"
+    let enumKind = "EnumDeclaration"
 }
 
 

@@ -5,18 +5,21 @@ package JavaAnalyser;
 
 import com.github.javaparser.*;
 import com.github.javaparser.ast.CompilationUnit;
+import com.github.javaparser.ast.Modifier;
 import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.NodeList;
-import com.github.javaparser.ast.body.FieldDeclaration;
-import com.github.javaparser.ast.body.MethodDeclaration;
-import com.github.javaparser.ast.body.TypeDeclaration;
+import com.github.javaparser.ast.body.*;
 import com.github.javaparser.ast.expr.*;
+import com.github.javaparser.ast.type.ClassOrInterfaceType;
+import com.github.javaparser.ast.type.Type;
 import com.github.javaparser.resolution.UnsolvedSymbolException;
 import com.github.javaparser.resolution.declarations.ResolvedFieldDeclaration;
 import com.github.javaparser.resolution.declarations.ResolvedMethodDeclaration;
 import com.github.javaparser.resolution.declarations.ResolvedValueDeclaration;
+import com.github.javaparser.resolution.types.ResolvedReferenceType;
 import com.github.javaparser.resolution.types.ResolvedType;
 import com.github.javaparser.symbolsolver.JavaSymbolSolver;
+import com.github.javaparser.symbolsolver.javaparsermodel.declarations.JavaParserFieldDeclaration;
 import com.github.javaparser.symbolsolver.model.resolution.TypeSolver;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.CombinedTypeSolver;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.JarTypeSolver;
@@ -30,14 +33,20 @@ import javax.swing.text.html.Option;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.lang.reflect.Array;
+import java.lang.reflect.Field;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
+
+import static java.lang.System.exit;
 
 public class App {
 
     public static void main(String[] args) {
         //System.out.println("---");
+
+        //System.out.println(System.getProperty("java.version"));
 
         if(args.length < 2 ) {//|| args.length > 3) {
             System.out.println("Wrong number of arguments: " + args.length + ". Should be 2 or 3.");
@@ -51,16 +60,23 @@ public class App {
             jdkPath = args[2];
         }
 
-        /*CombinedTypeSolver combinedSolver = new CombinedTypeSolver(
-                new JavaParserTypeSolver(new File(jdkPath)),
-                new ReflectionTypeSolver()
-        );
-        */
 
-       // ParserConfiguration parserConfiguration = new ParserConfiguration().setSymbolResolver(new JavaSymbolSolver(combinedSolver));
+        /*
+        CombinedTypeSolver combinedSolver = new CombinedTypeSolver(
+                new JavaParserTypeSolver(jdkPath),
+                new JavaParserTypeSolver(new File("/Users/kristiina/.gradle/caches/modules-2/files-2.1/")),
+                new JavaParserTypeSolver(new File(projectFolderPath)),
+                new ReflectionTypeSolver()
+
+        );
+
+         */
+
+        //ParserConfiguration parserConfiguration = new ParserConfiguration().setSymbolResolver(new JavaSymbolSolver(combinedSolver));
 
         //SymbolSolverCollectionStrategy symbolSolverCollectionStrategy = new SymbolSolverCollectionStrategy(parserConfiguration);
         SymbolSolverCollectionStrategy symbolSolverCollectionStrategy = new SymbolSolverCollectionStrategy();
+
         ProjectRoot projectRoot = symbolSolverCollectionStrategy.collect(Paths.get(projectFolderPath));
 
         String[] split = path.split("/src/main/java/");
@@ -70,18 +86,648 @@ public class App {
 
         for( SourceRoot sourceRoot : projectRoot.getSourceRoots()) {
             try {
+
+                /*
+                sourceRoot.tryToParse();
+                List<CompilationUnit> cus = sourceRoot.getCompilationUnits();
+                System.out.println("number of cus: " + cus.size());
+
+                for( CompilationUnit cu: cus) {
+                    Map<String,Object> object = new HashMap<>();
+                    String packageDeclaration;
+                    if(cu.getPackageDeclaration().isPresent()) {
+                        packageDeclaration = cu.getPackageDeclaration().get().getNameAsString();
+                    } else {
+                        packageDeclaration = "?";
+                    }
+                    object.put("'key.package'", "'" + packageDeclaration + "'");
+                    object.put("'key.entities'", handleCompilationUnit(cu));
+
+
+                   // objects.add(object);
+                }
+
+                 */
+
+                sourceRoot.getParserConfiguration().setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_11);
+
                 CompilationUnit cu = sourceRoot.parse("", last);
 
-                objects.add(handleNode(cu));
+                Map<String,Object> object = new HashMap<>();
+                String packageDeclaration;
+                if(cu.getPackageDeclaration().isPresent()) {
+                    packageDeclaration = cu.getPackageDeclaration().get().getNameAsString();
+                } else {
+                    packageDeclaration = "?";
+                }
+                object.put("'key.package'", "'" + packageDeclaration + "'");
+                object.put("'key.entities'", handleCompilationUnit(cu));
+
+
+                objects.add(object);
                 break;
 
             } catch (ParseProblemException e) {
                // System.out.println("not found path for sourceRoot: " + sourceRoot);
-            }
+            } //catch (IOException e) {
+              //  e.printStackTrace();
+           // }
         }
         System.out.println(objects);
     }
 
+    private static void printNode(Node node, String prefix) {
+        String addInfo = "";
+        if(node.getClass() == Name.class) {
+            addInfo = " -- " + node.toString();
+        }
+
+        if(node.getClass() == SimpleName.class) {
+            addInfo = " -- " + node.toString();
+        }
+
+        System.out.println(prefix + "Node class: " + node.getClass() + addInfo);
+
+        for(Node entity: node.getChildNodes()) {
+            printNode(entity, "   " + prefix);
+        }
+    }
+
+    private static Map<String,Object> handleInstruction(Node node) {
+        Map<String,Object> object = new HashMap<>();
+        String name = null;
+        String usr = null;
+        String typeString = null;
+
+        if(node.getClass() == ClassOrInterfaceType.class) {
+            ClassOrInterfaceType classOrInterfaceType = (ClassOrInterfaceType)node;
+            name = classOrInterfaceType.getNameAsString();
+            try {
+                usr = classOrInterfaceType.resolve().getQualifiedName();
+            } catch (UnsolvedSymbolException exception) {
+                usr = "??";
+            } catch (UnsupportedOperationException exception) {
+                usr  = "??";
+            }
+        } else if (node.getClass() == MethodCallExpr.class) {
+            MethodCallExpr methodCallExpr = (MethodCallExpr) node;
+            name = methodCallExpr.getNameAsString();
+            try {
+                usr = methodCallExpr.resolve().getQualifiedSignature();
+            } catch (UnsolvedSymbolException exception) {
+                //usr = "??";
+                usr = methodCallExpr.getNameAsString();
+            } catch (RuntimeException exception) {
+                // sometimes if type of a parameter cannot be resolved a RuntimeException is thrown
+                usr = methodCallExpr.getNameAsString();
+            }
+
+        } else if (node.getClass() == MethodReferenceExpr.class) {
+            MethodReferenceExpr methodReferenceExpr = (MethodReferenceExpr)node;
+
+            try {
+                name = methodReferenceExpr.resolve().getName();
+                usr = methodReferenceExpr.resolve().getQualifiedSignature();
+            } catch (UnsolvedSymbolException exception) {
+                usr = methodReferenceExpr.toString();
+                name = methodReferenceExpr.toString();
+            } catch (UnsupportedOperationException expection) {
+                usr = methodReferenceExpr.toString();
+                name = methodReferenceExpr.toString();
+            } catch (RuntimeException exception) {
+                // sometimes unsolved type parameters cause a RuntimeException
+                usr = methodReferenceExpr.toString();
+                name = methodReferenceExpr.toString();
+            }
+        } else if (node.getClass() == FieldAccessExpr.class) {
+            try {
+                FieldAccessExpr fieldAccessExpr = (FieldAccessExpr) node;
+                name = fieldAccessExpr.getNameAsString();
+
+                /*
+                ResolvedValueDeclaration valueDeclaration = fieldAccessExpr.resolve();
+                if(valueDeclaration.getClass() == ResolvedFieldDeclaration.class) {
+                    ResolvedFieldDeclaration resolvedFieldDeclaration = (ResolvedFieldDeclaration)valueDeclaration;
+                    usr = resolvedFieldDeclaration.declaringType().getQualifiedName() + "." + name;
+                }
+
+                 */
+                Expression fieldScope = fieldAccessExpr.getScope();
+                String scope;
+                try {
+                    scope = fieldScope.calculateResolvedType().asReferenceType().getQualifiedName();
+                } catch (UnsolvedSymbolException e) {
+                    scope = "?";
+                } catch (UnsupportedOperationException e) {
+                    scope = "?";
+                } catch (RuntimeException e) {
+                    scope = "?";
+                }
+
+                String fieldName = fieldAccessExpr.getNameAsString();
+                String fullName = scope + "." + fieldName;
+                usr = fullName;
+
+                ResolvedType resolvedType = fieldAccessExpr.resolve().getType();
+                if (resolvedType.isPrimitive()) {
+                    typeString = resolvedType.asPrimitive().name();
+                } else if (resolvedType.isReferenceType()) {
+                    ResolvedReferenceType refType = resolvedType.asReferenceType();
+                    typeString = refType.getQualifiedName();
+                }
+
+            } catch (UnsolvedSymbolException exception) {
+                usr = "??";
+            } catch (UnsupportedOperationException exception) {
+                typeString = "???";
+            }
+        } else if(node.getClass() == NameExpr.class) {
+            try {
+                NameExpr nameExpr = (NameExpr)node;
+                ResolvedValueDeclaration valueDeclaration = nameExpr.resolve();
+
+                name = nameExpr.getNameAsString();
+
+                if(valueDeclaration.getClass() == JavaParserFieldDeclaration.class) {
+                    JavaParserFieldDeclaration resolvedFieldDeclaration = (JavaParserFieldDeclaration)valueDeclaration;
+                    usr = resolvedFieldDeclaration.declaringType().getQualifiedName() + "." + name;
+                }
+
+                //usr = valueDeclaration.getClass().toString();
+
+            } catch (UnsolvedSymbolException exception) {
+                // no usr
+              //  usr = "!!!!";
+            } catch (UnsupportedOperationException exception) {
+                // no usr
+            }
+        }
+
+        setStartEnd(node, object);
+        object.put("'key.kind'", "'" + node.getClass().toString() + "'");
+
+        if(usr != null) {
+            object.put("'key.usr'", "'" + usr + "'");
+        }
+
+        if(name != null) {
+            object.put("'key.name'", "'" + name + "'");
+        }
+
+        if(typeString != null) {
+            object.put("'key.type'", "'" + typeString + "'");
+        }
+
+        object.put("'key.kind'", "'" + node.getClass().toString() + "'");
+
+        List<Map<String,Object>> entities = new ArrayList<>();
+
+        for(Node child: node.getChildNodes()) {
+            entities.add(handleInstruction(child));
+        }
+        object.put("'key.entities'", entities);
+
+        return object;
+    }
+
+    private static Map<String,Object> handleParameter(Parameter node) {
+        Map<String,Object> object = new HashMap<>();
+
+        setStartEnd(node, object);
+
+        try {
+            Type type = node.getType();
+            ResolvedType resolvedType = type.resolve();
+
+            if (resolvedType.isPrimitive()) {
+                object.put("'key.type'", "'" + resolvedType.asPrimitive().name().replace('\'', '-') + "'");
+            } else if (resolvedType.isReferenceType()) {
+                ResolvedReferenceType refType = resolvedType.asReferenceType();
+                refType.getQualifiedName();
+
+                object.put("'key.typeUsr'", "'" + refType.getQualifiedName() + "'");
+                object.put("'key.type'", "'" + refType.getQualifiedName() + "'");
+            } else {
+                object.put("'key.type'", "'" + resolvedType.toString().replace('\'', '-') +"'");
+            }
+        } catch (UnsolvedSymbolException ex) {
+            object.put("'key.type'", "'??unresolved'");
+        } catch (UnsupportedOperationException ex) {
+            object.put("'key.type'", "'??unsupported'");
+        }
+
+        object.put("'key.name'", "'" + node.getNameAsString() + "'");
+
+        List<Map<String,Object>> entities = new ArrayList<>();
+        for(Node child: node.getChildNodes()) {
+            entities.add(handleInstruction(child));
+        }
+        object.put("'key.entities'", entities);
+
+        return object;
+    }
+
+    private static void setStartEnd(Node node, Map<String, Object> object) {
+        int start = -1;
+        int end = -1;
+
+        Optional<Position> optionalPositionEnd = node.getEnd();
+        Optional<Position> optionalPositionBegin = node.getBegin();
+
+        if(optionalPositionBegin.isPresent()) {
+            start = optionalPositionBegin.get().line;
+        }
+
+        if(optionalPositionEnd.isPresent()) {
+            end = optionalPositionEnd.get().line;
+        }
+
+        object.put("'key.startLine'", start);
+        object.put("'key.endLine'", end);
+    }
+
+    private static Map<String,Object> handleMethod(MethodDeclaration method) {
+        Map<String,Object> object = new HashMap<>();
+
+        /*
+        method:
+            - name
+            - usr
+            - /annotations
+            - /modifiers
+            - ?? overridden methods
+            - /return type
+            - arguments
+            - instructions
+         */
+
+        setStartEnd(method, object);
+
+        object.put("'key.name'", "'" + method.getNameAsString() + "'");
+
+        List<Map<String,Object>> annotations = new ArrayList<>();
+        for(AnnotationExpr annotation: method.getAnnotations()) {
+            annotations.add(handleAnnotation(annotation));
+        }
+
+        List<Map<String,Object>> modifiers = new ArrayList<>();
+        for(Modifier modifier: method.getModifiers()) {
+            modifiers.add(handleModifier(modifier));
+        }
+
+        object.put("'key.modifiers'", modifiers);
+        object.put("'key.annotations'", annotations);
+
+        method.getDeclarationAsString();
+        method.getBody(); // handle instructions
+
+        List<Map<String,Object>> parameters = new ArrayList<>();
+        for(Parameter parameter: method.getParameters()) {
+            parameters.add(handleParameter(parameter));
+        }
+        object.put("'key.parameters'", parameters);
+
+        MethodDeclaration methodDeclaration = (MethodDeclaration)method;
+        ResolvedMethodDeclaration resolvedMethodDeclaration = methodDeclaration.resolve();
+
+        String type = "?";
+
+        try {
+            ResolvedType resolvedReturnType = resolvedMethodDeclaration.getReturnType();
+            String returnType = null;
+
+            if (resolvedReturnType.isPrimitive()) {
+                returnType = resolvedReturnType.asPrimitive().name();
+            } else if (resolvedReturnType.isReferenceType()) {
+                returnType = resolvedReturnType.asReferenceType().getQualifiedName();
+            } else {
+                returnType = "not defined!";
+            }
+            type = returnType;
+        } catch (UnsolvedSymbolException e) {
+            //
+            type = "??notdefined";
+        }
+
+        //String declaringType = resolvedMethodDeclaration.declaringType().getQualifiedName();
+
+        String usr;
+
+        try {
+            usr = resolvedMethodDeclaration.getQualifiedSignature(); //TODO: why does this not always work?
+        } catch (UnsolvedSymbolException exception) {
+            //usr = resolvedMethodDeclaration.getSignature(); //TODO: add class string?
+            usr = resolvedMethodDeclaration.getName();
+        }
+
+        object.put("'key.usr'", "'"+usr+"'");
+        object.put("'key.type'", "'"+type+"'");
+
+        if(method.isStatic()) {
+            object.put("'key.kind'", "'StaticMethodDeclaration'");
+        } else {
+            object.put("'key.kind'", "'InstanceMethodDeclaration'");
+        }
+
+
+        //TODO: add something else
+
+        ArrayList<Map<String,Object>> entities = new ArrayList<>();
+
+        if(method.getBody().isPresent()) {
+            entities.add(handleInstruction(method.getBody().get()));
+        }
+        object.put("'key.entities'", entities);
+
+        return object;
+    }
+
+    private static List<Map<String,Object>> handleVariable(FieldDeclaration field, String classUsr) {
+        List<Map<String,Object>> objects = new ArrayList<>();
+        NodeList<VariableDeclarator> variables =  field.getVariables();
+
+        List<Map<String,Object>> annotations = new ArrayList<>();
+        for(AnnotationExpr annotation: field.getAnnotations()) {
+            annotations.add(handleAnnotation(annotation));
+        }
+
+        List<Map<String,Object>> modifiers = new ArrayList<>();
+        for(Modifier modifier: field.getModifiers()) {
+            modifiers.add(handleModifier(modifier));
+        }
+
+        for(VariableDeclarator variable: variables) {
+            Map<String,Object> object = new HashMap<>();
+
+            try {
+                ResolvedValueDeclaration resolvedValueDeclaration = variable.resolve();
+
+                ResolvedType type = resolvedValueDeclaration.getType();
+                resolvedValueDeclaration.getName();
+
+                if (type.isPrimitive()) {
+                    object.put("'key.type'", "'" + type.asPrimitive().name() + "'");
+                } else if (type.isReferenceType()) {
+                    ResolvedReferenceType refType = type.asReferenceType();
+                    refType.getQualifiedName();
+
+                    object.put("'key.typeUsr'", "'" + refType.getQualifiedName() + "'");
+                    object.put("'key.type'", "'" + refType.getQualifiedName() + "'");
+                }
+            } catch (UnsolvedSymbolException ex) {
+                object.put("'key.type'", "'??unresolved'");
+            }
+
+
+            object.put("'key.name'", "'" + variable.getNameAsString() + "'");
+            object.put("'key.usr'", "'" + classUsr + "." + variable.getNameAsString() + "'");
+
+            setStartEnd(field, object);
+
+            object.put("'key.modifiers'", modifiers);
+            object.put("'key.annotations'", annotations);
+
+            if(field.isStatic()) {
+                object.put("'key.kind'", "'StaticVariableDeclaration'");
+            } else {
+                object.put("'key.kind'", "'InstanceVariableDeclaration'");
+            }
+
+            objects.add(object);
+        }
+
+        return objects;
+    }
+
+    private static Map<String,Object> handleAnnotation(AnnotationExpr node) {
+        Map<String,Object> object = new HashMap<>();
+
+        setStartEnd(node, object);
+
+        String name = node.getNameAsString();
+        object.put("'key.name'", "'" + name + "'");
+        object.put("'key.kind'", "'Annotation'");
+
+        return object;
+    }
+
+    private static Map<String,Object> handleModifier(Modifier node) {
+        Map<String,Object> object = new HashMap<>();
+
+        setStartEnd(node, object);
+
+        String name = node.getKeyword().name();
+        object.put("'key.name'", "'" + name + "'");
+        object.put("'key.kind'", "'Modifier'");
+
+        return object;
+    }
+
+    private static Map<String,Object> handeParent(ClassOrInterfaceType type) {
+        Map<String,Object> object = new HashMap<>();
+
+        setStartEnd(type, object);
+
+        String qualifiedName;
+        try {
+            ResolvedReferenceType resolvedType = type.resolve();
+            qualifiedName = resolvedType.getQualifiedName();
+        } catch (UnsolvedSymbolException exception) {
+            qualifiedName = type.getNameWithScope();
+        }
+
+        String name = type.getNameAsString();
+
+        object.put("'key.name'", "'" + name + "'");
+        object.put("'key.usr'", "'" + qualifiedName + "'");
+        object.put("'key.kind'", "'ClassReference'"); //TODO: add distinction if it is a class or interface?
+
+        return object;
+    }
+
+    private static List<Map<String,Object>>  handleClass(ClassOrInterfaceDeclaration node) {
+        List<Map<String,Object>> objects = new ArrayList<>();
+        Map<String,Object> object = new HashMap<>();
+
+        setStartEnd(node, object);
+
+        object.put("'key.name'", "'" + node.getNameAsString() + "'");
+        if(node.isInterface()) {
+            object.put("'key.kind'",  "'InterfaceDeclaration'");
+        } else {
+            object.put("'key.kind'",  "'ClassDeclaration'");
+        }
+
+        if(node.getFullyQualifiedName().isPresent()) {
+            object.put("'key.usr'", "'" + node.getFullyQualifiedName().get() + "'");
+        }
+        object.put("'key.name'", "'" + node.getNameAsString() + "'");
+
+        List<Map<String,Object>> subEntities = new ArrayList<>();
+
+        for(MethodDeclaration method: node.getMethods()) {
+            subEntities.add(handleMethod(method));
+        }
+
+        for(FieldDeclaration fieldDeclaration: node.getFields()) {
+            subEntities.addAll(handleVariable(fieldDeclaration, node.getFullyQualifiedName().get()));
+        }
+
+        object.put("'key.entities'", subEntities);
+
+
+        List<Map<String,Object>> annotations = new ArrayList<>();
+
+        for(AnnotationExpr annotationExpr: node.getAnnotations()) {
+            annotations.add(handleAnnotation(annotationExpr));
+        }
+
+        object.put("'key.annotations'", annotations);
+
+        List<Map<String,Object>> parents = new ArrayList<>();
+
+        for(ClassOrInterfaceType type: node.getExtendedTypes()) {
+            parents.add(handeParent(type));
+        }
+        for(ClassOrInterfaceType type: node.getImplementedTypes()) {
+            parents.add(handeParent(type));
+        }
+
+        object.put("'key.parents'", parents);
+
+        List<Map<String,Object>> modifiers = new ArrayList<>();
+
+        for(Modifier modifier: node.getModifiers()) {
+            modifiers.add(handleModifier(modifier));
+        }
+
+        object.put("'key.modifiers'", modifiers);
+
+        objects.add(object);
+
+        for(Node child: node.getChildNodes()) {
+            if(child.getClass() == ClassOrInterfaceDeclaration.class) {
+                ClassOrInterfaceDeclaration nestedClass = (ClassOrInterfaceDeclaration)child;
+                objects.addAll(handleClass(nestedClass));
+            }
+
+            if(child.getClass() == EnumDeclaration.class) {
+                EnumDeclaration nestedClass = (EnumDeclaration)child;
+                objects.addAll(handleEnum(nestedClass));
+            }
+        }
+
+        return objects;
+    }
+
+    public static List<Map<String,Object>> handleEnum(EnumDeclaration node) {
+        List<Map<String,Object>> objects = new ArrayList<>();
+        Map<String,Object> object = new HashMap<>();
+
+        setStartEnd(node, object);
+
+        object.put("'key.name'", "'" + node.getNameAsString() + "'");
+        object.put("'key.kind'",  "'EnumDeclaration'");
+
+        if(node.getFullyQualifiedName().isPresent()) {
+            object.put("'key.usr'", "'" + node.getFullyQualifiedName().get() + "'");
+        }
+        object.put("'key.name'", "'" + node.getNameAsString() + "'");
+
+        List<Map<String,Object>> subEntities = new ArrayList<>();
+
+        for(MethodDeclaration method: node.getMethods()) {
+            subEntities.add(handleMethod(method));
+        }
+
+        for(FieldDeclaration fieldDeclaration: node.getFields()) {
+            subEntities.addAll(handleVariable(fieldDeclaration, node.getFullyQualifiedName().get()));
+        }
+
+        object.put("'key.entities'", subEntities);
+
+
+        List<Map<String,Object>> annotations = new ArrayList<>();
+
+        for(AnnotationExpr annotationExpr: node.getAnnotations()) {
+            annotations.add(handleAnnotation(annotationExpr));
+        }
+
+        object.put("'key.annotations'", annotations);
+
+        List<Map<String,Object>> parents = new ArrayList<>();
+
+        for(ClassOrInterfaceType type: node.getImplementedTypes()) {
+            parents.add(handeParent(type));
+        }
+
+        object.put("'key.parents'", parents);
+
+        List<Map<String,Object>> modifiers = new ArrayList<>();
+
+        for(Modifier modifier: node.getModifiers()) {
+            modifiers.add(handleModifier(modifier));
+        }
+
+        object.put("'key.modifiers'", modifiers);
+
+        objects.add(object);
+
+        for(Node child: node.getChildNodes()) {
+            if(child.getClass() == ClassOrInterfaceDeclaration.class) {
+                ClassOrInterfaceDeclaration nestedClass = (ClassOrInterfaceDeclaration)child;
+                objects.addAll(handleClass(nestedClass));
+            }
+
+            if(child.getClass() == EnumDeclaration.class) {
+                EnumDeclaration nestedClass = (EnumDeclaration)child;
+                objects.addAll(handleEnum(nestedClass));
+            }
+        }
+
+        return objects;
+    }
+
+    private static List<Map<String,Object>> handleCompilationUnit(CompilationUnit cu) {
+        List<Map<String,Object>> classes = new ArrayList<>();
+
+
+        NodeList<TypeDeclaration<?>> types = cu.getTypes();// --> other way of doing it
+        for(TypeDeclaration<?> type: types) {
+            if(type.isClassOrInterfaceDeclaration()) {
+                List<Map<String,Object>> objects = handleClass((ClassOrInterfaceDeclaration) type);
+                classes.addAll(objects);
+
+            } else if(type.isEnumDeclaration()) {
+                List<Map<String,Object>> objects = handleEnum((EnumDeclaration) type);
+                classes.addAll(objects);
+
+            } else if(type.isAnnotationDeclaration()) {
+                //TODO: what do we do here?
+            }
+        }
+
+
+        /*
+        List<Node> children =  cu.getChildNodes();
+        for(Node child: children) {
+            // if PackageDeclaration --> which package it belongs to
+            // if ImportDeclaration --> which classes/libraries are imported
+            // if ClassOrInterfaceDeclaration --> class types
+            // if AnnotationDeclaration --> annotations?
+            // if EnumDeclaration --> enum --> TODO: implement enum
+
+            if(child.getClass() == ClassOrInterfaceDeclaration.class) {
+                Map<String,Object> foundClass = handleClass((ClassOrInterfaceDeclaration) child);
+                classes.add(foundClass);
+            }
+        }
+         */
+
+        return classes;
+    }
+
+    /*
     public static Map<String,Object> handleNode(Node node) {
 
         Map<String,Object> object = new HashMap<>();
@@ -93,105 +739,67 @@ public class App {
         ArrayList<Map<String,Object>> entities = new ArrayList<>();
 
         if(node.getClass() == MethodDeclaration.class) {
-            MethodDeclaration methodDeclaration = (MethodDeclaration)node;
-            ResolvedMethodDeclaration resolvedMethodDeclaration = methodDeclaration.resolve();
-
-            name = resolvedMethodDeclaration.getName();
-            try {
-                ResolvedType resolvedReturnType = resolvedMethodDeclaration.getReturnType();
-                String returnType = null;
-
-                if (resolvedReturnType.isPrimitive()) {
-                    returnType = resolvedReturnType.asPrimitive().name();
-                } else if (resolvedReturnType.isReferenceType()) {
-                    returnType = resolvedReturnType.asReferenceType().getQualifiedName();
-                } else {
-                    returnType = "not defined!";
-                }
-                type = returnType;
-            } catch (UnsolvedSymbolException e) {
-                //
-                type = "?";
-            }
-
-                //String returnType = resolvedMethodDeclaration.getReturnType().toString();
-                //resolvedMethodDeclaration.isAbstract();
-                String declaringType = resolvedMethodDeclaration.declaringType().getQualifiedName();
-
-                usr = declaringType + "." + name;
+            MethodDeclaration method = (MethodDeclaration) node;
+            object = handleMethod(method);
 
         } else if(node.getClass() == FieldDeclaration.class) {
-            FieldDeclaration fieldDeclaration = (FieldDeclaration)node;
-            ResolvedFieldDeclaration resolvedFieldDeclaration = fieldDeclaration.resolve();
-
-            name = resolvedFieldDeclaration.getName();
-            String declaringType = resolvedFieldDeclaration.declaringType().getQualifiedName();
-
-            try {
-                if (resolvedFieldDeclaration.getType().isPrimitive()) {
-                    type = resolvedFieldDeclaration.getType().asPrimitive().name();
-                } else if (resolvedFieldDeclaration.getType().isReferenceType()) {
-                    type = resolvedFieldDeclaration.getType().asReferenceType().getQualifiedName();
+            FieldDeclaration variable = (FieldDeclaration)node;
+            object = handleVariable(variable);
+        } else {
+            //TODO: check what from here needs to stay
+            for(Node child: node.getChildNodes()) {
+                if (child.getClass() == SimpleName.class) {
+                    SimpleName simpleName = (SimpleName) child;
+                    name = simpleName.asString();
+                } else if (child.getClass() == Name.class) {
+                    Name simpleName = (Name) child;
+                    name = simpleName.asString();
                 } else {
-                    type = "not defined!";
+                    Map<String, Object> childObject = handleNode(child);
+                    entities.add(childObject);
                 }
-            } catch (UnsolvedSymbolException e) {
-                type = "?";
             }
 
-            usr = declaringType + "." + name;
-        }
+            if(node.getClass() == NameExpr.class) {
+                NameExpr nameExpr = (NameExpr)node;
 
-        for(Node child: node.getChildNodes()) {
-            if (child.getClass() == SimpleName.class) {
-               SimpleName simpleName = (SimpleName) child;
-               name = simpleName.asString();
-            } else if (child.getClass() == Name.class) {
-               Name simpleName = (Name) child;
-               name = simpleName.asString();
-            } else {
-                Map<String, Object> childObject = handleNode(child);
-                entities.add(childObject);
-            }
-        }
+                try {
+                    ResolvedType resolvedType = nameExpr.calculateResolvedType();
 
-        if(node.getClass() == NameExpr.class) {
-            NameExpr nameExpr = (NameExpr)node;
-
-            try {
-                ResolvedType resolvedType = nameExpr.calculateResolvedType();
-
-                if (resolvedType.isPrimitive()) {
-                    type = resolvedType.asPrimitive().name();
-                } else {
-                    if (resolvedType.isReferenceType()) {
-                        String qualifiedName = resolvedType.asReferenceType().getQualifiedName();
-                        type = qualifiedName;
+                    if (resolvedType.isPrimitive()) {
+                        type = resolvedType.asPrimitive().name();
+                    } else {
+                        if (resolvedType.isReferenceType()) {
+                            String qualifiedName = resolvedType.asReferenceType().getQualifiedName();
+                            type = qualifiedName;
+                        }
                     }
+                } catch (UnsolvedSymbolException e) {
+                    type = "?";
+                } catch (UnsupportedOperationException e) {
+                    type = "?";
+                } catch (RuntimeException e) {
+                    type = "?";
                 }
-            } catch (UnsolvedSymbolException e) {
-                type = "?";
-            } catch (UnsupportedOperationException e) {
-                type = "?";
-            } catch (RuntimeException e) {
-                type = "?";
-            }
 
-            try {
-                ResolvedValueDeclaration resolvedValueDeclaration = nameExpr.resolve();
-                if(resolvedValueDeclaration.isField()) {
-                    ResolvedFieldDeclaration resolvedFieldDeclaration = resolvedValueDeclaration.asField();
-                    String declaringTypeName = resolvedFieldDeclaration.declaringType().getQualifiedName();
+                try {
+                    ResolvedValueDeclaration resolvedValueDeclaration = nameExpr.resolve();
+                    if(resolvedValueDeclaration.isField()) {
+                        ResolvedFieldDeclaration resolvedFieldDeclaration = resolvedValueDeclaration.asField();
+                        String declaringTypeName = resolvedFieldDeclaration.declaringType().getQualifiedName();
 
-                    usr = declaringTypeName + "." + nameExpr.getName();
+                        usr = declaringTypeName + "." + nameExpr.getName();
+                    }
+                } catch (UnsolvedSymbolException exception) {
+                    //System.out.println("Cannot solve: " + nameExpr);
+                } catch (UnsupportedOperationException e) {
+                    //
                 }
-            } catch (UnsolvedSymbolException exception) {
-                //System.out.println("Cannot solve: " + nameExpr);
-            } catch (UnsupportedOperationException e) {
-                //
             }
         }
 
+        //TODO: move this under method handling
+        /*
         if(node.getClass() == MethodCallExpr.class) {
             MethodCallExpr methodCallExpr = (MethodCallExpr)node;
 
@@ -236,6 +844,9 @@ public class App {
             usr = fullName;
         }
 
+         */
+    /*
+
         int startLine;
         int endLine;
 
@@ -263,5 +874,6 @@ public class App {
 
         return object;
     }
+    */
 }
 

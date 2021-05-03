@@ -23,7 +23,7 @@ repositories {
 dependencies {
     // This dependency is used by the application.
     implementation("com.google.guava:guava:28.1-jre")
-    implementation("com.github.javaparser:javaparser-symbol-solver-core:3.18.0")
+    implementation("com.github.javaparser:javaparser-symbol-solver-core:3.20.2")
 
     // Use JUnit test framework
     testImplementation("junit:junit:4.12")

@@ -6,6 +6,6 @@
 //
 
 protocol DependencyManager {
-    func updateDependencies()
+    func updateDependencies(path: String)
     var ignoreWithPathComponents: [String] { get }
 }

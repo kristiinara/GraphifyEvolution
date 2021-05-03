@@ -58,7 +58,7 @@ extension Neo4jObject {
     }
     
     func save() -> Bool {
-        //print("save \(Self.nodeType)")
+        print("save \(Self.nodeType) - \(self.node.id)")
         if let client = DatabaseController.currentDatabase.client {
             var res = client.updateNodeSync(node: self.updatedNode)
         }
@@ -74,6 +74,21 @@ extension Neo4jObject {
         }
         
         return false
+    }
+    
+    func relateInParallel(to: [Neo4jNode], type: String) -> Bool {
+        var updatedNodes: [Node] = []
+        
+        for node in to {
+            updatedNodes.append(node.updatedNode)
+        }
+        
+        if let client = DatabaseController.currentDatabase.client {
+            client.relateInParallel(node: self.updatedNode, to: updatedNodes, type: type)
+            return true
+        } else {
+            return false
+        }
     }
     
     func relate(to: Neo4jNode, type: String) -> Bool {

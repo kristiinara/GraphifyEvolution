@@ -60,9 +60,9 @@ class GitManager: AppManager {          // manager used for project evolution
         var nextCommit = self.commitsToBeAnalysed.removeFirst()
         //print("Next commit: \(nextCommit.commit), parent: \(nextCommit.parent), check parent: \(nextCommit.parentCommit?.commit)")
         
-        if let startCommit = self.startCommit {
+        if self.started == false{
             print("Searching for startCommit: \(startCommit)")
-            if self.started == false {
+            if let startCommit = self.startCommit  {
                 while nextCommit.commit != startCommit {
                     nextCommit = self.commitsToBeAnalysed.removeFirst()
                 }

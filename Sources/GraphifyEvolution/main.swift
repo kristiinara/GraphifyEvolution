@@ -42,23 +42,40 @@ struct Application: ParsableCommand {
         @Option(help: "Which external analysis should be run during analysis.")
         var externalAnalysis: [ExternalAnalysis] = []
         
+        enum DependencyManagerChoice: String, ExpressibleByArgument {
+            case simple, maven
+        }
+        
+        @Option(help: "Which dependency manager should be used.")
+        var dependencyManager: DependencyManagerChoice = .simple
+        
         mutating func run() {
             var appManager: AppManager?
             var syntaxAnalyser: SyntaxAnalyser?
             var fileManager: LocalFileManager?
             
-            if language == .swift {
-                syntaxAnalyser = SwiftSyntaxAnalyser()
-                let dependencyManager = SimpleDependencyManager(ignore: ["/Carthage/"])
-                fileManager = SwiftFileManager(dependencyManager: dependencyManager)
-            } else if language == .cpp {
-                syntaxAnalyser = CPPSyntaxAnalyser()
-                let dependencyManager = SimpleDependencyManager(ignore: [])
-                fileManager = CPPFileManager(dependencyManager: dependencyManager)
-            } else if language == .java {
+            if dependencyManager == .maven {
+                if language != .java {
+                    fatalError("Maven dependency manager can only be used with java.")
+                }
+                
                 syntaxAnalyser = JavaSyntaxAnalyser()
-                let dependencyManager = SimpleDependencyManager(ignore: [])
+                let dependencyManager = MavenDependencyManager(ignore: [])
                 fileManager = JavaFileManager(dependencyManager: dependencyManager)
+            } else {
+                if language == .swift {
+                    syntaxAnalyser = SwiftSyntaxAnalyser()
+                    let dependencyManager = SimpleDependencyManager(ignore: ["/Carthage/"])
+                    fileManager = SwiftFileManager(dependencyManager: dependencyManager)
+                } else if language == .cpp {
+                    syntaxAnalyser = CPPSyntaxAnalyser()
+                    let dependencyManager = SimpleDependencyManager(ignore: [])
+                    fileManager = CPPFileManager(dependencyManager: dependencyManager)
+                } else if language == .java {
+                    syntaxAnalyser = JavaSyntaxAnalyser()
+                    let dependencyManager = SimpleDependencyManager(ignore: [])
+                    fileManager = JavaFileManager(dependencyManager: dependencyManager)
+                }
             }
             
             var externalAnalysers: [ExternalAnalyser] = []

@@ -174,6 +174,56 @@ class Neo4jClient {
         }
     }
     
+    func relateInParallel(node: Node, to: [Node], type: String) {
+        let group = DispatchGroup()
+        
+        for nodeto in to {
+            if let id = node.id, let toId = nodeto.id {
+                let transaction = "match (a:\(node.label)), (c:\(nodeto.label)) where id(a) = \(id) and id(c) = \(toId) merge (a)-[r:\(type)]->(c) return id(r)"
+                
+                group.enter()
+                
+                requestWithDefaultCompletition(transaction: transaction) { id in
+                    group.leave()
+                }
+                
+            } else {
+                print("could not relate node \(node.label) to \(nodeto.label)")
+            }
+        }
+
+        group.wait()
+    }
+    
+    /*
+    func updateInParallel(nodes: [Node]) {
+        var notExistantNodes: [Node] = []
+        
+        let group = DispatchGroup()
+        
+        for node in nodes {
+            if let id = node.id {
+                let transaction = "match (n:\(node.label)) where id(n)=\(id) set n += \(node.propertyString)"
+                
+                group.enter()
+                
+                requestWithDefaultCompletition(transaction: transaction) { id in
+                    group.leave()
+                }
+                
+            } else {
+                notExistantNodes.append(node)
+            }
+        }
+
+        group.wait()
+        
+        for node in notExistantNodes {
+            let _ = createAndReturnNodeSync(node: node)
+        }
+    }
+ */
+    
     func relateSync(node: Node, to: Node, relationship: Neo4jRelationship) {
         //TODO: return result object
         
@@ -181,7 +231,7 @@ class Neo4jClient {
         
         
         if let id = node.id, let toId = to.id {
-            let transaction = "match (a:\(node.label)), (c:\(to.label)) where id(a) = \(id) and id(c) = \(toId) create (a)-[r:\(relationship.type)\(relationship.properitesString)]->(c) return id(r)"
+            let transaction = "match (a:\(node.label)), (c:\(to.label)) where id(a) = \(id) and id(c) = \(toId) merge (a)-[r:\(relationship.type)\(relationship.properitesString)]->(c) return id(r)"
             
             let group = DispatchGroup()
             group.enter()
