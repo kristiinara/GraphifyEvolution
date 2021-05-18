@@ -55,7 +55,7 @@ GraphifyEvolution consists of 8 main elements:
 * AppAnalysisController
 * LocalFileManager (C++, Swift, and Java)
 * AppManager (Simple, Git, and Bulk)
-* DependencyManager (Plain)
+* DependencyManager (Simple, Maven, Gradle)
 * SyntaxAnalyser (C++, Swift, and Java)
 * ExternalAnalyser (Duplication, InsiderSec, Metrics, Smells)
 * Database (neo4j)
@@ -73,4 +73,5 @@ AppAnalysisController is described [here](documentation/application_analysis_con
   - C++ projects need all its dependencies included in the project.
 - A switch for verbose logging should be added
 - Class implementations and method arguments are not yet handled by the syntax analyser
+- Java projects that use lombock might not be analysed correctly. A delomboc script is added under JavaParser, but it does not always work and is very slow (it is currently not automatically called).
     
