@@ -36,18 +36,18 @@ class Class {
     }
     
     func saveMethods() {
-        for method in self.methods {
-            self.relate(to: method, type: "CLASS_OWNS_METHOD")
-        }
+//        for method in self.methods {
+//            self.relate(to: method, type: "CLASS_OWNS_METHOD")
+//        }
         
-        //self.relateInParallel(to: self.methods, type: "CLASS_OWNS_METHOD")
+        self.relateInParallel(to: self.methods, type: "CLASS_OWNS_METHOD")
     }
     
     func saveVariables() {
-        for variable in self.variables {
-            self.relate(to: variable, type: "CLASS_OWNS_VARIABLE")
-        }
-        //self.relateInParallel(to: self.variables, type: "CLASS_OWNS_VARIABLE")
+//        for variable in self.variables {
+//            self.relate(to: variable, type: "CLASS_OWNS_VARIABLE")
+//        }
+        self.relateInParallel(to: self.variables, type: "CLASS_OWNS_VARIABLE")
     }
     
     //var children: [Class] = []

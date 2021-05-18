@@ -43,4 +43,41 @@ class Helper {
 
         return(output)
     }
+    
+    static func shellAsync(launchPath path: String, arguments args: [String], completion: @escaping ((String, Bool) -> Void )){
+        //print("Helper.shell")
+        let task = Process()
+        task.launchPath = path
+        task.arguments = args
+
+        let pipe = Pipe()
+        task.standardOutput = pipe
+        task.standardError = pipe
+        
+        
+        task.terminationHandler = { returnedTask in
+
+                let status = returnedTask.terminationStatus
+                if status == 0 {
+                   completion("", true)
+                } else {
+                    let errorData = pipe.fileHandleForReading.readDataToEndOfFile()
+                    let errorString = String(data:errorData, encoding: .utf8)!
+                    completion(errorString, true)
+                }
+            }
+            let outputHandle = (task.standardOutput as! Pipe).fileHandleForReading
+            NotificationCenter.default.addObserver(forName: FileHandle.readCompletionNotification, object: outputHandle, queue: OperationQueue.current, using: { notification in
+                if let data = notification.userInfo?[NSFileHandleNotificationDataItem] as? Data, !data.isEmpty {
+                    completion(String(data: data, encoding: . utf8)!, false)
+                } else {
+                    task.terminate()
+                    return
+                }
+                outputHandle.readInBackgroundAndNotify()
+            })
+            outputHandle.readInBackgroundAndNotify()
+            task.launch()
+    
+    }
 }

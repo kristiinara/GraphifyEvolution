@@ -7,7 +7,7 @@
 
 import Foundation
 
-class MavenDependencyManager: DependencyManager {
+class MavenDependencyManager: JavaDependencyManager {
     func updateDependencies(path: String) {
         let pomPath: String
         
@@ -23,6 +23,8 @@ class MavenDependencyManager: DependencyManager {
         } else {
             print("No pom.xml at \(pomPath)")
         }
+        
+        runDeLombok(path: path)
     }
     
     let ignoreWithPathComponents: [String]

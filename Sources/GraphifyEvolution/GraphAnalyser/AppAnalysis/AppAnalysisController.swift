@@ -218,44 +218,44 @@ class AppAnalysisController {
                         classInstance.relate(to: addedClass, type: "CLASS_CHANGED_TO", properties: properties)
                         
                     } else if parent.unchangedPaths.contains(classInstance.path) {
-//                        let refClasses = self.syntaxAnalyser.analyseFile(filePath: classInstance.path, includePaths: includePaths)
-//                        for refClass in refClasses {
-//                            if refClass.name == classInstance.name {
-//                                if refClass.usr != classInstance.usr {
-//                                    print("class \(classInstance.name) usr: \(classInstance.usr) changed to \(refClass.usr)")
-//                                    classInstance.usr = refClass.usr
-//                                    classInstance.save()
-//                                }
-//
-//                                for method in classInstance.methods {
-//                                    if let potMethods = refClass.potentialMethods {
-//                                        for refMethod in potMethods {
-//                                            if method.name == refMethod.name {
-//                                                if method.usr != refMethod.usr {
-//                                                    method.usr = refMethod.usr
-//                                                    method.save()
-//                                                    print("update method usr")
-//                                                }
-//                                            }
-//                                        }
-//                                    }
-//                                }
-//
-//                                for variable in classInstance.variables {
-//                                    if let potVariables = refClass.potentialVariables {
-//                                        for refVariable in potVariables {
-//                                            if refVariable.name == variable.name {
-//                                                if variable.usr != refVariable.usr {
-//                                                    variable.usr = refVariable.usr
-//                                                    variable.save()
-//                                                    print("update variable usr")
-//                                                }
-//                                            }
-//                                        }
-//                                    }
-//                                }
-//                            }
-//                        }
+                        let refClasses = self.syntaxAnalyser.analyseFile(filePath: classInstance.path, includePaths: includePaths)
+                        for refClass in refClasses {
+                            if refClass.name == classInstance.name {
+                                if refClass.usr != classInstance.usr {
+                                    print("class \(classInstance.name) usr: \(classInstance.usr) changed to \(refClass.usr)")
+                                    classInstance.usr = refClass.usr
+                                    classInstance.save()
+                                }
+
+                                for method in classInstance.methods {
+                                    if let potMethods = refClass.potentialMethods {
+                                        for refMethod in potMethods {
+                                            if method.name == refMethod.name {
+                                                if method.usr != refMethod.usr {
+                                                    method.usr = refMethod.usr
+                                                    method.save()
+                                                    print("update method usr")
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                for variable in classInstance.variables {
+                                    if let potVariables = refClass.potentialVariables {
+                                        for refVariable in potVariables {
+                                            if refVariable.name == variable.name {
+                                                if variable.usr != refVariable.usr {
+                                                    variable.usr = refVariable.usr
+                                                    variable.save()
+                                                    print("update variable usr")
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
                         
                         finalClasses.append(classInstance)
                         //print("add classes (unchanged from parent): \(classInstance.name)")
@@ -304,44 +304,44 @@ class AppAnalysisController {
                             // rel for parents
                             
                         } else if altParent.unchangedPaths.contains(classInstance.path) {
-//                            let refClasses = self.syntaxAnalyser.analyseFile(filePath: classInstance.path, includePaths: includePaths)
-//                            for refClass in refClasses {
-//                                if refClass.name == classInstance.name {
-//                                    if refClass.usr != classInstance.usr {
-//                                        print("class \(classInstance.name) usr: \(classInstance.usr) changed to \(refClass.usr)")
-//                                        classInstance.usr = refClass.usr
-//                                        classInstance.save()
-//                                    }
-//
-//                                    for method in classInstance.methods {
-//                                        if let potMethods = refClass.potentialMethods {
-//                                            for refMethod in potMethods {
-//                                                if method.name == refMethod.name {
-//                                                    if method.usr != refMethod.usr {
-//                                                        method.usr = refMethod.usr
-//                                                        method.save()
-//                                                        print("update method usr")
-//                                                    }
-//                                                }
-//                                            }
-//                                        }
-//                                    }
-//
-//                                    for variable in classInstance.variables {
-//                                        if let potVariables = refClass.potentialVariables {
-//                                            for refVariable in potVariables {
-//                                                if refVariable.name == variable.name {
-//                                                    if variable.usr != refVariable.usr {
-//                                                        variable.usr = refVariable.usr
-//                                                        variable.save()
-//                                                        print("update variable usr")
-//                                                    }
-//                                                }
-//                                            }
-//                                        }
-//                                    }
-//                                }
-//                            }
+                            let refClasses = self.syntaxAnalyser.analyseFile(filePath: classInstance.path, includePaths: includePaths)
+                            for refClass in refClasses {
+                                if refClass.name == classInstance.name {
+                                    if refClass.usr != classInstance.usr {
+                                        print("class \(classInstance.name) usr: \(classInstance.usr) changed to \(refClass.usr)")
+                                        classInstance.usr = refClass.usr
+                                        classInstance.save()
+                                    }
+
+                                    for method in classInstance.methods {
+                                        if let potMethods = refClass.potentialMethods {
+                                            for refMethod in potMethods {
+                                                if method.name == refMethod.name {
+                                                    if method.usr != refMethod.usr {
+                                                        method.usr = refMethod.usr
+                                                        method.save()
+                                                        print("update method usr")
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    for variable in classInstance.variables {
+                                        if let potVariables = refClass.potentialVariables {
+                                            for refVariable in potVariables {
+                                                if refVariable.name == variable.name {
+                                                    if variable.usr != refVariable.usr {
+                                                        variable.usr = refVariable.usr
+                                                        variable.save()
+                                                        print("update variable usr")
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                             
                             
                             if let remainingParentClass = remainingParentClasses[classInstance.usr] {
@@ -482,6 +482,10 @@ class AppAnalysisController {
                         } else {
                             if let potMethods = classInstance.potentialMethods {
                                 classInstance.methods = potMethods
+                                for method in classInstance.methods {
+                                    method.save()
+                                }
+                                
                                 classInstance.saveMethods()
                                 
                                 methodsToBeHandled.append(contentsOf: potMethods)
@@ -489,6 +493,10 @@ class AppAnalysisController {
                             
                             if let potVariables = classInstance.potentialVariables {
                                 classInstance.variables = potVariables
+                                for variable in classInstance.variables {
+                                    variable.save()
+                                }
+                                
                                 classInstance.saveVariables()
                                 
                                 variablesToBeHandled.append(contentsOf: potVariables)

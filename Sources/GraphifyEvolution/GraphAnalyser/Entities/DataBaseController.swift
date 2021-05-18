@@ -195,6 +195,31 @@ class Neo4jClient {
         group.wait()
     }
     
+    func relateInParallel(node: Node, to: [Node], type: String, batchSize: Int) {
+        if to.count <= batchSize {
+            relateInParallel(node: node, to: to, type: type)
+        } else {
+            var start = 0
+            var end = batchSize
+            
+            while start < to.count {
+                if end >= to.count {
+                    end = to.count - 1
+                }
+                
+                let subset = Array(to[start...end])
+                relateInParallel(node: node, to: subset, type: type)
+                
+                if start == to.count - 1 {
+                    break
+                }
+                
+                start = end
+                end = end + batchSize
+            }
+        }
+    }
+    
     /*
     func updateInParallel(nodes: [Node]) {
         var notExistantNodes: [Node] = []

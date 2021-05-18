@@ -43,7 +43,7 @@ struct Application: ParsableCommand {
         var externalAnalysis: [ExternalAnalysis] = []
         
         enum DependencyManagerChoice: String, ExpressibleByArgument {
-            case simple, maven
+            case simple, maven, gradle
         }
         
         @Option(help: "Which dependency manager should be used.")
@@ -54,14 +54,21 @@ struct Application: ParsableCommand {
             var syntaxAnalyser: SyntaxAnalyser?
             var fileManager: LocalFileManager?
             
-            if dependencyManager == .maven {
+            if dependencyManager == .maven || dependencyManager == .gradle {
                 if language != .java {
-                    fatalError("Maven dependency manager can only be used with java.")
+                    fatalError("Maven and Gradle dependency managers can only be used with java.")
                 }
                 
                 syntaxAnalyser = JavaSyntaxAnalyser()
-                let dependencyManager = MavenDependencyManager(ignore: [])
-                fileManager = JavaFileManager(dependencyManager: dependencyManager)
+                let dManager: DependencyManager
+                
+                if dependencyManager == .maven {
+                    dManager = MavenDependencyManager(ignore: [])
+                } else {
+                    dManager = GradleDependencyManager(ignore: [])
+                }
+                 
+                fileManager = JavaFileManager(dependencyManager: dManager)
             } else {
                 if language == .swift {
                     syntaxAnalyser = SwiftSyntaxAnalyser()
