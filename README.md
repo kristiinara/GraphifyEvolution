@@ -68,6 +68,9 @@ AppAnalysisController is described [here](documentation/application_analysis_con
 
 - GraphifyEvolution is written in swift and can currently only run on Mac OS. There are plans on trying to make the tool also work on linux. Currently there is no linux support as the Foundation framework is not yet fully implemented for linux. 
 - Additional dependency managers need to be implemented so that more applications could be analysed
+  - Java projects can be anlysed if the project either contains all its dependencies or if it is using maven. Support for gradle projects is in the process of being added. 
+  - Swift projects currently need all its dependencies ncluded in the project, support for cocoapods, swift package manager and potentially others will be added.
+  - C++ projects need all its dependencies included in the project.
 - A switch for verbose logging should be added
 - Class implementations and method arguments are not yet handled by the syntax analyser
     
