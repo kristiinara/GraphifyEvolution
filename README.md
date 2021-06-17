@@ -75,3 +75,7 @@ AppAnalysisController is described [here](documentation/application_analysis_con
 - Class implementations and method arguments are not yet handled by the syntax analyser
 - Java projects that use lombock might not be analysed correctly. A delomboc script is added under JavaParser, but it does not always work and is very slow (it is currently not automatically called).
     
+## Slack
+
+Join us on Slack if you have any direct questions or would like to contribute.
+[Invitation link.](https://join.slack.com/t/slack-xb79230/shared_invite/zt-rudaijhe-No387TJ33llqSTZa8da2PQ)
