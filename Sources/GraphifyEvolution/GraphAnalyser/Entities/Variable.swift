@@ -20,6 +20,7 @@ class Variable {
     var usr: String
     var version: Int = 0
     var changeType: ChangeType = .undefined
+    var isDefinition: Bool?
     
     var startLine: Int?
     var endLine: Int?
@@ -87,6 +88,7 @@ extension Variable: Neo4jObject {
         oldNode.properties["version_number"] = self.version
         oldNode.properties["start_line"] = self.startLine
         oldNode.properties["end_line"] = self.endLine
+        oldNode.properties["is_definition"] = isDefinition
         
         
         self.nodeSet = oldNode

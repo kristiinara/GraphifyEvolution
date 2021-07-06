@@ -628,6 +628,8 @@ class AppAnalysisController {
             addCallAndUseConnectionsFrom(method: method, app: app)
         }
         
+        addDefinitionConnectionsTo(app: app)
+        
         if app.parent != nil {
             addCallAndUseConnectionsTo(methods: methodsToBeHandled, variables: variablesToBeHandled, classes: newClassVersions, app: app)
             
@@ -652,6 +654,35 @@ class AppAnalysisController {
         print("Externalanalysers reset")
         for externalAnalyser in self.externalAnalysers {
             externalAnalyser.reset()
+        }
+    }
+    
+    func addDefinitionConnectionsTo(app: App) {
+        if let appId = app.node.id {
+            var transactions: [String] = []
+            
+            transactions.append("""
+            match (a:App) where id(a) = \(appId)
+            match (a)-[:APP_OWNS_CLASS]->(c:Class)
+            where c.is_definition = true
+            match (a)-[:APP_OWNS_CLASS]->(c2:Class)
+            where c2.is_definition = false and c.usr = c2.usr
+            merge (c2)-[r:DEFINED_IN]->(c) return id(r)
+            """)
+            
+            transactions.append("""
+            match (a:App) where id(a) = \(appId)
+            match (a)-[:APP_OWNS_CLASS]->(c:Class)-[:CLASS_OWNS_METHOD|CLASS_OWNS_VARIABLE]->(o)
+            where o.is_definition = true
+            match (a)-[:APP_OWNS_CLASS]->(c:Class)-[:CLASS_OWNS_METHOD|CLASS_OWNS_VARIABLE]->(o2)
+            where o2.is_definition = false and o.usr = o2.usr
+            merge (o2)-[r:DEFINED_IN]->(o) return id(r)
+            """)
+           
+            for transaction in transactions {
+                print("running transaction: \(transaction)")
+                DatabaseController.currentDatabase.client?.runQuery(transaction: transaction)
+            }
         }
     }
     

@@ -11,6 +11,7 @@ from pprint import pprint
 
 maxDepth = 1000
 
+# currently not used
 def get_cursor_id(cursor, cursor_list = []):
     if cursor is None:
         return None
@@ -21,6 +22,7 @@ def get_cursor_id(cursor, cursor_list = []):
     cursor_list.append(cursor)
     return len(cursor_list) - 1
 
+# currently not used
 def get_info(node, depth=0):
     if depth >= maxDepth:
         children = None
@@ -52,6 +54,8 @@ def get_info(node, depth=0):
 def analyse_file(index, path, args):
     translation_unit = index.parse(path, args = args) # need to check if this include really works!
     fileName = path.split("/")[-1]
+    
+    # todo: not setting header name?
     headerName = fileName.replace(".cpp", ".h")
     nameSpaces = []
     references = {}
@@ -448,6 +452,13 @@ def correctReferences():
 ###     type
 ###     usr
 
+
+# TODO: rewrite:
+## - look into if we can analyse the whole project at once
+## - analyse class: for both .h and .cpp file
+## - if method has no implementation --> save as method declaration?
+## - if has implementation --> save as method implementation?
+## --- method declaration == abstract method? 
 
 
 #print("hello")

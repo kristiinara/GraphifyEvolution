@@ -44,6 +44,7 @@ protocol Kind {
     var caseInstructionKind: String { get }
     
     var nameKey: String { get }
+    var isDefinitionKey: String { get }
     var usrKey: String { get }
     var kindKey: String { get }
     var entitiesKey: String { get }
@@ -60,14 +61,15 @@ extension SyntaxAnalyser {
     }
     
     func parseClassFrom(json: [String:Any], path: String) -> Class? {
-        //print("class from: \(json)")
+        print("class from: \(json)")
         if let name = json[constants.nameKey] as? String,
             let usr = json[constants.usrKey] as? String {
+            print("name: \(name), usr: \(usr)")
             
             var classType: Class.ClassType = .classType
             
             if let kind = json[constants.kindKey] as? String {
-                //print("kind: \(kind)")
+                print("kind: \(kind)")
                 if kind == constants.classKind {
                     classType = .classType
                 } else if kind == constants.structKind {
@@ -131,9 +133,25 @@ extension SyntaxAnalyser {
                 classInstance.potentialVariables = variables
             }
             
+            if let def = json[constants.isDefinitionKey] {
+                print("type of: \(type(of: def))")
+            }
+            
+            if let isDefinition = json[constants.isDefinitionKey] as? NSNumber {
+                print("cast was successful")
+                if isDefinition == 1 {
+                    classInstance.isDefinition = true
+                } else {
+                    classInstance.isDefinition = false
+                }
+            } else {
+                print("cast not successful")
+                classInstance.isDefinition = nil
+            }
+            
             return classInstance
         } else {
-            
+            print("no class found")
         }
         return nil
     }
@@ -181,6 +199,16 @@ extension SyntaxAnalyser {
             
             if let endLine = json[constants.endLineKey] as? Int {
                 method.endLine = endLine
+            }
+            
+            if let isDefinition = json[constants.isDefinitionKey] as? Int {
+                if isDefinition == 1 {
+                    method.isDefinition = true
+                } else {
+                    method.isDefinition = false
+                }
+            } else {
+                method.isDefinition = nil
             }
             
             //method.save()
@@ -293,6 +321,16 @@ extension SyntaxAnalyser {
             
             if let endLine = json[constants.endLineKey] as? Int {
                 variable.endLine = endLine
+            }
+            
+            if let isDefinition = json[constants.isDefinitionKey] as? Int {
+                if isDefinition == 1 {
+                    variable.isDefinition = true
+                } else {
+                    variable.isDefinition = false
+                }
+            } else {
+                variable.isDefinition = nil
             }
             
             return variable

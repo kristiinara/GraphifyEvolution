@@ -24,6 +24,7 @@ class Class {
     var usr: String
     var changeType: ChangeType = .undefined
     var version: Int = 1
+    var isDefinition: Bool?
     
     var methods: [Method]
     var variables: [Variable]
@@ -248,6 +249,7 @@ extension Class: Neo4jObject {
         oldNode.properties["code"] = self.code
         oldNode.properties["version_number"] = self.version
         oldNode.properties["number_of_lines"] = self.minMaxLineNumbers.max - self.minMaxLineNumbers.min + 1
+        oldNode.properties["is_definition"] = isDefinition
         
         self.nodeSet = oldNode
         

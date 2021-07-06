@@ -22,6 +22,7 @@ class Method {
     var startLine: Int?
     var endLine: Int?
     var version = 1
+    var isDefinition: Bool?
         
     var instructions: [Instruction]? //Current idea: when instructions is nil, then object came from db, if not nil then read from structure analysis - used to calculate metrics
     
@@ -134,6 +135,14 @@ class Method {
     }
     
     var numberOfInstructions : Int? {
+        /*
+        if let isDefinition = self.isDefinition {
+            if !isDefinition {
+                return 0
+            }
+        }
+ */
+        
         if let instructions = self.instructions {
             return instructions.reduce(1) { (result, instruction) -> Int in
                 if let subInstructions = instruction.instructions {
@@ -169,6 +178,7 @@ extension Method: Neo4jObject {
         oldNode.properties["is_getter"] = self.kind == .getMethod
         oldNode.properties["is_setter"] = self.kind == .setMethod
         oldNode.properties["is_constructor"] = self.kind == .constructor
+        oldNode.properties["is_definition"] = isDefinition
         
         self.nodeSet = oldNode
         
