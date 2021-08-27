@@ -12,6 +12,7 @@ class GitManager: AppManager {          // manager used for project evolution
     var appKey: String?
     var startCommit: String?
     var started = false
+    var onlyTags = false
     
     var commits: [Commit]?  //TODO: change type, maybe create new class/structure?
     var commitsToBeAnalysed: [Commit] = []
@@ -159,6 +160,7 @@ class GitManager: AppManager {          // manager used for project evolution
         }
     }
     
+    //TODO: change so that it is not recursive anymore!
     func addCommit(commit: Commit, commitsAdded: [String]) -> [String] {
         //print("addCommit: \(commit.commit), \(commitsAdded)")
         var commitsAdded = commitsAdded
@@ -478,8 +480,15 @@ class GitManager: AppManager {          // manager used for project evolution
     
     func runGitLogCommand() {
         if let path = self.path {
-            let res = Helper.shell(launchPath: "/usr/bin/git", arguments: ["--git-dir", path, "log", "--pretty=format:{%n \"commit\": \"%H\",%n \"abbCommit\": \"%h\",%n \"tree\": \"%T\", %n \"abbTree\": \"%t\", %n \"parent\": \"%P\", %n \"abbParent\": \"%p\", %n \"author\": \"%aN <%aE>\",%n \"date\": \"%ad\",%n \"authorTimestamp\": \"%at\",%n \"timestamp\": \"%ct\",%n \"message\": \"%f\"},"])
-           var json = "[\(res.dropLast())]"
+            var args: [String] = ["--git-dir", path, "log", "--pretty=format:{%n \"commit\": \"%H\",%n \"abbCommit\": \"%h\",%n \"tree\": \"%T\", %n \"abbTree\": \"%t\", %n \"parent\": \"%P\", %n \"abbParent\": \"%p\", %n \"author\": \"%aN <%aE>\",%n \"date\": \"%ad\",%n \"authorTimestamp\": \"%at\",%n \"timestamp\": \"%ct\",%n \"message\": \"%f\"},"]
+            
+            if onlyTags {
+                args.append("--tags")
+                args.append("--no-walk")
+            }
+            let res = Helper.shell(launchPath: "/usr/bin/git", arguments: args)
+            
+            var json = "[\(res.dropLast())]"
             
             let decoder = JSONDecoder()
 
@@ -488,11 +497,6 @@ class GitManager: AppManager {          // manager used for project evolution
                 let allCommits = try decoder.decode([Commit].self, from: json.data(using: .utf8)!)
                 
                 print("total number of commits found: \(allCommits.count)")
-                for commit in allCommits {
-                    //print(commit.commit)
-                    //print("changes: \(commit.fileChanges?.count)")
-                    //print(commit.children)
-                }
                 
                 var commitDict: [String: Commit] = [:]
                 for commit in allCommits {
@@ -504,26 +508,41 @@ class GitManager: AppManager {          // manager used for project evolution
                 
                 var commits: [Commit] = []
                 
-                for commit in allCommits { //can have two parents! //TODO: add both as parents!
-                    if commit.parent == nil || commit.parent == "" {
-                        commits.append(commit)
-                    } else {
-                        let splitParents = commit.parent.split(separator: " ")
+                if onlyTags {
+                    var prevCommit: Commit? = nil
+                    
+                    for commit in allCommits {
+                        if prevCommit == nil {
+                            commits.append(commit)
+                        }
                         
-                        if splitParents.count > 1 {
-                            if let parent = commitDict[String(splitParents[0])] {
+                        commit.parentCommit = prevCommit
+                        prevCommit?.children.append(commit)
+                        
+                        prevCommit = commit
+                    }
+                } else {
+                    for commit in allCommits { //can have two parents! //TODO: add both as parents!
+                        if commit.parent == nil || commit.parent == "" {
+                            commits.append(commit)
+                        } else {
+                            let splitParents = commit.parent.split(separator: " ")
+                            
+                            if splitParents.count > 1 {
+                                if let parent = commitDict[String(splitParents[0])] {
+                                    commit.parentCommit = parent
+                                    parent.children.append(commit) // TODO: do we create a retain cycle here?
+                                }
+                                
+                                if let otherParent = commitDict[String(splitParents[1])] {
+                                    commit.alternateParentCommit = otherParent
+                                }
+                            }
+                            
+                            if let parent = commitDict[commit.parent] {
                                 commit.parentCommit = parent
                                 parent.children.append(commit) // TODO: do we create a retain cycle here?
                             }
-                            
-                            if let otherParent = commitDict[String(splitParents[1])] {
-                                commit.alternateParentCommit = otherParent
-                            }
-                        }
-                        
-                        if let parent = commitDict[commit.parent] {
-                            commit.parentCommit = parent
-                            parent.children.append(commit) // TODO: do we create a retain cycle here?
                         }
                     }
                 }

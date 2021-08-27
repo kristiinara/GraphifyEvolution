@@ -12,6 +12,7 @@ class AppAnalysisController {
     let syntaxAnalyser: SyntaxAnalyser
     let fileManager: LocalFileManager
     let externalAnalysers: [ExternalAnalyser]
+    var noSourceCodeAnalysis = false
     
     //var appVersions: [AppVersion] = [] //TODO: do we really need this?
     //var apps: [App] = []
@@ -101,180 +102,107 @@ class AppAnalysisController {
         
         var newClassVersions: [Class] = []
         
-        if let parent = appVersion.parent {
-            print("has parent")
-            if let parentApp = appVersion.parent?.appVersion.analysedVersion {
-                
-                let parentClasses = parentApp.classes
-                var altParentClasses: [Class] = []
-                
-                var intersectionChanged = [String]()
-                var intersectionParentNew = [String]()
-                var instersectonAltParentNew = parent.changedPaths
-                var intersectionNew = parent.addedPaths
-                
-                //print("parent: ")
-                //print("chagned: \(parent.changedPaths)")
-                //print("new: \(parent.addedPaths)")
-                //print("unchanged: \(parent.unchangedPaths)")
-                
-                if let altParent = appVersion.alternateParent {
-                    print("has alt parent")
-                    //print("altparent: ")
-                    //print("chagned: \(altParent.changedPaths)")
-                    //print("new: \(altParent.addedPaths)")
-                    //print("unchanged: \(altParent.unchangedPaths)")
+        if !self.noSourceCodeAnalysis {
+            if let parent = appVersion.parent {
+                print("has parent")
+                if let parentApp = appVersion.parent?.appVersion.analysedVersion {
                     
-                    if let altParentApp = altParent.appVersion.analysedVersion {
-                        altParentClasses = altParentApp.classes
-                        //print("altParentClasses: \(altParentClasses.map(){value in return value.name})")
+                    let parentClasses = parentApp.classes
+                    var altParentClasses: [Class] = []
+                    
+                    var intersectionChanged = [String]()
+                    var intersectionParentNew = [String]()
+                    var instersectonAltParentNew = parent.changedPaths
+                    var intersectionNew = parent.addedPaths
+                    
+                    //print("parent: ")
+                    //print("chagned: \(parent.changedPaths)")
+                    //print("new: \(parent.addedPaths)")
+                    //print("unchanged: \(parent.unchangedPaths)")
+                    
+                    if let altParent = appVersion.alternateParent {
+                        print("has alt parent")
+                        //print("altparent: ")
+                        //print("chagned: \(altParent.changedPaths)")
+                        //print("new: \(altParent.addedPaths)")
+                        //print("unchanged: \(altParent.unchangedPaths)")
                         
-                        for classInstance in altParentClasses {
-                            //print("class: \(classInstance.name)")
-                            //print("methds: \(classInstance.methods.map() {value in return value.name})")
-                        }
-                    } else {
-                        //print("Alternate parent not analysed!")
-                    }
-                    
-                    intersectionChanged = Array((Set(parent.changedPaths)).intersection(altParent.changedPaths))
-                    intersectionParentNew = Array((Set(parent.addedPaths)).intersection(altParent.changedPaths))
-                    instersectonAltParentNew = Array((Set(parent.changedPaths)).intersection(altParent.addedPaths))
-                    intersectionNew = Array((Set(parent.addedPaths)).intersection(altParent.addedPaths))
-                }
-                
-                var addedClasses: [String:Class] = [:]
-                
-                var combinedPaths: [String] = []
-                combinedPaths.append(contentsOf: intersectionChanged)
-                combinedPaths.append(contentsOf: intersectionNew)
-                combinedPaths.append(contentsOf: intersectionParentNew)
-                combinedPaths.append(contentsOf: instersectonAltParentNew)
-                
-                //print("combinedPaths: \(combinedPaths)")
-                
-                pathLoop: for path in combinedPaths {
-                    for ignore in fileManager.ignoreWithPathComponents {
-                        if path.contains(ignore) {
-                            //print("ignore path \(path), contains ignore: \(ignore)")
-                            continue pathLoop
-                        }
-                    }
-                    
-                    var correctEnding = false
-                    for ending in fileManager.allowedEndings {
-                        if path.hasSuffix(ending) {
-                            correctEnding = true
-                            //print("path \(path) has correct ending \(ending)")
-                            break
-                        }
-                    }
-                    
-                    if !correctEnding {
-                        //print("ignore path \(path), ending not correct")
-                        continue pathLoop
-                    }
-                    
-                    let classes = self.syntaxAnalyser.analyseFile(filePath: path, includePaths: includePaths)
-                    
-                    var classesToAdd: [Class] = []
-                    
-                    for classInstance in classes {
-                        if let existingClass = addedClasses[classInstance.usr] {
-                            //print("Class already added: \(classInstance.name) - \(classInstance.usr)")
-                            //TODO: should we add methods from newly analysed class if class is somehow declared in multiple files?
-                        } else {
-                            addedClasses[classInstance.usr] = classInstance
-                            classesToAdd.append(classInstance)
-                            classInstance.save()
-                        }
-                    }
-                    
-                    finalClasses.append(contentsOf: classesToAdd)
-                    //print("add classes (combined paths) : \(classesToAdd.map() { val in return val.name } )")
-                }
-                
-                var remainingParentClasses: [String: Class] = [:]
-                var notChangedClasses: [String: Class] = [:]
-                
-                for classInstance in parentClasses {
-                    if let addedClass = addedClasses[classInstance.usr] {
-                        addedClass.parent = classInstance
-                        addedClass.version = classInstance.version + 1
-                        
-                        var properties: [String: Any] = [:]
-                        if let commit = appVersion.commit?.commit {
-                            properties["commit"] = commit
-                        }
-                        
-                        if let changesForPath = parent.changesForPaths[addedClass.path] {
-                            let lineDifferences = findChangedLines(newClass: addedClass, oldClass: classInstance, changes: changesForPath)
+                        if let altParentApp = altParent.appVersion.analysedVersion {
+                            altParentClasses = altParentApp.classes
+                            //print("altParentClasses: \(altParentClasses.map(){value in return value.name})")
                             
-                            properties["added_lines"] = lineDifferences.added
-                            properties["deleted_lines"] = lineDifferences.deleted
-                            properties["changed_lines"] = lineDifferences.changed
+                            for classInstance in altParentClasses {
+                                //print("class: \(classInstance.name)")
+                                //print("methds: \(classInstance.methods.map() {value in return value.name})")
+                            }
+                        } else {
+                            //print("Alternate parent not analysed!")
                         }
                         
-                        classInstance.relate(to: addedClass, type: "CLASS_CHANGED_TO", properties: properties)
-                        
-                    } else if parent.unchangedPaths.contains(classInstance.path) {
-                        let refClasses = self.syntaxAnalyser.analyseFile(filePath: classInstance.path, includePaths: includePaths)
-                        for refClass in refClasses {
-                            if refClass.name == classInstance.name {
-                                if refClass.usr != classInstance.usr {
-                                    print("class \(classInstance.name) usr: \(classInstance.usr) changed to \(refClass.usr)")
-                                    classInstance.usr = refClass.usr
-                                    classInstance.save()
-                                }
-
-                                for method in classInstance.methods {
-                                    if let potMethods = refClass.potentialMethods {
-                                        for refMethod in potMethods {
-                                            if method.name == refMethod.name {
-                                                if method.usr != refMethod.usr {
-                                                    method.usr = refMethod.usr
-                                                    method.save()
-                                                    print("update method usr")
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-
-                                for variable in classInstance.variables {
-                                    if let potVariables = refClass.potentialVariables {
-                                        for refVariable in potVariables {
-                                            if refVariable.name == variable.name {
-                                                if variable.usr != refVariable.usr {
-                                                    variable.usr = refVariable.usr
-                                                    variable.save()
-                                                    print("update variable usr")
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
+                        intersectionChanged = Array((Set(parent.changedPaths)).intersection(altParent.changedPaths))
+                        intersectionParentNew = Array((Set(parent.addedPaths)).intersection(altParent.changedPaths))
+                        instersectonAltParentNew = Array((Set(parent.changedPaths)).intersection(altParent.addedPaths))
+                        intersectionNew = Array((Set(parent.addedPaths)).intersection(altParent.addedPaths))
+                    }
+                    
+                    var addedClasses: [String:Class] = [:]
+                    
+                    var combinedPaths: [String] = []
+                    combinedPaths.append(contentsOf: intersectionChanged)
+                    combinedPaths.append(contentsOf: intersectionNew)
+                    combinedPaths.append(contentsOf: intersectionParentNew)
+                    combinedPaths.append(contentsOf: instersectonAltParentNew)
+                    
+                    //print("combinedPaths: \(combinedPaths)")
+                    
+                    pathLoop: for path in combinedPaths {
+                        for ignore in fileManager.ignoreWithPathComponents {
+                            if path.contains(ignore) {
+                                //print("ignore path \(path), contains ignore: \(ignore)")
+                                continue pathLoop
                             }
                         }
                         
-                        finalClasses.append(classInstance)
-                        //print("add classes (unchanged from parent): \(classInstance.name)")
-                        notChangedClasses[classInstance.usr] = classInstance
-                    } else if parent.removedPaths.contains(classInstance.path) {
-                        // do nothing
-                    } else {
-                        //print("remainingParentClass: \(classInstance.name) - commit: \(appVersion.commit?.commit), path: \(classInstance.path)")
-                        remainingParentClasses[classInstance.usr] = classInstance
+                        var correctEnding = false
+                        for ending in fileManager.allowedEndings {
+                            if path.hasSuffix(ending) {
+                                correctEnding = true
+                                //print("path \(path) has correct ending \(ending)")
+                                break
+                            }
+                        }
+                        
+                        if !correctEnding {
+                            //print("ignore path \(path), ending not correct")
+                            continue pathLoop
+                        }
+                        
+                        let classes = self.syntaxAnalyser.analyseFile(filePath: path, includePaths: includePaths)
+                        
+                        var classesToAdd: [Class] = []
+                        
+                        for classInstance in classes {
+                            if let existingClass = addedClasses[classInstance.usr] {
+                                //print("Class already added: \(classInstance.name) - \(classInstance.usr)")
+                                //TODO: should we add methods from newly analysed class if class is somehow declared in multiple files?
+                            } else {
+                                addedClasses[classInstance.usr] = classInstance
+                                classesToAdd.append(classInstance)
+                                classInstance.save()
+                            }
+                        }
+                        
+                        finalClasses.append(contentsOf: classesToAdd)
+                        //print("add classes (combined paths) : \(classesToAdd.map() { val in return val.name } )")
                     }
-                }
-                
-                if let altParent = appVersion.alternateParent {
-                    print("has alt parent")
-                    for classInstance in altParentClasses {
+                    
+                    var remainingParentClasses: [String: Class] = [:]
+                    var notChangedClasses: [String: Class] = [:]
+                    
+                    for classInstance in parentClasses {
                         if let addedClass = addedClasses[classInstance.usr] {
-                            addedClass.alternateParent = classInstance
-                            //addedClass.saveParent()
-                            
+                            addedClass.parent = classInstance
+                            addedClass.version = classInstance.version + 1
                             
                             var properties: [String: Any] = [:]
                             if let commit = appVersion.commit?.commit {
@@ -284,26 +212,14 @@ class AppAnalysisController {
                             if let changesForPath = parent.changesForPaths[addedClass.path] {
                                 let lineDifferences = findChangedLines(newClass: addedClass, oldClass: classInstance, changes: changesForPath)
                                 
-                                properties["addedLines"] = lineDifferences.added
-                                properties["deletedLines"] = lineDifferences.deleted
-                                properties["changedLines"] = lineDifferences.changed
+                                properties["added_lines"] = lineDifferences.added
+                                properties["deleted_lines"] = lineDifferences.deleted
+                                properties["changed_lines"] = lineDifferences.changed
                             }
                             
                             classInstance.relate(to: addedClass, type: "CLASS_CHANGED_TO", properties: properties)
-                            addedClass.save()
                             
-                            let methods = handleMethodsMerge(newClass: addedClass, changesParent: parent.changesForPaths, changesAddParent: altParent.changesForPaths)
-                            methodsToBeHandled.append(contentsOf: methods)
-                            
-                            var variables = handleVariablesMerge(newClass: addedClass, changesParent: parent.changesForPaths, changesAddParent: altParent.changesForPaths)
-                            
-                            variablesToBeHandled.append(contentsOf: variables)
-                            
-                            
-                            // TODO: handle methods from both sides
-                            // rel for parents
-                            
-                        } else if altParent.unchangedPaths.contains(classInstance.path) {
+                        } else if parent.unchangedPaths.contains(classInstance.path) {
                             let refClasses = self.syntaxAnalyser.analyseFile(filePath: classInstance.path, includePaths: includePaths)
                             for refClass in refClasses {
                                 if refClass.name == classInstance.name {
@@ -313,6 +229,7 @@ class AppAnalysisController {
                                         classInstance.save()
                                     }
 
+                                    /*
                                     for method in classInstance.methods {
                                         if let potMethods = refClass.potentialMethods {
                                             for refMethod in potMethods {
@@ -340,230 +257,320 @@ class AppAnalysisController {
                                             }
                                         }
                                     }
+ */
                                 }
                             }
                             
-                            
-                            if let remainingParentClass = remainingParentClasses[classInstance.usr] {
-                                finalClasses.append(classInstance)
-                                //print("add classes (unchanged from altParent): \(classInstance.name)")
-                                //print("remainingParentClass.id: \(remainingParentClass.node.id), remainingParentClass.parent.id: \(remainingParentClass.parent?.node.id), classInstance.id: \(classInstance.node.id), classInstance.parent.id: \(classInstance.parent?.node.id)")
-                                
-                                if remainingParentClass.node.id != nil && remainingParentClass.node.id != classInstance.node.id && remainingParentClass.node.id != classInstance.parent?.node.id && remainingParentClass.node.id != classInstance.alternateParent?.node.id {
-                                    
-                                    remainingParentClass.alternateParent = classInstance
-                                    //classInstance.saveParent()
-                                    
-                                    var properties: [String: Any] = [:]
-                                    if let commit = appVersion.commit?.commit {
-                                        properties["commit"] = commit
-                                    }
-                                    
-                                    if let changesForPath = parent.changesForPaths[classInstance.path] {
-                                        let lineDifferences = findChangedLines(newClass: classInstance, oldClass: remainingParentClass, changes: changesForPath)
-                                        
-                                        properties["addedLines"] = lineDifferences.added
-                                        properties["deletedLines"] = lineDifferences.deleted
-                                        properties["changedLines"] = lineDifferences.changed
-                                    }
-                                    
-                                    remainingParentClass.relate(to: classInstance, type: "CLASS_CHANGED_TO", properties: properties)
-                                    
-                                    // add rel to methods where necessary (can start with Changed for each method?)
-//                                    // TODO: handle methods (only parent to alt parent)
-//                                    let methods = handleMethods(newClass: remainingParentClass, oldClass: classInstance, changes: parent.changesForPaths, isAlt: true)
-//                                    //methodsToBeHandled.append(contentsOf: methods)
-//
-//                                    var variables = handleVariables(newClass: remainingParentClass, oldClass: classInstance, changes: parent.changesForPaths)
-//                                    //variablesToBeHandled.append(contentsOf: variables)
-                                    
-                                    relateExistingMethods(newMethods: classInstance.methods, oldMethods: remainingParentClass.methods)
-                                    
-                                    relateExistingVariables(newVariables: classInstance.variables, oldVariables: remainingParentClass.variables)
-                                } else {
-                                    //print("not adding new changed --> because already parent")
-                                }
-                                
-                            } else if let notChangedClass = notChangedClasses[classInstance.usr] {
-                                // none were changed --> merge
-                                //finalClasses.append(notChangedClass)
-                                //print("add classes (non changed -- merge): \(notChangedClass.name)")
-                                
-                                if notChangedClass.node.id == classInstance.node.id && notChangedClass.node.id != nil {
-                                    // same class
-                                } else {
-                                    notChangedClass.alternateParent = classInstance
-                                    
-                                    var properties: [String:String] = [:]
-                                    if let commit = appVersion.commit?.commit {
-                                        properties["commit"] = commit
-                                    }
-                                    
-                                    classInstance.relate(to: notChangedClass, type: "MERGE", properties: properties)
-                                    
-//                                    let methods = handleMethods(newClass: notChangedClass, oldClass: classInstance, changes: altParent.changesForPaths)
-//                                    //methodsToBeHandled.append(contentsOf: methods)
-//
-//                                    var variables = handleVariables(newClass: notChangedClass, oldClass: classInstance, changes: altParent.changesForPaths)
-//                                    //variablesToBeHandled.append(contentsOf: variables)
-                                    
-                                    relateExistingMethods(newMethods: notChangedClass.methods, oldMethods: classInstance.methods)
-                                    
-                                    relateExistingVariables(newVariables: notChangedClass.variables, oldVariables: classInstance.variables)
-                                    
-                                }
-                                
-                                //handle methods (only alt parent merge where methods not the same)
-                            } else if parent.addedPaths.contains(classInstance.path) {
-                                // class from altParent merged without changes
-                                finalClasses.append(classInstance)
-                            } else {
-                                finalClasses.append(classInstance) //TODO: check if this is correct
-                               // fatalError("Class not handled: \(classInstance.name) - \(classInstance.usr)")
-                            }
-                        } else if altParent.removedPaths.contains(classInstance.path) {
+                            finalClasses.append(classInstance)
+                            //print("add classes (unchanged from parent): \(classInstance.name)")
+                            notChangedClasses[classInstance.usr] = classInstance
+                        } else if parent.removedPaths.contains(classInstance.path) {
                             // do nothing
-                        } else if let notChangedClass = notChangedClasses[classInstance.usr] {
-                            
-                            if notChangedClass.parent?.node.id != classInstance.node.id && classInstance.node.id != notChangedClass.alternateParent?.node.id {
-                                notChangedClass.alternateParent = classInstance
+                        } else {
+                            //print("remainingParentClass: \(classInstance.name) - commit: \(appVersion.commit?.commit), path: \(classInstance.path)")
+                            remainingParentClasses[classInstance.usr] = classInstance
+                        }
+                    }
+                    
+                    if let altParent = appVersion.alternateParent {
+                        print("has alt parent")
+                        for classInstance in altParentClasses {
+                            if let addedClass = addedClasses[classInstance.usr] {
+                                addedClass.alternateParent = classInstance
+                                //addedClass.saveParent()
+                                
                                 
                                 var properties: [String: Any] = [:]
                                 if let commit = appVersion.commit?.commit {
                                     properties["commit"] = commit
                                 }
                                 
-                                if let changesForPath = parent.changesForPaths[notChangedClass.path] {
-                                    let lineDifferences = findChangedLines(newClass: notChangedClass, oldClass: classInstance, changes: changesForPath)
+                                if let changesForPath = parent.changesForPaths[addedClass.path] {
+                                    let lineDifferences = findChangedLines(newClass: addedClass, oldClass: classInstance, changes: changesForPath)
                                     
                                     properties["addedLines"] = lineDifferences.added
                                     properties["deletedLines"] = lineDifferences.deleted
                                     properties["changedLines"] = lineDifferences.changed
                                 }
                                 
-                                classInstance.relate(to: notChangedClass, type: "CLASS_CHANGED_TO", properties: properties)
+                                classInstance.relate(to: addedClass, type: "CLASS_CHANGED_TO", properties: properties)
+                                addedClass.save()
                                 
-    //                            let methods = handleMethods(newClass: classInstance, oldClass: notChangedClass, changes: altParent.changesForPaths)
-    //                            // handle methods (only from alt parent to class)
-    //                            //methodsToBeHandled.append(contentsOf: methods)
+                                let methods = handleMethodsMerge(newClass: addedClass, changesParent: parent.changesForPaths, changesAddParent: altParent.changesForPaths)
+                                methodsToBeHandled.append(contentsOf: methods)
+                                
+                                var variables = handleVariablesMerge(newClass: addedClass, changesParent: parent.changesForPaths, changesAddParent: altParent.changesForPaths)
+                                
+                                variablesToBeHandled.append(contentsOf: variables)
+                                
+                                
+                                // TODO: handle methods from both sides
+                                // rel for parents
+                                
+                            } else if altParent.unchangedPaths.contains(classInstance.path) {
+                                let refClasses = self.syntaxAnalyser.analyseFile(filePath: classInstance.path, includePaths: includePaths)
+                                for refClass in refClasses {
+                                    if refClass.name == classInstance.name {
+                                        if refClass.usr != classInstance.usr {
+                                            print("class \(classInstance.name) usr: \(classInstance.usr) changed to \(refClass.usr)")
+                                            classInstance.usr = refClass.usr
+                                            classInstance.save()
+                                        }
+
+                                        /*
+                                        for method in classInstance.methods {
+                                            if let potMethods = refClass.potentialMethods {
+                                                for refMethod in potMethods {
+                                                    if method.name == refMethod.name {
+                                                        if method.usr != refMethod.usr {
+                                                            method.usr = refMethod.usr
+                                                            method.save()
+                                                            print("update method usr")
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                        for variable in classInstance.variables {
+                                            if let potVariables = refClass.potentialVariables {
+                                                for refVariable in potVariables {
+                                                    if refVariable.name == variable.name {
+                                                        if variable.usr != refVariable.usr {
+                                                            variable.usr = refVariable.usr
+                                                            variable.save()
+                                                            print("update variable usr")
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+ */
+                                    }
+                                }
+                                
+                                
+                                if let remainingParentClass = remainingParentClasses[classInstance.usr] {
+                                    finalClasses.append(classInstance)
+                                    //print("add classes (unchanged from altParent): \(classInstance.name)")
+                                    //print("remainingParentClass.id: \(remainingParentClass.node.id), remainingParentClass.parent.id: \(remainingParentClass.parent?.node.id), classInstance.id: \(classInstance.node.id), classInstance.parent.id: \(classInstance.parent?.node.id)")
+                                    
+                                    if remainingParentClass.node.id != nil && remainingParentClass.node.id != classInstance.node.id && remainingParentClass.node.id != classInstance.parent?.node.id && remainingParentClass.node.id != classInstance.alternateParent?.node.id {
+                                        
+                                        remainingParentClass.alternateParent = classInstance
+                                        //classInstance.saveParent()
+                                        
+                                        var properties: [String: Any] = [:]
+                                        if let commit = appVersion.commit?.commit {
+                                            properties["commit"] = commit
+                                        }
+                                        
+                                        if let changesForPath = parent.changesForPaths[classInstance.path] {
+                                            let lineDifferences = findChangedLines(newClass: classInstance, oldClass: remainingParentClass, changes: changesForPath)
+                                            
+                                            properties["addedLines"] = lineDifferences.added
+                                            properties["deletedLines"] = lineDifferences.deleted
+                                            properties["changedLines"] = lineDifferences.changed
+                                        }
+                                        
+                                        remainingParentClass.relate(to: classInstance, type: "CLASS_CHANGED_TO", properties: properties)
+                                        
+                                        // add rel to methods where necessary (can start with Changed for each method?)
+    //                                    // TODO: handle methods (only parent to alt parent)
+    //                                    let methods = handleMethods(newClass: remainingParentClass, oldClass: classInstance, changes: parent.changesForPaths, isAlt: true)
+    //                                    //methodsToBeHandled.append(contentsOf: methods)
     //
-    //                            var variables = handleVariables(newClass: classInstance, oldClass: notChangedClass, changes: altParent.changesForPaths)
-    //                            //variablesToBeHandled.append(contentsOf: variables)
+    //                                    var variables = handleVariables(newClass: remainingParentClass, oldClass: classInstance, changes: parent.changesForPaths)
+    //                                    //variablesToBeHandled.append(contentsOf: variables)
+                                        
+                                        relateExistingMethods(newMethods: classInstance.methods, oldMethods: remainingParentClass.methods)
+                                        
+                                        relateExistingVariables(newVariables: classInstance.variables, oldVariables: remainingParentClass.variables)
+                                    } else {
+                                        //print("not adding new changed --> because already parent")
+                                    }
+                                    
+                                } else if let notChangedClass = notChangedClasses[classInstance.usr] {
+                                    // none were changed --> merge
+                                    //finalClasses.append(notChangedClass)
+                                    //print("add classes (non changed -- merge): \(notChangedClass.name)")
+                                    
+                                    if notChangedClass.node.id == classInstance.node.id && notChangedClass.node.id != nil {
+                                        // same class
+                                    } else {
+                                        notChangedClass.alternateParent = classInstance
+                                        
+                                        var properties: [String:String] = [:]
+                                        if let commit = appVersion.commit?.commit {
+                                            properties["commit"] = commit
+                                        }
+                                        
+                                        classInstance.relate(to: notChangedClass, type: "MERGE", properties: properties)
+                                        
+    //                                    let methods = handleMethods(newClass: notChangedClass, oldClass: classInstance, changes: altParent.changesForPaths)
+    //                                    //methodsToBeHandled.append(contentsOf: methods)
+    //
+    //                                    var variables = handleVariables(newClass: notChangedClass, oldClass: classInstance, changes: altParent.changesForPaths)
+    //                                    //variablesToBeHandled.append(contentsOf: variables)
+                                        
+                                        relateExistingMethods(newMethods: notChangedClass.methods, oldMethods: classInstance.methods)
+                                        
+                                        relateExistingVariables(newVariables: notChangedClass.variables, oldVariables: classInstance.variables)
+                                        
+                                    }
+                                    
+                                    //handle methods (only alt parent merge where methods not the same)
+                                } else if parent.addedPaths.contains(classInstance.path) {
+                                    // class from altParent merged without changes
+                                    finalClasses.append(classInstance)
+                                } else {
+                                    finalClasses.append(classInstance) //TODO: check if this is correct
+                                   // fatalError("Class not handled: \(classInstance.name) - \(classInstance.usr)")
+                                }
+                            } else if altParent.removedPaths.contains(classInstance.path) {
+                                // do nothing
+                            } else if let notChangedClass = notChangedClasses[classInstance.usr] {
                                 
-                                relateExistingMethods(newMethods: notChangedClass.methods, oldMethods: classInstance.methods)
+                                if notChangedClass.parent?.node.id != classInstance.node.id && classInstance.node.id != notChangedClass.alternateParent?.node.id {
+                                    notChangedClass.alternateParent = classInstance
+                                    
+                                    var properties: [String: Any] = [:]
+                                    if let commit = appVersion.commit?.commit {
+                                        properties["commit"] = commit
+                                    }
+                                    
+                                    if let changesForPath = parent.changesForPaths[notChangedClass.path] {
+                                        let lineDifferences = findChangedLines(newClass: notChangedClass, oldClass: classInstance, changes: changesForPath)
+                                        
+                                        properties["addedLines"] = lineDifferences.added
+                                        properties["deletedLines"] = lineDifferences.deleted
+                                        properties["changedLines"] = lineDifferences.changed
+                                    }
+                                    
+                                    classInstance.relate(to: notChangedClass, type: "CLASS_CHANGED_TO", properties: properties)
+                                    
+        //                            let methods = handleMethods(newClass: classInstance, oldClass: notChangedClass, changes: altParent.changesForPaths)
+        //                            // handle methods (only from alt parent to class)
+        //                            //methodsToBeHandled.append(contentsOf: methods)
+        //
+        //                            var variables = handleVariables(newClass: classInstance, oldClass: notChangedClass, changes: altParent.changesForPaths)
+        //                            //variablesToBeHandled.append(contentsOf: variables)
+                                    
+                                    relateExistingMethods(newMethods: notChangedClass.methods, oldMethods: classInstance.methods)
+                                    
+                                    relateExistingVariables(newVariables: notChangedClass.variables, oldVariables: classInstance.variables)
+                                }
                                 
-                                relateExistingVariables(newVariables: notChangedClass.variables, oldVariables: classInstance.variables)
+                            } else if let remainingParentClass = remainingParentClasses[classInstance.usr] {
+                                //print("Found remainingParentClass: \(remainingParentClass.name) - \(remainingParentClass.usr)")
+                                //fatalError("Found not handled remainingParentClass \(remainingParentClass.name) - should not happen!")
+                                finalClasses.append(remainingParentClass)
+                            } else {
+                                //print("Class not handled: \(classInstance.name) - \(classInstance.usr)") //TODO: figure out how bad this is
+                                finalClasses.append(classInstance)
+                                //fatalError("Class not handled: \(classInstance.name) - \(classInstance.usr)")
                             }
-                            
-                        } else if let remainingParentClass = remainingParentClasses[classInstance.usr] {
-                            //print("Found remainingParentClass: \(remainingParentClass.name) - \(remainingParentClass.usr)")
-                            //fatalError("Found not handled remainingParentClass \(remainingParentClass.name) - should not happen!")
-                            finalClasses.append(remainingParentClass)
-                        } else {
-                            //print("Class not handled: \(classInstance.name) - \(classInstance.usr)") //TODO: figure out how bad this is
-                            finalClasses.append(classInstance)
-                            //fatalError("Class not handled: \(classInstance.name) - \(classInstance.usr)")
                         }
-                    }
-                } else {
-                    print("no alt parent")
-                    // no alt parent
-                    for classInstance in [Class](addedClasses.values) {
-                        if let parentClass = classInstance.parent, combinedPaths.contains(classInstance.path) {
-                            //classInstance.saveParent()
-                            
-                            let methods = handleMethods(newClass: classInstance, oldClass: parentClass, changes: parent.changesForPaths)
-                            methodsToBeHandled.append(contentsOf: methods)
-                            
-                            let variables = handleVariables(newClass: classInstance, oldClass: parentClass, changes: parent.changesForPaths)
-                            variablesToBeHandled.append(contentsOf: variables)
-                            
-                            classInstance.save()
-                        } else {
-                            if let potMethods = classInstance.potentialMethods {
-                                classInstance.methods = potMethods
-                                for method in classInstance.methods {
-                                    method.save()
+                    } else {
+                        print("no alt parent")
+                        // no alt parent
+                        for classInstance in [Class](addedClasses.values) {
+                            if let parentClass = classInstance.parent, combinedPaths.contains(classInstance.path) {
+                                //classInstance.saveParent()
+                                
+                                let methods = handleMethods(newClass: classInstance, oldClass: parentClass, changes: parent.changesForPaths)
+                                methodsToBeHandled.append(contentsOf: methods)
+                                
+                                let variables = handleVariables(newClass: classInstance, oldClass: parentClass, changes: parent.changesForPaths)
+                                variablesToBeHandled.append(contentsOf: variables)
+                                
+                                classInstance.save()
+                            } else {
+                                if let potMethods = classInstance.potentialMethods {
+                                    classInstance.methods = potMethods
+                                    for method in classInstance.methods {
+                                        method.save()
+                                    }
+                                    
+                                    classInstance.saveMethods()
+                                    
+                                    methodsToBeHandled.append(contentsOf: potMethods)
                                 }
                                 
-                                classInstance.saveMethods()
-                                
-                                methodsToBeHandled.append(contentsOf: potMethods)
-                            }
-                            
-                            if let potVariables = classInstance.potentialVariables {
-                                classInstance.variables = potVariables
-                                for variable in classInstance.variables {
-                                    variable.save()
+                                if let potVariables = classInstance.potentialVariables {
+                                    classInstance.variables = potVariables
+                                    for variable in classInstance.variables {
+                                        variable.save()
+                                    }
+                                    
+                                    classInstance.saveVariables()
+                                    
+                                    variablesToBeHandled.append(contentsOf: potVariables)
                                 }
                                 
-                                classInstance.saveVariables()
-                                
-                                variablesToBeHandled.append(contentsOf: potVariables)
+                                classInstance.save()
                             }
-                            
-                            classInstance.save()
+                        }
+                        
+                        for remainingParentClass in remainingParentClasses.values {
+                            if parent.changedPaths.contains(remainingParentClass.path) {
+                                // file was changed, so class was probably removed --> TODO: should check this
+                                // do not add
+                                //print("RemainingParentClass missing, but from edited file, assume it was removed")
+                            } else {
+                                //print("add from remainingParentClasses: \(remainingParentClass.name)")
+                                finalClasses.append(remainingParentClass)
+                            }
                         }
                     }
                     
-                    for remainingParentClass in remainingParentClasses.values {
-                        if parent.changedPaths.contains(remainingParentClass.path) {
-                            // file was changed, so class was probably removed --> TODO: should check this
-                            // do not add
-                            //print("RemainingParentClass missing, but from edited file, assume it was removed")
-                        } else {
-                            //print("add from remainingParentClasses: \(remainingParentClass.name)")
-                            finalClasses.append(remainingParentClass)
-                        }
-                    }
+                    newClassVersions.append(contentsOf: addedClasses.values)
+                    
+                } else {
+                    // Previous app version not yet analysed --> analyse whole app?
                 }
-                
-                newClassVersions.append(contentsOf: addedClasses.values)
-                
             } else {
-                // Previous app version not yet analysed --> analyse whole app?
-            }
-        } else {
-            // No parent, analyse all swift files, completely new app
-            var filesToBeAnalysed = fileManager.fetchProjectFiles(folderPath: pathWithoutGit)
+                // No parent, analyse all swift files, completely new app
+                var filesToBeAnalysed = fileManager.fetchProjectFiles(folderPath: pathWithoutGit)
 
-            //print("analyse \(filesToBeAnalysed.count) paths, changes: \(appVersion.parent?.changes.count)")
+                //print("analyse \(filesToBeAnalysed.count) paths, changes: \(appVersion.parent?.changes.count)")
 
-            for file in filesToBeAnalysed {
-                //print("analyse file: \(file)")
-                var classes = self.syntaxAnalyser.analyseFile(filePath: file.path, includePaths: includePaths)
-                for classInstance in classes {
-                    classInstance.save()
+                for file in filesToBeAnalysed {
+                    //print("analyse file: \(file)")
+                    var classes = self.syntaxAnalyser.analyseFile(filePath: file.path, includePaths: includePaths)
+                    for classInstance in classes {
+                        classInstance.save()
 
-                    if let methods = classInstance.potentialMethods {
-                        for method in methods {
-                            method.save()
-                            methodsToBeHandled.append(method)
+                        if let methods = classInstance.potentialMethods {
+                            for method in methods {
+                                method.save()
+                                methodsToBeHandled.append(method)
+                            }
+
+                            classInstance.methods = methods
+                            classInstance.saveMethods()
                         }
 
-                        classInstance.methods = methods
-                        classInstance.saveMethods()
-                    }
+                        if let variables = classInstance.potentialVariables {
+                            for variable in variables {
+                                variable.save()
+                                variablesToBeHandled.append(variable)
+                            }
 
-                    if let variables = classInstance.potentialVariables {
-                        for variable in variables {
-                            variable.save()
-                            variablesToBeHandled.append(variable)
+                            classInstance.variables = variables
+                            classInstance.saveVariables()
                         }
-
-                        classInstance.variables = variables
-                        classInstance.saveVariables()
                     }
+                    //TODO: figure out how to set include paths (set for each analysis?)
+
+                    ////print("Found class: \(syntaxTree.name)")
+                    //TODO: figure out what to do with this class.. where should we define an app? if appVersion has no parent?
+
+                    finalClasses.append(contentsOf: classes)
+                    //print("add classes (no parent, new app): \(classes.map() { val in return val.name } )")
                 }
-                //TODO: figure out how to set include paths (set for each analysis?)
-
-                ////print("Found class: \(syntaxTree.name)")
-                //TODO: figure out what to do with this class.. where should we define an app? if appVersion has no parent?
-
-                finalClasses.append(contentsOf: classes)
-                //print("add classes (no parent, new app): \(classes.map() { val in return val.name } )")
+                newClassVersions.append(contentsOf: finalClasses)
             }
-            newClassVersions.append(contentsOf: finalClasses)
         }
         
         let name = String(pathWithoutGit.split(separator: "/").last!)
@@ -624,22 +631,25 @@ class AppAnalysisController {
         }
         app.save()
         
-        for method in methodsToBeHandled {
-            addCallAndUseConnectionsFrom(method: method, app: app)
-        }
-        
-        addDefinitionConnectionsTo(app: app)
-        
-        if app.parent != nil {
-            addCallAndUseConnectionsTo(methods: methodsToBeHandled, variables: variablesToBeHandled, classes: newClassVersions, app: app)
+        if !self.noSourceCodeAnalysis {
+            for method in methodsToBeHandled {
+                addCallAndUseConnectionsFrom(method: method, app: app)
+            }
             
-            if app.alternateApp != nil {
-                addCallAndUseConnectionsTo(app: app)
+            addDefinitionConnectionsTo(app: app)
+            
+            if app.parent != nil {
+                addCallAndUseConnectionsTo(methods: methodsToBeHandled, variables: variablesToBeHandled, classes: newClassVersions, app: app)
+                
+                if app.alternateApp != nil {
+                    addCallAndUseConnectionsTo(app: app)
+                }
             }
         }
         
         print("running external analysers for \(newClassVersions.map() {value in return value.name} )")
         for externalAnalyser in self.externalAnalysers {
+            print("external analyser: \(externalAnalyser.readme)")
             if externalAnalyser.supportedLevel == .applicationLevel {
                 externalAnalyser.analyseApp(app: app)
             } else if externalAnalyser.supportedLevel == .classLevel {
@@ -700,7 +710,7 @@ class AppAnalysisController {
             
             methodLoop: for method in methodsParent.new {
                 for altMethod in (methodsAltParent.new + methodsAltParent.updated + methodsAltParent.old) {
-                    if method.name == altMethod.name { //TODO: figure out if it's ok to compare names -- usr might probably not always be the same?
+                    if method.usr == altMethod.usr { //TODO: figure out if it's ok to compare names -- usr might probably not always be the same?
                         if handledMethods[method.usr] == nil {
                             newMethods.append(altMethod)
                             handledMethods[altMethod.usr] = altMethod
@@ -714,7 +724,7 @@ class AppAnalysisController {
             
             methodLoop: for altMethod in methodsAltParent.new {
                 for method in (methodsParent.new + methodsParent.updated + methodsParent.old) {
-                    if method.name == altMethod.name { //TODO: figure out if it's ok to compare names -- usr might probably not always be the same?
+                    if method.usr == altMethod.usr { //TODO: figure out if it's ok to compare names -- usr might probably not always be the same?
                         if handledMethods[method.usr] == nil {
                             newMethods.append(method)
                             handledMethods[method.usr] = method
@@ -728,7 +738,7 @@ class AppAnalysisController {
             
             methodLoop: for method in methodsParent.old {
                 for altMethod in (methodsAltParent.updated) {
-                    if method.name == altMethod.name { //TODO: figure out if it's ok to compare names -- usr might probably not always be the same?
+                    if method.usr == altMethod.usr { //TODO: figure out if it's ok to compare names -- usr might probably not always be the same?
                         if handledMethods[method.usr] == nil {
                             newMethods.append(method)
                             handledMethods[method.usr] = method
@@ -741,7 +751,7 @@ class AppAnalysisController {
                 }
                 
                 for altMethod in (methodsAltParent.old) {
-                    if method.name == altMethod.name {
+                    if method.usr == altMethod.usr {
                         if handledMethods[method.usr] == nil {
                             oldMethods.append(method)
                             handledMethods[method.usr] = method
@@ -756,7 +766,7 @@ class AppAnalysisController {
             
             methodLoop: for altMethod in methodsAltParent.old {
                 for method in (methodsParent.updated) {
-                    if method.name == altMethod.name { //TODO: figure out if it's ok to compare names -- usr might probably not always be the same?
+                    if method.usr == altMethod.usr { //TODO: figure out if it's ok to compare names -- usr might probably not always be the same?
                         if handledMethods[method.usr] == nil {
                             newMethods.append(altMethod)
                             handledMethods[altMethod.usr] = altMethod
@@ -771,7 +781,7 @@ class AppAnalysisController {
             
             methodLoop: for method in methodsParent.updated {
                 for altMethod in (methodsAltParent.updated) {
-                    if method.name == altMethod.name { //TODO: figure out if it's ok to compare names -- usr might probably not always be the same?
+                    if method.usr == altMethod.usr { //TODO: figure out if it's ok to compare names -- usr might probably not always be the same?
                         if handledMethods[method.usr] == nil {
                             newMethods.append(method)
                             handledMethods[method.usr] = method
@@ -938,7 +948,7 @@ class AppAnalysisController {
     func relateExistingMethods(newMethods: [Method], oldMethods: [Method]) {
         methodLoop: for oldMethod in oldMethods {
             for newMethod in newMethods {
-                if oldMethod.name == newMethod.name {
+                if oldMethod.usr == newMethod.usr {
                     if oldMethod.node.id == newMethod.node.id {
                         //ignore and continue
                         continue methodLoop
@@ -994,7 +1004,7 @@ class AppAnalysisController {
     }
     
     func findNewAndUpdatedMethods(newClass: Class, oldClass: Class, changes: [String: [FileChange]], isAlt: Bool = false) -> (new: [Method], updated: [Method], old: [Method]) {
-        var oldNames: [String] = oldClass.methods.map() { value in return value.name}
+        var oldNames: [String] = oldClass.methods.map() { value in return value.usr}
         
         var newNames: [String] = []
         var methodsToBeHandled = newClass.methods
@@ -1016,8 +1026,8 @@ class AppAnalysisController {
             //let methods = newClass.potentialMethods {
             //print("going through potential methods")
             methodLoop: for method in methods {
-                if !oldNames.contains(method.name) {
-                    //print("new method added: \(method.name)")
+                if !oldNames.contains(method.usr) {
+                    //print("new method added: \(method.usr)")
                     newMethods.append(method)
                     continue methodLoop
                 }
@@ -1033,13 +1043,13 @@ class AppAnalysisController {
                                         //print("match")
                                         
                                         
-                                        if oldNames.contains(method.name) {
-                                            //print("old name contains method.name")
+                                        if oldNames.contains(method.usr) {
+                                            //print("old name contains method.usr")
                                             
                                         }
                                         
                                         for oldMethod in oldClass.methods {
-                                            if method.name == oldMethod.name {
+                                            if method.usr == oldMethod.usr {
                                                 if method.node.id == nil || method.node.id != oldMethod.node.id {
                                                     //print("prev. version of method found")
                                                     if isAlt {
@@ -1065,7 +1075,7 @@ class AppAnalysisController {
                     }
                     
                     for oldMethod in oldClass.methods {
-                        if method.name == oldMethod.name {
+                        if method.usr == oldMethod.usr {
                             oldMethods.append(oldMethod)
                             
 //                            if method.usr != oldMethod.usr {

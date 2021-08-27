@@ -22,6 +22,12 @@ struct Application: ParsableCommand {
         @Flag(help: "Use if evolution of app should be analysed (using git).")
         var evolution: Bool = false
         
+        @Flag(help: "Use if source code should not be analysed")
+        var noSourceAnalysis: Bool = false
+        
+        @Flag(help: "Only git tags")
+        var onlyGitTags: Bool = false
+        
         @Option(help: "Provide path to json file if bulk of apps should be analysed at once")
         var bulkJsonPath: String?
         
@@ -36,7 +42,7 @@ struct Application: ParsableCommand {
         var language: Language = .swift
         
         enum ExternalAnalysis: String, ExpressibleByArgument {
-            case duplication, insider, smells, metrics
+            case duplication, insider, smells, metrics, dependencies
         }
         
         @Option(help: "Which external analysis should be run during analysis.")
@@ -98,6 +104,8 @@ struct Application: ParsableCommand {
                     if !externalAnalysis.contains(.smells) {
                         externalAnalysers.append(MetricsAnalyser())
                     }
+                } else if value == .dependencies {
+                    externalAnalysers.append(DependencyAnalyser())
                 }
             }
             
@@ -112,6 +120,8 @@ struct Application: ParsableCommand {
             } else {
                 if(evolution) {
                     let gitManager = GitManager(path: path, appKey: appKey)
+                    gitManager.onlyTags = onlyGitTags
+                    
                     if let startCommit = startCommit {
                         gitManager.startCommit = startCommit
                     }
@@ -126,6 +136,7 @@ struct Application: ParsableCommand {
             
             if let appManager = appManager, let syntaxAnalyser = syntaxAnalyser, let fileManager = fileManager {
                 let appAnalysisController = AppAnalysisController(appManager: appManager, syntaxAnalyser: syntaxAnalyser, fileManager: fileManager, externalAnalysers: externalAnalysers)
+                appAnalysisController.noSourceCodeAnalysis = noSourceAnalysis
                 
                 appAnalysisController.runAnalysis()
             } else {
