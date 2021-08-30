@@ -29,6 +29,7 @@ class Commit: Codable {
     var branch: String?
     var branchDebug: String?
     var tag: String?
+    var additional: String
     
 //    init(commit: String, message: String) {
 //        self.commit = commit
@@ -42,6 +43,6 @@ class Commit: Codable {
     }
     
     private enum CodingKeys: String, CodingKey {
-        case commit, abbCommit, tree, abbTree, author, date, authorTimestamp, timestamp, message, parent, abbParent
+        case commit, abbCommit, tree, abbTree, author, date, authorTimestamp, timestamp, message, parent, abbParent, additional
     }
 }

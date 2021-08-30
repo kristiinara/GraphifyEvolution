@@ -58,14 +58,16 @@ class GitManager: AppManager {          // manager used for project evolution
             return nil
         }
         
-        var nextCommit = self.commitsToBeAnalysed.removeFirst()
+        var nextCommit = self.commitsToBeAnalysed.removeLast()
+        //var nextCommit = self.commitsToBeAnalysed.removeFirst()
         //print("Next commit: \(nextCommit.commit), parent: \(nextCommit.parent), check parent: \(nextCommit.parentCommit?.commit)")
         
         if self.started == false{
             print("Searching for startCommit: \(startCommit)")
             if let startCommit = self.startCommit  {
                 while nextCommit.commit != startCommit {
-                    nextCommit = self.commitsToBeAnalysed.removeFirst()
+                    //nextCommit = self.commitsToBeAnalysed.removeFirst()
+                    nextCommit = self.commitsToBeAnalysed.removeLast()
                 }
                 print("found correct commit: \(nextCommit.commit)")
                 self.started = true
@@ -110,20 +112,17 @@ class GitManager: AppManager {          // manager used for project evolution
         self.runGitCheckoutMaster()
         self.runGitLogCommand()
         
-        //self.commits = []
-        
-        var commitsAdded: [String] = []
-        
-        if let commits = self.commits { //TODO: figure out how to ensure that parent and alternate parent commits are always analysed first?
-            for commit in commits {
-                commitsAdded = addCommit(commit: commit, commitsAdded: commitsAdded)
-            }
+        /*
+        for commit in self.commitsToBeAnalysed {
+            addTagAndBranchToCommit(commit: commit)
         }
+ */
         
         //print("Total number of commits: \(self.commitsToBeAnalysed.count)")
         
-        if let first = self.commitsToBeAnalysed.first {
-            correctMasterBranch(forCommit: first)
+        //if let first = self.commitsToBeAnalysed.first {
+        if let last = self.commitsToBeAnalysed.last {
+            correctMasterBranch(forCommit: last)
         }
     }
     
@@ -160,47 +159,16 @@ class GitManager: AppManager {          // manager used for project evolution
         }
     }
     
+    /*
     //TODO: change so that it is not recursive anymore!
-    func addCommit(commit: Commit, commitsAdded: [String]) -> [String] {
-        //print("addCommit: \(commit.commit), \(commitsAdded)")
-        var commitsAdded = commitsAdded
-        
-        if !commitsAdded.contains(commit.commit) {
-            let branch = runGetBranchCommand(forCommit: commit)
-            commit.branch = branch
-            
-            let tag = runGetTagCommand(forCommit: commit)
-            commit.tag = tag
-            
-            if let parentCommit = commit.parentCommit {
-                if !commitsAdded.contains(parentCommit.commit) {
-                    //print("add parent")
-                    commitsAdded = addCommit(commit: parentCommit, commitsAdded: commitsAdded)
-                }
-            }
-            
-            if let alternateParentCommit = commit.alternateParentCommit {
-                if !commitsAdded.contains(alternateParentCommit.commit) {
-                    //print("add alternate parent")
-                    commitsAdded = addCommit(commit: alternateParentCommit, commitsAdded: commitsAdded)
-                }
-            }
-            
-            // check again, because it might have been added when executing the above
-            if !commitsAdded.contains(commit.commit) {
-                //print("add commit itself")
-                self.commitsToBeAnalysed.append(commit)
-                commitsAdded.append(commit.commit)
-                
-                for child in commit.allChildren {
-                    //print("add children")
-                     commitsAdded = addCommit(commit: child, commitsAdded: commitsAdded)
-                }
-            }
-        }
-        
-        return commitsAdded
+    func addTagAndBranchToCommit(commit: Commit){
+        let branch = runGetBranchCommand(forCommit: commit)
+        commit.branch = branch
+
+        //let tag = runGetTagCommand(forCommit: commit)
+        //commit.tag = tag
     }
+ */
     
     
     func getChangesForCommit(commit: Commit, toCommit: Commit) -> [FileChange] {
@@ -265,6 +233,32 @@ class GitManager: AppManager {          // manager used for project evolution
         }
     }
     
+    func extractProbableBranch(from: String) -> String? {
+        let merges = from.split(separator: "\n")
+        
+        //print("last merge commit: \(merges.last)")
+        
+        var lastMerge = ""
+        if merges.count > 0 {
+            lastMerge = String(merges[merges.count - 1])
+        } else {
+            return nil
+        }
+        
+        let splitValues = lastMerge.split(separator: " ")
+        var probableBranch = ""
+        if splitValues.count > 0 {
+            probableBranch = String(splitValues[splitValues.count - 1])
+            probableBranch = probableBranch.trimmingCharacters(in: .whitespacesAndNewlines)
+        } else {
+            return nil
+        }
+        
+        //print("Branch result: \(lastMerge), branch: \(probableBranch)")
+        return probableBranch
+    }
+    
+    /*
     func runGetBranchCommand(forCommit: Commit) -> String? {
       //  git name-rev --name-only --exclude=tags/*
         // does not work correctly when some branches are merged and deleted
@@ -300,6 +294,7 @@ class GitManager: AppManager {          // manager used for project evolution
             fatalError("Path for gitManager not defined")
         }
     }
+  */*/
     
     func runGitCheckoutCommand(forCommit: Commit) {
         //print("runGitCheckoutCommand")
@@ -478,9 +473,10 @@ class GitManager: AppManager {          // manager used for project evolution
         }
     }
     
+    //TODO: get order of commits right!!!
     func runGitLogCommand() {
         if let path = self.path {
-            var args: [String] = ["--git-dir", path, "log", "--pretty=format:{%n \"commit\": \"%H\",%n \"abbCommit\": \"%h\",%n \"tree\": \"%T\", %n \"abbTree\": \"%t\", %n \"parent\": \"%P\", %n \"abbParent\": \"%p\", %n \"author\": \"%aN <%aE>\",%n \"date\": \"%ad\",%n \"authorTimestamp\": \"%at\",%n \"timestamp\": \"%ct\",%n \"message\": \"%f\"},"]
+            var args: [String] = ["--git-dir", path, "log", "--pretty=format:{%n \"commit\": \"%H\",%n \"abbCommit\": \"%h\",%n \"tree\": \"%T\", %n \"abbTree\": \"%t\", %n \"parent\": \"%P\", %n \"abbParent\": \"%p\", %n \"author\": \"%aN <%aE>\",%n \"date\": \"%ad\",%n \"authorTimestamp\": \"%at\",%n \"timestamp\": \"%ct\",%n \"message\": \"%f\",%n \"additional\": \"%D\"},"]
             
             if onlyTags {
                 args.append("--tags")
@@ -508,6 +504,17 @@ class GitManager: AppManager {          // manager used for project evolution
                 
                 var commits: [Commit] = []
                 
+                // TODO: testing:
+                for commit in allCommits {
+                    self.commitsToBeAnalysed.append(commit)
+                }
+                
+                commitsToBeAnalysed = allCommits.sorted() { commit1, commit2 in
+                    return commit1.timestamp > commit2.timestamp
+                }
+                
+                //TODO: possible solution: create a new list that is ordered so that all parents will be analysed at a later time
+                
                 if onlyTags {
                     var prevCommit: Commit? = nil
                     
@@ -523,6 +530,23 @@ class GitManager: AppManager {          // manager used for project evolution
                     }
                 } else {
                     for commit in allCommits { //can have two parents! //TODO: add both as parents!
+                        if commit.additional != "" {
+                            let parts = commit.additional.split(separator: ",")
+                            for part in parts {
+                                var partString = String(part)
+                                partString = partString.trimmingCharacters(in: .whitespacesAndNewlines)
+                                
+                                if partString.starts(with: "tag:") {
+                                    // currently only consider one tag, add possibility to save multiple tags later
+                                    commit.tag = partString.replacingOccurrences(of: "tag:", with: "")
+                                }
+                            }
+                        }
+                        
+                        
+                        //print("commit.commit: \(commit.commit)")
+                        //print("commit.parent: \(commit.parent)")
+                        //print("all commits: \(commitDict)")
                         if commit.parent == nil || commit.parent == "" {
                             commits.append(commit)
                         } else {
@@ -536,6 +560,8 @@ class GitManager: AppManager {          // manager used for project evolution
                                 
                                 if let otherParent = commitDict[String(splitParents[1])] {
                                     commit.alternateParentCommit = otherParent
+                                    
+                                    commit.branch = extractProbableBranch(from: commit.message)
                                 }
                             }
                             
