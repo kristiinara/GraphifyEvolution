@@ -114,6 +114,8 @@ class DependencyAnalyser: ExternalAnalyser {
                     continue
                 }
                 
+                // check if direct or transitive?
+                
                 line = line.replacingOccurrences(of: "  - ", with: "")
                 let components = line.components(separatedBy: .whitespaces)
                 
@@ -124,7 +126,7 @@ class DependencyAnalyser: ExternalAnalyser {
                 }
                 
                 let name = components[0]
-                var version = components[1]
+                var version = String(components[1].dropLast().dropFirst())
                 //version.remove(at: version.startIndex) // remove (
                 //version.remove(at: version.endIndex) // remove )
                 
