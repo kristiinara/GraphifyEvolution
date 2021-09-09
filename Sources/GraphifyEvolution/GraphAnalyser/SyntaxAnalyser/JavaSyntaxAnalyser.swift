@@ -115,13 +115,14 @@ struct JavaKind: Kind {
     let pathKey = "key.path"
     let receiverUsrKey = "key.receiver_usr"
     let isDefinitionKey = "------"
+    let argumentsKey = "key.parameters"
+    let positionKey = "key.position"
+    let modifiersKey = "key.modifiers"
     
     
     // TODO: add/use
-    let modifiersKey = "key.modifiers"
     let parentsKey = "key.parents"
     let annotationsKey = "key.annotations"
-    let parametersKey = "key.parameters"
     
     let annotationKind = "Annotation"
     let modifierKind = "Modifier"

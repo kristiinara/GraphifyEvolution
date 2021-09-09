@@ -19,6 +19,7 @@ protocol SyntaxAnalyser {
     func parseMethodFrom(json: [String:Any]) -> Method?
     func parseInstructionFrom(json: [String: Any]) -> Instruction?
     func parseVariableFrom(json: [String:Any]) -> Variable?
+    func parseArgumentFrom(json: [String:Any]) -> Parameter?
     func getCodeForPath(path: String) -> String?
     
 }
@@ -27,6 +28,7 @@ protocol Kind {
     var classKind: String { get }
     var structKind: String { get }
     var protocolKind: String { get }
+   // var argumentKind: String { get }
     
     var staticVariableKind: String { get }
     var classVariableKind: String { get }
@@ -53,6 +55,9 @@ protocol Kind {
     var endLineKey: String { get }
     var pathKey: String { get }
     var receiverUsrKey: String { get }
+    var argumentsKey: String { get }
+    var positionKey: String { get }
+    var modifiersKey: String { get }
 }
 
 extension SyntaxAnalyser {
@@ -211,10 +216,61 @@ extension SyntaxAnalyser {
                 method.isDefinition = nil
             }
             
+            if let modifiers = json[constants.modifiersKey] as? [[String: Any]] {
+                for modifier in modifiers {
+                    if let name = modifier[constants.nameKey] as? String {
+                        print("modifier: \(name)")
+                        
+                        //TODO: are there any others?
+                        if name.lowercased() == "public" || name.lowercased() == "private".lowercased() || name.lowercased() == "fileprivate" || name.lowercased() == "protected" {
+                            method.modifier = name.lowercased()
+                            break
+                        }
+                    }
+                }
+            }
+            
+            print("method: \(method.name)")
+            if let arguments = json[constants.argumentsKey] as? [[String: Any]] {
+                for argument in arguments {
+                    if let parsedArgument = parseArgumentFrom(json: argument) {
+                        method.arguments.append(parsedArgument)
+                        print("found argument: \(parsedArgument.name), \(parsedArgument.type)")
+                    } else {
+                        print("Failed to parse argument: \(argument)")
+                    }
+                }
+            } else {
+                print("no arguments")
+            }
+            
             //method.save()
             
             return method
         }
+        return nil
+    }
+
+    func parseArgumentFrom(json: [String: Any]) -> Parameter? {
+        /*
+         key.usr
+         key.type
+         key.typeUsr
+         key.name
+         key.entities
+         */
+        
+        if let type = json[constants.typeKey] as? String,
+           let name = json[constants.nameKey] as? String {
+            let argument = Parameter(name: name, type: type, code: "")
+            
+            argument.usr = json[constants.usrKey] as? String
+            argument.typeUsr = json[constants.typeKey] as? String
+            argument.position = json[constants.positionKey] as? Int
+            
+            return argument
+        }
+        
         return nil
     }
     

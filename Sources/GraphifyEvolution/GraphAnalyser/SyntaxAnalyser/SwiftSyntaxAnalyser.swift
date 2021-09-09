@@ -151,4 +151,7 @@ struct SwiftKind: Kind {
     let pathKey = "key.path"
     let receiverUsrKey = "key.receiver_usr"
     let isDefinitionKey = "------"
+    let argumentsKey: String = "key.arguments" //TODO: check if correct
+    let positionKey = "key.position" //TODO: check if correct
+    let modifiersKey = "key.modifier" //TODO: check if correct
 }

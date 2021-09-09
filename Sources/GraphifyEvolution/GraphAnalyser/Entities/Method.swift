@@ -23,6 +23,8 @@ class Method {
     var endLine: Int?
     var version = 1
     var isDefinition: Bool?
+    var arguments: [Parameter] = []
+    var modifier: String?
         
     var instructions: [Instruction]? //Current idea: when instructions is nil, then object came from db, if not nil then read from structure analysis - used to calculate metrics
     
@@ -42,6 +44,13 @@ class Method {
     var childrenIds: [Int] = []
     var parent: Method?
     var altParent: Method?
+    
+    func saveArguments() {
+        for argument in self.arguments {
+            argument.save()
+            self.relate(to: argument, type: "HAS_ARGUMENT")
+        }
+    }
     
     func saveParent() {
         if let parent = self.parent {
@@ -179,6 +188,7 @@ extension Method: Neo4jObject {
         oldNode.properties["is_setter"] = self.kind == .setMethod
         oldNode.properties["is_constructor"] = self.kind == .constructor
         oldNode.properties["is_definition"] = isDefinition
+        oldNode.properties["modifier"] = self.modifier
         
         self.nodeSet = oldNode
         

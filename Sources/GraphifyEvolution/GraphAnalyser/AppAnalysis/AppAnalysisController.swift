@@ -634,6 +634,7 @@ class AppAnalysisController {
         if !self.noSourceCodeAnalysis {
             for method in methodsToBeHandled {
                 addCallAndUseConnectionsFrom(method: method, app: app)
+                method.saveArguments()
             }
             
             addDefinitionConnectionsTo(app: app)

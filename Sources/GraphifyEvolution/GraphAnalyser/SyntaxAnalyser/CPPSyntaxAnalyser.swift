@@ -257,13 +257,17 @@ struct CPPKind: Kind {
     let pathKey = "key.path"
     let receiverUsrKey = "key.receiver_usr"
     let isDefinitionKey = "key.isCursorDefinition"
+    let positionKey = "key.position" //TODO: check if correct
     
     
     // TODO: add/use
     let modifiersKey = "key.modifiers"
     let parentsKey = "key.parents"
     let annotationsKey = "key.annotations"
-    let parametersKey = "key.parameters"
+    let argumentsKey = "key.parameters"
+    
+   // let argumentKind = "ParamDecl" //TODO: check if correct!
+    
     
     //let annotationKind = "Annotation"
     //let modifierKind = "Modifier"

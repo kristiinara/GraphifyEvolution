@@ -381,11 +381,15 @@ public class App {
         method.getDeclarationAsString();
         method.getBody(); // handle instructions
 
+        int count = 1;
         List<Map<String,Object>> parameters = new ArrayList<>();
         for(Parameter parameter: method.getParameters()) {
-            parameters.add(handleParameter(parameter));
+            Map<String,Object> handledParameter = handleParameter(parameter);
+            handledParameter.put("'key.position'", count);
+            parameters.add(handledParameter);
+            count++;
         }
-        object.put("'key.parameters'", parameters);
+        object.put("'key.parameters'", parameters); //TODO: parameters are added, why are they missing? missing from swift??
 
         MethodDeclaration methodDeclaration = (MethodDeclaration)method;
         ResolvedMethodDeclaration resolvedMethodDeclaration = methodDeclaration.resolve();
@@ -428,7 +432,6 @@ public class App {
         } else {
             object.put("'key.kind'", "'InstanceMethodDeclaration'");
         }
-
 
         //TODO: add something else
 
