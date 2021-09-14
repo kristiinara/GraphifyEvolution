@@ -58,16 +58,16 @@ class GitManager: AppManager {          // manager used for project evolution
             return nil
         }
         
-        var nextCommit = self.commitsToBeAnalysed.removeLast()
-        //var nextCommit = self.commitsToBeAnalysed.removeFirst()
+        //var nextCommit = self.commitsToBeAnalysed.removeLast()
+        var nextCommit = self.commitsToBeAnalysed.removeFirst()
         //print("Next commit: \(nextCommit.commit), parent: \(nextCommit.parent), check parent: \(nextCommit.parentCommit?.commit)")
         
         if self.started == false{
             print("Searching for startCommit: \(startCommit)")
             if let startCommit = self.startCommit  {
                 while nextCommit.commit != startCommit {
-                    //nextCommit = self.commitsToBeAnalysed.removeFirst()
-                    nextCommit = self.commitsToBeAnalysed.removeLast()
+                    nextCommit = self.commitsToBeAnalysed.removeFirst()
+                    //nextCommit = self.commitsToBeAnalysed.removeLast()
                 }
                 print("found correct commit: \(nextCommit.commit)")
                 self.started = true
@@ -120,9 +120,9 @@ class GitManager: AppManager {          // manager used for project evolution
         
         //print("Total number of commits: \(self.commitsToBeAnalysed.count)")
         
-        //if let first = self.commitsToBeAnalysed.first {
-        if let last = self.commitsToBeAnalysed.last {
-            correctMasterBranch(forCommit: last)
+        if let first = self.commitsToBeAnalysed.first {
+        //if let last = self.commitsToBeAnalysed.last {
+            correctMasterBranch(forCommit: first)
         }
     }
     
@@ -505,20 +505,35 @@ class GitManager: AppManager {          // manager used for project evolution
                 var commits: [Commit] = []
                 
                 // TODO: testing:
-                for commit in allCommits {
-                    self.commitsToBeAnalysed.append(commit)
-                }
+                //for commit in allCommits {
+                //    self.commitsToBeAnalysed.append(commit)
+                //}
                 
-                commitsToBeAnalysed = allCommits.sorted() { commit1, commit2 in
-                    return commit1.timestamp > commit2.timestamp
+                self.commitsToBeAnalysed = allCommits.sorted() { commit1, commit2 in
+                    return commit1.timestamp < commit2.timestamp
                 }
                 
                 //TODO: possible solution: create a new list that is ordered so that all parents will be analysed at a later time
                 
+                for commit in self.commitsToBeAnalysed {
+                    if commit.additional != "" {
+                        let parts = commit.additional.split(separator: ",")
+                        for part in parts {
+                            var partString = String(part)
+                            partString = partString.trimmingCharacters(in: .whitespacesAndNewlines)
+                            
+                            if partString.starts(with: "tag:") {
+                                // currently only consider one tag, add possibility to save multiple tags later
+                                commit.tag = partString.replacingOccurrences(of: "tag:", with: "")
+                            }
+                        }
+                    }
+                }
+                
                 if onlyTags {
                     var prevCommit: Commit? = nil
                     
-                    for commit in allCommits {
+                    for commit in self.commitsToBeAnalysed {
                         if prevCommit == nil {
                             commits.append(commit)
                         }
@@ -529,20 +544,7 @@ class GitManager: AppManager {          // manager used for project evolution
                         prevCommit = commit
                     }
                 } else {
-                    for commit in allCommits { //can have two parents! //TODO: add both as parents!
-                        if commit.additional != "" {
-                            let parts = commit.additional.split(separator: ",")
-                            for part in parts {
-                                var partString = String(part)
-                                partString = partString.trimmingCharacters(in: .whitespacesAndNewlines)
-                                
-                                if partString.starts(with: "tag:") {
-                                    // currently only consider one tag, add possibility to save multiple tags later
-                                    commit.tag = partString.replacingOccurrences(of: "tag:", with: "")
-                                }
-                            }
-                        }
-                        
+                    for commit in self.commitsToBeAnalysed { //can have two parents! //TODO: add both as parents!
                         
                         //print("commit.commit: \(commit.commit)")
                         //print("commit.parent: \(commit.parent)")
