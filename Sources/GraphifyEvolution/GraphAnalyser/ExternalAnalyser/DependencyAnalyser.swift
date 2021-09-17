@@ -38,8 +38,8 @@ class DependencyAnalyser: ExternalAnalyser {
         dependencyFiles.append(findCarthageFile(homePath: app.homePath))
         dependencyFiles.append(findSwiftPMFile(homePath: app.homePath))
         
-        if let tag = app.commit?.tag {
-            let library = Library(name: app.name, versionString: tag)
+        if let tag = app.commit?.tag { //TODO: also handle podspec?
+            let library = Library(name: app.name, versionString: tag.removingCommonLeadingWhitespaceFromLines())
             let _ = app.relate(to: library, type: "IS")
         }
         
@@ -48,7 +48,7 @@ class DependencyAnalyser: ExternalAnalyser {
         for dependencyFile in dependencyFiles {
             if dependencyFile.used {
                 if !dependencyFile.resolved {
-                    let _ = app.relate(to: Library(name: "missing_dependency_\(dependencyFile.type)", versionString: ""), type: "")
+                    let _ = app.relate(to: Library(name: "missing_dependency_\(dependencyFile.type)", versionString: ""), type: "MISSING")
                     continue
                 }
                 

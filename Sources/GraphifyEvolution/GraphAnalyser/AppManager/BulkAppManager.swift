@@ -87,12 +87,24 @@ class BulkAppManager: AppManager {
                         if let title = projectDict["title"] as? String, let source = projectDict["source"] as? String {
                             let newProject: Project = Project(title: title, source: source)
                             projects.append(newProject)
+                        } else if let title = projectDict["name"] as? String, let source = projectDict["repository_url"] as? String {
+                            let newProject: Project = Project(title: title, source: source)
+                            projects.append(newProject)
                         } else {
                             print("could not read title or source: \(projectDict)")
                         }
                     }
                 } else {
                     print("No project in json")
+                }
+            } else if let projectDicts = json as? [[String: Any]] {
+                for projectDict in projectDicts {
+                    if let title = projectDict["name"] as? String, let source = projectDict["repository_url"] as? String {
+                        let newProject: Project = Project(title: title, source: source)
+                        projects.append(newProject)
+                    } else {
+                        print("could not read title or source: \(projectDict)")
+                    }
                 }
             } else {
                 print("Incorrect json format")

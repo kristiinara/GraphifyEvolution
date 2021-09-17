@@ -178,7 +178,10 @@ class GitManager: AppManager {          // manager used for project evolution
     }
     
     func newAppManager(path: String, appKey: String?) -> AppManager {
-        return GitManager(path: path, appKey: appKey)
+        let manager = GitManager(path: path, appKey: appKey)
+        manager.onlyTags = self.onlyTags
+        
+        return manager
     }
     
     func runDefaultBranchCommand() -> String {
