@@ -17,7 +17,7 @@ class DependencyAnalyser: ExternalAnalyser {
     }
     
     func checkIfSetupCorrectly() -> Bool {
-        //TODO: check if cocoapods is installed
+        //TODO: check if cocoapods and carthage is installed
         
         return true
     }

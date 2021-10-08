@@ -43,6 +43,7 @@ class AppAnalysisController {
             }
         }
         print("All app versions analysed, total: \(count)")
+        self.appManager.analysisFinished(successfully: true) //TODO: probably add possibility to say that it was not successful??
         
         //print("Results: ")
         

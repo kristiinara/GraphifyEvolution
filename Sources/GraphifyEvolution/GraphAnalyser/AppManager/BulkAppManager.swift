@@ -20,6 +20,8 @@ class BulkAppManager: AppManager {
     var allProjects: [Project]?
     var projectsToAnalyse: [Project] = []
     
+    var project: Project? = nil // holds the last project that was analysed
+    
     init(folderPath: String, jsonPath: String, appManager: AppManager) {
         if folderPath.hasSuffix("/") {
             self.folderPath = folderPath
@@ -34,9 +36,17 @@ class BulkAppManager: AppManager {
     func nextAppVersion() -> AppVersion? {
         if allProjects == nil {
             parseJson()
+            
+            if let allProjects = allProjects {
+                for project in allProjects {
+                    let _ = project.save()
+                }
+            } else {
+                print("Still no projects?")
+            }
         }
         
-        var appManager: AppManager
+        var appManager: AppManager?
         
         if let nextAppManager = self.nextAppManager {
             appManager = nextAppManager
@@ -45,21 +55,43 @@ class BulkAppManager: AppManager {
                 return nil
             }
             
-            let nextProject = projectsToAnalyse.removeFirst()
+            while(!projectsToAnalyse.isEmpty) {
+                let nextProject = projectsToAnalyse.removeFirst()
+                
+                if let name = nextProject.title, let source = nextProject.source {
+                    let path = "\(folderPath)\(name)"
+                    
+                    self.gitClone(source: source, path: path)
+                    
+                    appManager = self.appManager.newAppManager(path: path, appKey: nil)
+                    appManager?.project = nextProject
+                    
+                    nextProject.analysisStarted = true
+                    let _ = nextProject.save()
+                    self.project = nextProject
+                    
+                    self.nextAppManager = appManager
+                    break
+                    
+                } else {
+                    nextProject.failed = true
+                    let _ = nextProject.save()
+                    continue
+                }
+            }
             
-            let path = "\(folderPath)\(nextProject.title)"
-            self.gitClone(source: nextProject.source, path: path)
-            
-            appManager = self.appManager.newAppManager(path: path, appKey: nil)
-            self.nextAppManager = appManager
         }
         
-        if let nextAppVersion = appManager.nextAppVersion() {
-            return nextAppVersion
+        if let appManager = appManager {
+            if let nextAppVersion = appManager.nextAppVersion() {
+                return nextAppVersion
+            }
+            
+            self.nextAppManager = nil
+            return self.nextAppVersion()
+        } else {
+            return nil
         }
-        
-        self.nextAppManager = nil
-        return self.nextAppVersion()
     }
     
     func gitClone(source: String, path: String) {
@@ -84,27 +116,14 @@ class BulkAppManager: AppManager {
             if let dictionary = json as? [String: Any] {
                 if let projectDicts = dictionary["projects"] as? [[String: Any]] {
                     for projectDict in projectDicts {
-                        if let title = projectDict["title"] as? String, let source = projectDict["source"] as? String {
-                            let newProject: Project = Project(title: title, source: source)
-                            projects.append(newProject)
-                        } else if let title = projectDict["name"] as? String, let source = projectDict["repository_url"] as? String {
-                            let newProject: Project = Project(title: title, source: source)
-                            projects.append(newProject)
-                        } else {
-                            print("could not read title or source: \(projectDict)")
-                        }
+                        projects.append(parseProject(json: projectDict))
                     }
                 } else {
                     print("No project in json")
                 }
             } else if let projectDicts = json as? [[String: Any]] {
                 for projectDict in projectDicts {
-                    if let title = projectDict["name"] as? String, let source = projectDict["repository_url"] as? String {
-                        let newProject: Project = Project(title: title, source: source)
-                        projects.append(newProject)
-                    } else {
-                        print("could not read title or source: \(projectDict)")
-                    }
+                    projects.append(parseProject(json: projectDict))
                 }
             } else {
                 print("Incorrect json format")
@@ -124,17 +143,109 @@ class BulkAppManager: AppManager {
     }
 }
 
+func parseProject(json: [String: Any]) -> Project {
+    var title = json["title"] as? String
+    if title == nil {
+        title = json["name"] as? String
+    }
+    
+    var source = json["source"] as? String
+    if source == nil {
+        source = json["repository_url"] as? String
+    }
+    
+    if let title = title {
+       if title.starts(with: "https://github.com/") {
+            source = title
+       } else if title.starts(with: "github.com/") {
+            source = "https://\(title)"
+       }
+    }
+    
+    var tags = json["tags"] as? [String]
+    if tags == nil {
+        if let keywords = json["keywords"] as? String {
+            tags = keywords.components(separatedBy: ",")
+        }
+    }
+    
+    var description = json["description"] as? [String]
+    if description == nil {
+        if let descriptionString = json["description"] as? String {
+            description = [descriptionString]
+        }
+    }
+    
+    let categorites = json["categories"] as? [String]
+    
+    var license = json["license"] as? String
+    if license == nil {
+        license = json["licenses"] as? String
+    }
+    
+    let stars = json["stars"] as? Int
+    
+    let project = Project(title: title, source: source)
+    
+    project.tags = tags
+    project.description = description
+    project.categories = categorites
+    project.license = license
+    project.stars = stars
+    
+    return project
+}
+
 class Project {
-    let title: String
-    let source: String
+    let title: String?
+    let source: String?
+    var failed = false
+    var successfullyAnalysed = false
+    var analysisStarted = false
+    var analysisFinished = false
+    
     var tags: [String]?
     var description: [String]?
     var categories: [String]?
     var license: String?
     var stars: Int?
 
-    init(title: String, source: String) {
+    init(title: String?, source: String?) {
         self.title = title
         self.source = source
+    }
+
+    var nodeSet: Node?
+}
+
+extension Project: Neo4jObject {
+    typealias ObjectType = Project
+    static var nodeType = "Project"
+    
+    var updatedNode: Node {
+        let oldNode = self.node
+        
+        oldNode.properties["title"] = self.title
+        oldNode.properties["source"] = self.source
+        oldNode.properties["failed"] = self.failed
+        oldNode.properties["successfullyAnalysed"] = self.successfullyAnalysed
+        oldNode.properties["analysisFinished"] = self.analysisFinished
+        oldNode.properties["tags"] = self.tags != nil ? "\(self.tags!)" : nil
+        oldNode.properties["description"] = self.description != nil ? "\(self.description!)" : nil
+        oldNode.properties["categories"] = self.categories != nil ? "\(self.categories!)" : nil
+        oldNode.properties["license"] = self.license
+        oldNode.properties["stars"] = self.stars
+        
+        self.nodeSet = oldNode
+        
+        return oldNode
+    }
+    
+    var node: Node {
+        if nodeSet == nil {
+            nodeSet = self.newNode()
+        }
+        
+        return nodeSet!
     }
 }

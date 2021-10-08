@@ -13,6 +13,7 @@ class GitManager: AppManager {          // manager used for project evolution
     var startCommit: String?
     var started = false
     var onlyTags = false
+    var project: Project? = nil
     
     var commits: [Commit]?  //TODO: change type, maybe create new class/structure?
     var commitsToBeAnalysed: [Commit] = []
@@ -37,6 +38,8 @@ class GitManager: AppManager {          // manager used for project evolution
     
     func nextAppVersion() -> AppVersion? {
         guard let path = path else {
+            self.project?.failed = true
+            let _ = self.project?.save()
             fatalError("Path for gitAppManager not defined")
         }
         
@@ -55,6 +58,7 @@ class GitManager: AppManager {          // manager used for project evolution
          */
         
         if self.commits == nil || self.commitsToBeAnalysed.isEmpty {
+            self.analysisFinished(successfully: true) // TODO: add possibility to fail if did not find commits?
             return nil
         }
         
@@ -194,6 +198,8 @@ class GitManager: AppManager {          // manager used for project evolution
             
             return res
         } else {
+            self.project?.failed = true
+            let _ = self.project?.save()
             fatalError("Path for gitManager not defined")
         }
     }
@@ -209,6 +215,8 @@ class GitManager: AppManager {          // manager used for project evolution
                 return res
             }
         } else {
+            self.project?.failed = true
+            let _ = self.project?.save()
             fatalError("Path for gitManager not defined")
         }
         
@@ -232,6 +240,8 @@ class GitManager: AppManager {          // manager used for project evolution
             }
             return nil
         } else {
+            self.project?.failed = true
+            let _ = self.project?.save()
             fatalError("Path for gitManager not defined")
         }
     }
@@ -310,6 +320,8 @@ class GitManager: AppManager {          // manager used for project evolution
             res = Helper.shell(launchPath: "/usr/bin/git", arguments: ["--git-dir", path, "--work-tree", notGitPath, "checkout", forCommit.commit])
             //print("Checkout command result: \(res)")
         } else {
+            self.project?.failed = true
+            let _ = self.project?.save()
             fatalError("Path for gitManager not defined")
         }
     }
@@ -330,6 +342,8 @@ class GitManager: AppManager {          // manager used for project evolution
             res = Helper.shell(launchPath: "/usr/bin/git", arguments: ["--git-dir", path, "--work-tree", notGitPath, "checkout", branchName])
             //print("Checkout command result: \(res)")
         } else {
+            self.project?.failed = true
+            let _ = self.project?.save()
             fatalError("Path for gitManager not defined")
         }
     }
@@ -580,10 +594,14 @@ class GitManager: AppManager {          // manager used for project evolution
                 
                 self.commits = commits
             } catch {
+                self.project?.failed = true
+                let _ = self.project?.save()
                 print("could not parse commit! \(error.localizedDescription)")
             }
             
         } else {
+            self.project?.failed = true
+            let _ = self.project?.save()
             fatalError("Path for gitManager not defined")
         }
     }

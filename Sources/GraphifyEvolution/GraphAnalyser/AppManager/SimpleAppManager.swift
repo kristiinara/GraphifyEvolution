@@ -12,6 +12,7 @@ class SimpleAppManager: AppManager {
     let path: String?
     var appKey: String?
     var appVersionAnalysed = false
+    var project: Project?
     
     init(path: String, appKey: String?) {
         self.path = path
