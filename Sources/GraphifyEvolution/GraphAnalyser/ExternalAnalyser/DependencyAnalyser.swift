@@ -47,6 +47,21 @@ class DependencyAnalyser: ExternalAnalyser {
         
         for dependencyFile in dependencyFiles {
             if dependencyFile.used {
+                var libraryDefinitions: [LibraryDefinition] = []
+                if dependencyFile.type == .carthage {
+                    libraryDefinitions = handleCartfileConfig(path: dependencyFile.definitionFile!)
+                } else if dependencyFile.type == .cocoapods {
+                    //TODO: implement
+                } else if dependencyFile.type == .swiftPM {
+                    //TODO: implement
+                }
+                
+                print("libraryDefinitions: \(libraryDefinitions)")
+                
+                for library in libraryDefinitions {
+                    let _ = app.relate(to: library, type: "DEPENDS_ON", properties: ["type": dependencyFile.type, "definitionType": library.type])
+                }
+                
                 if !dependencyFile.resolved {
                     let _ = app.relate(to: Library(name: "missing_dependency_\(dependencyFile.type)", versionString: ""), type: "MISSING")
                     continue
@@ -68,6 +83,36 @@ class DependencyAnalyser: ExternalAnalyser {
                 }
              }
         }
+    }
+    
+    func handleCartfileConfig(path: String) -> [LibraryDefinition] {
+        print("handle carthage config")
+        var libraries: [LibraryDefinition] = []
+        do {
+            let data = try String(contentsOfFile: path, encoding: .utf8)
+            let lines = data.components(separatedBy: .newlines)
+            
+            for line in lines {
+                if line.starts(with: "github") || line.starts(with: "git") || line.starts(with: "binary") {
+                    var components = line.components(separatedBy: .whitespaces)
+                    print("components: \(components)")
+                    // components[0] = git, github
+                    
+                    if components.count < 2 {
+                        break
+                    }
+                    
+                    let type = components.removeFirst()
+                    let name = components.removeFirst().replacingOccurrences(of: "\"", with: "")
+                    let version = components.joined(separator: " ")
+                    libraries.append(LibraryDefinition(name: name, versionString: version, type: type))
+                }
+            }
+        } catch {
+            print("could not read carthage file \(path)")
+        }
+        
+        return libraries
     }
     
     func handleCarthageFile(path: String) -> [Library] {
@@ -205,7 +250,7 @@ class DependencyAnalyser: ExternalAnalyser {
             resolvedPath = nil
         }
         
-        return DependencyFile(type: .cocoapods, file: definitionPath, resolvedFile: resolvedPath)
+        return DependencyFile(type: .cocoapods, file: definitionPath, resolvedFile: resolvedPath, definitionFile: definitionPath)
     }
     
     func findCarthageFile(homePath: String) -> DependencyFile {
@@ -230,7 +275,7 @@ class DependencyAnalyser: ExternalAnalyser {
             resolvedPath = nil
         }
         
-        return DependencyFile(type: .carthage, file: definitionPath, resolvedFile: resolvedPath)
+        return DependencyFile(type: .carthage, file: definitionPath, resolvedFile: resolvedPath, definitionFile: definitionPath)
     }
     
     func findSwiftPMFile(homePath: String) -> DependencyFile{
@@ -268,7 +313,7 @@ class DependencyAnalyser: ExternalAnalyser {
             resolvedPath = nil
         }
         
-        return DependencyFile(type: .swiftPM, file: definitionPath, resolvedFile: resolvedPath)
+        return DependencyFile(type: .swiftPM, file: definitionPath, resolvedFile: resolvedPath, definitionFile: definitionPath)
     }
     
     enum DependencyType: String {
@@ -279,6 +324,7 @@ class DependencyAnalyser: ExternalAnalyser {
         let type: DependencyType
         let file: String?
         let resolvedFile: String?
+        let definitionFile: String?
         
         var used: Bool {
             return file != nil
@@ -319,6 +365,62 @@ extension Library: Neo4jObject {
         
         properties["name"] = self.name
         properties["version"] = self.versionString
+        
+        return properties
+    }
+    
+    var updatedNode: Node {
+        let oldNode = self.node
+        oldNode.properties = self.properties
+        
+        self.nodeSet = oldNode
+        
+        return oldNode
+    }
+    
+    var node: Node {
+        if nodeSet == nil {
+            var newNode = Node(label: Self.nodeType, properties: self.properties)
+            newNode = self.newNodeWithMerge(node: newNode)
+            nodeSet = newNode
+        }
+        
+        return nodeSet!
+    }
+}
+
+
+class LibraryDefinition {
+    let name: String
+    let versionString: String
+    let type: String
+    
+    
+    init(name: String, versionString: String, type: String) {
+        self.name = name
+        self.versionString = versionString
+        self.type = type
+    }
+    
+    var nodeSet: Node?
+}
+
+extension LibraryDefinition: Neo4jObject {
+    typealias ObjectType = LibraryDefinition
+    static var nodeType = "LibraryDefinition"
+    
+    var properties: [String: Any] {
+        var properties: [String: Any]
+        
+        if let node = self.nodeSet {
+            properties = node.properties
+        } else {
+            properties = [:]
+        }
+        
+        properties["name"] = self.name
+        properties["version"] = self.versionString
+       // properties["type"] = self.type
         
         return properties
     }
