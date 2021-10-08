@@ -104,7 +104,7 @@ class DependencyAnalyser: ExternalAnalyser {
                     
                     let type = components.removeFirst()
                     let name = components.removeFirst().replacingOccurrences(of: "\"", with: "")
-                    let version = components.joined(separator: " ")
+                    let version = components.joined(separator: " ").replacingOccurrences(of: "\"", with: "")
                     libraries.append(LibraryDefinition(name: name, versionString: version, type: type))
                 }
             }
