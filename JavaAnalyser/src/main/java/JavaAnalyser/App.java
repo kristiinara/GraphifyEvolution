@@ -625,26 +625,30 @@ public class App {
             subEntities.addAll(handleVariable(fieldDeclaration, node.getFullyQualifiedName().get()));
         }
 
-        ResolvedReferenceTypeDeclaration resolvedClass = node.resolve();
-        for(MethodUsage methodUsage: resolvedClass.getAllMethods()) {
-            ResolvedMethodDeclaration method = methodUsage.getDeclaration();
+        try {
+            ResolvedReferenceTypeDeclaration resolvedClass = node.resolve();
+            for(MethodUsage methodUsage: resolvedClass.getAllMethods()) {
+                ResolvedMethodDeclaration method = methodUsage.getDeclaration();
 
-            if(method.accessSpecifier() != AccessSpecifier.PRIVATE && !method.declaringType().equals(resolvedClass.asType())) {
-                // add inherited methods as declarations
-                Map<String,Object> methodObject = new HashMap<>();
-                methodObject.put("'key.name'", method.getName());
+                if(method.accessSpecifier() != AccessSpecifier.PRIVATE && !method.declaringType().equals(resolvedClass.asType())) {
+                    // add inherited methods as declarations
+                    Map<String, Object> methodObject = new HashMap<>();
+                    methodObject.put("'key.name'", "'" + method.getName() + "'");
 
-                if(method.isStatic()) {
-                    methodObject.put("'key.kind'", "'StaticMethodDeclaration'");
-                } else {
-                    methodObject.put("'key.kind'", "'InstanceMethodDeclaration'");
+                    if (method.isStatic()) {
+                        methodObject.put("'key.kind'", "'StaticMethodDeclaration'");
+                    } else {
+                        methodObject.put("'key.kind'", "'InstanceMethodDeclaration'");
+                    }
+
+                    methodObject.put("'key.usr'", "'" + method.getQualifiedSignature() + "'");
+                    methodObject.put("'key.isMethodReference'", 1);
+
+                    subEntities.add(methodObject);
                 }
-
-                methodObject.put("'key.usr'", method.getQualifiedSignature());
-                methodObject.put("'key.isMethodReference'", 1);
-
-                subEntities.add(methodObject);
             }
+        } catch (UnsolvedSymbolException exception) {
+            // if we cannot resolve class, we cannot find inherited methods, so currently fail silently
         }
 
         object.put("'key.entities'", subEntities);
