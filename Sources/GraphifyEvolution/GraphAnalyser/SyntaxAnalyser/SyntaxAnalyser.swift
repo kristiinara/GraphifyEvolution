@@ -37,6 +37,7 @@ protocol Kind {
     var staticMethodKind: String { get }
     var classMethodKind: String { get }
     var instanceMethodKind: String { get }
+    var constructorKind: String { get }
     
     var callInstructionKind: String { get }
     var ifInstructionKind: String { get }
@@ -105,7 +106,8 @@ extension SyntaxAnalyser {
                     if let kind = entity[constants.kindKey] as? String {
                         if kind == constants.classMethodKind ||
                             kind == constants.instanceMethodKind ||
-                            kind == constants.staticMethodKind {
+                            kind == constants.staticMethodKind ||
+                            kind == constants.constructorKind {
                             
                             if let method = parseMethodFrom(json: entity) {
                                 methods.append(method)
@@ -199,6 +201,8 @@ extension SyntaxAnalyser {
                 methodKind = .classMethod
             } else if kind == constants.staticMethodKind {
                 methodKind = .staticMethod
+            } else if kind == constants.constructorKind {
+                methodKind = .constructor
             }
             
             var methodType = "" //TODO: should we keep it empty if not defined?

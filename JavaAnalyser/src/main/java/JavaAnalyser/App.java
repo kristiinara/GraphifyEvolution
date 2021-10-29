@@ -346,6 +346,50 @@ public class App {
         object.put("'key.endLine'", end);
     }
 
+    private static Map<String, Object> handleConstructor(ConstructorDeclaration constructor) {
+        Map<String,Object> object = new HashMap<>();
+
+        setStartEnd(constructor, object);
+        object.put("'key.name'", "'" + constructor.getNameAsString() + "'");
+
+        List<Map<String,Object>> annotations = new ArrayList<>();
+        for(AnnotationExpr annotation: constructor.getAnnotations()) {
+            annotations.add(handleAnnotation(annotation));
+        }
+
+        List<Map<String,Object>> modifiers = new ArrayList<>();
+        for(Modifier modifier: constructor.getModifiers()) {
+            modifiers.add(handleModifier(modifier));
+        }
+
+        object.put("'key.modifiers'", modifiers);
+        object.put("'key.annotations'", annotations);
+
+        int count = 1;
+        List<Map<String,Object>> parameters = new ArrayList<>();
+        for(Parameter parameter: constructor.getParameters()) {
+            Map<String,Object> handledParameter = handleParameter(parameter);
+            handledParameter.put("'key.position'", count);
+            parameters.add(handledParameter);
+            count++;
+        }
+        object.put("'key.parameters'", parameters); //TODO: parameters are added, why are they missing? missing from swift??
+
+        String usr = constructor.getDeclarationAsString();
+
+        object.put("'key.usr'", "'"+usr+"'");
+        object.put("'key.kind'", "'ConstructorDeclaration'");
+
+        ArrayList<Map<String,Object>> entities = new ArrayList<>();
+
+        if(constructor.getBody().isPresent()) {
+            entities.add(handleInstruction(method.getBody().get()));
+        }
+        object.put("'key.entities'", entities);
+
+        return object;
+    }
+
     private static Map<String,Object> handleMethod(MethodDeclaration method) {
         Map<String,Object> object = new HashMap<>();
 
@@ -567,6 +611,13 @@ public class App {
         object.put("'key.name'", "'" + node.getNameAsString() + "'");
 
         List<Map<String,Object>> subEntities = new ArrayList<>();
+
+
+        for(BodyDeclaration member: node.getMembers()) {
+            if( member instanceof ConstructorDeclaration) {
+                subEntities.add(handleConstructor((ConstructorDeclaration) member));
+            }
+        }
 
         for(MethodDeclaration method: node.getMethods()) {
             subEntities.add(handleMethod(method));

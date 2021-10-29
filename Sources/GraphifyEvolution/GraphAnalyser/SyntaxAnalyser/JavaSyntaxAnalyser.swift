@@ -97,6 +97,7 @@ struct JavaKind: Kind {
     let staticMethodKind = "StaticMethodDeclaration"
     let classMethodKind = "----"
     let instanceMethodKind = "InstanceMethodDeclaration"
+    let constructorKind = "ConstructorDeclaration"
     
     let callInstructionKind = "class com.github.javaparser.ast.expr.MethodCallExpr"
     let ifInstructionKind = "class com.github.javaparser.ast.stmt.IfStmt"
