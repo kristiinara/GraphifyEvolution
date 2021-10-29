@@ -115,7 +115,7 @@ struct JavaKind: Kind {
     let endLineKey = "key.endLine"
     let pathKey = "key.path"
     let receiverUsrKey = "key.receiver_usr"
-    let isDefinitionKey = "------"
+    let isDefinitionKey = "key.isMethodReference"
     let argumentsKey = "key.parameters"
     let positionKey = "key.position"
     let modifiersKey = "key.modifiers"

@@ -4,10 +4,7 @@
 package JavaAnalyser;
 
 import com.github.javaparser.*;
-import com.github.javaparser.ast.CompilationUnit;
-import com.github.javaparser.ast.Modifier;
-import com.github.javaparser.ast.Node;
-import com.github.javaparser.ast.NodeList;
+import com.github.javaparser.ast.*;
 import com.github.javaparser.ast.body.*;
 import com.github.javaparser.ast.expr.*;
 import com.github.javaparser.ast.type.ClassOrInterfaceType;
@@ -15,6 +12,7 @@ import com.github.javaparser.ast.type.Type;
 import com.github.javaparser.resolution.UnsolvedSymbolException;
 import com.github.javaparser.resolution.declarations.ResolvedFieldDeclaration;
 import com.github.javaparser.resolution.declarations.ResolvedMethodDeclaration;
+import com.github.javaparser.resolution.declarations.ResolvedReferenceTypeDeclaration;
 import com.github.javaparser.resolution.declarations.ResolvedValueDeclaration;
 import com.github.javaparser.resolution.types.ResolvedReferenceType;
 import com.github.javaparser.resolution.types.ResolvedType;
@@ -28,6 +26,7 @@ import com.github.javaparser.symbolsolver.resolution.typesolvers.ReflectionTypeS
 import com.github.javaparser.symbolsolver.utils.SymbolSolverCollectionStrategy;
 import com.github.javaparser.utils.ProjectRoot;
 import com.github.javaparser.utils.SourceRoot;
+import com.github.javaparser.resolution.MethodUsage;
 
 import javax.swing.text.html.Option;
 import java.io.File;
@@ -38,6 +37,7 @@ import java.lang.reflect.Field;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static java.lang.System.exit;
 
@@ -382,9 +382,7 @@ public class App {
 
         ArrayList<Map<String,Object>> entities = new ArrayList<>();
 
-        if(constructor.getBody().isPresent()) {
-            entities.add(handleInstruction(method.getBody().get()));
-        }
+        entities.add(handleInstruction(constructor.getBody()));
         object.put("'key.entities'", entities);
 
         return object;
@@ -625,6 +623,28 @@ public class App {
 
         for(FieldDeclaration fieldDeclaration: node.getFields()) {
             subEntities.addAll(handleVariable(fieldDeclaration, node.getFullyQualifiedName().get()));
+        }
+
+        ResolvedReferenceTypeDeclaration resolvedClass = node.resolve();
+        for(MethodUsage methodUsage: resolvedClass.getAllMethods()) {
+            ResolvedMethodDeclaration method = methodUsage.getDeclaration();
+
+            if(method.accessSpecifier() != AccessSpecifier.PRIVATE && !method.declaringType().equals(resolvedClass.asType())) {
+                // add inherited methods as declarations
+                Map<String,Object> methodObject = new HashMap<>();
+                methodObject.put("'key.name'", method.getName());
+
+                if(method.isStatic()) {
+                    methodObject.put("'key.kind'", "'StaticMethodDeclaration'");
+                } else {
+                    methodObject.put("'key.kind'", "'InstanceMethodDeclaration'");
+                }
+
+                methodObject.put("'key.usr'", method.getQualifiedSignature());
+                methodObject.put("'key.isMethodReference'", 1);
+
+                subEntities.add(methodObject);
+            }
         }
 
         object.put("'key.entities'", subEntities);
