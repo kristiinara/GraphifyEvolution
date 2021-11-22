@@ -574,7 +574,14 @@ class AppAnalysisController {
             }
         }
         
-        let name = String(pathWithoutGit.split(separator: "/").last!)
+        var name: String
+        let nameComponents = pathWithoutGit.split(separator: "/")
+        if nameComponents.count >= 2 {
+            name = "\(nameComponents[nameComponents.count - 2])/\(nameComponents[nameComponents.count - 1])"
+        } else {
+            name = pathWithoutGit
+        }
+        
         var app = App(name: name, homePath: pathWithoutGit, classes: finalClasses)
         appVersion.analysedVersion = app
         print("new app with nr of classes: \(finalClasses.count)")

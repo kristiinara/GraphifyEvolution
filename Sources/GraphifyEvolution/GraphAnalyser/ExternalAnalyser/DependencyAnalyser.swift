@@ -131,9 +131,18 @@ class DependencyAnalyser: ExternalAnalyser {
                     break
                 }
                 
-                let name = components[1].components(separatedBy: "/").last?.replacingOccurrences(of: "\"", with: "")
+                let nameComponents = components[1].components(separatedBy: "/")
+                
+                var name: String
+                if nameComponents.count >= 2 {
+                    name = "\(nameComponents[nameComponents.count - 2])/\(nameComponents[nameComponents.count - 1])"
+                } else {
+                    name = components[1]
+                }
+                
+                name = name.replacingOccurrences(of: "\"", with: "")
                 let version = components[2].replacingOccurrences(of: "\"", with: "")
-                libraries.append(Library(name: name ?? components[1], versionString: version))
+                libraries.append(Library(name: name, versionString: version))
             }
         } catch {
             print("could not read carthage file \(path)")
