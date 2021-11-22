@@ -238,6 +238,7 @@ struct CPPKind: Kind {
     // let functionKind = "FunctionDecl"
     let classMethodKind = "CXXConstructor"
     let instanceMethodKind = "CXXMethod"
+    let constructorKind = "" //?? "ConstructorDeclaration"
     
     //TODO: add additional statements?
     let callInstructionKind = "CallExpr"

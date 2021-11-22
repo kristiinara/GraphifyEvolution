@@ -97,6 +97,7 @@ struct JavaKind: Kind {
     let staticMethodKind = "StaticMethodDeclaration"
     let classMethodKind = "----"
     let instanceMethodKind = "InstanceMethodDeclaration"
+    let constructorKind = "ConstructorDeclaration"
     
     let callInstructionKind = "class com.github.javaparser.ast.expr.MethodCallExpr"
     let ifInstructionKind = "class com.github.javaparser.ast.stmt.IfStmt"
@@ -114,7 +115,7 @@ struct JavaKind: Kind {
     let endLineKey = "key.endLine"
     let pathKey = "key.path"
     let receiverUsrKey = "key.receiver_usr"
-    let isDefinitionKey = "------"
+    let isDefinitionKey = "key.isMethodReference"
     let argumentsKey = "key.parameters"
     let positionKey = "key.position"
     let modifiersKey = "key.modifiers"

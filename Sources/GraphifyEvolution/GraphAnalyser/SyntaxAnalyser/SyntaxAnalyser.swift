@@ -37,6 +37,7 @@ protocol Kind {
     var staticMethodKind: String { get }
     var classMethodKind: String { get }
     var instanceMethodKind: String { get }
+    var constructorKind: String { get }
     
     var callInstructionKind: String { get }
     var ifInstructionKind: String { get }
@@ -105,7 +106,8 @@ extension SyntaxAnalyser {
                     if let kind = entity[constants.kindKey] as? String {
                         if kind == constants.classMethodKind ||
                             kind == constants.instanceMethodKind ||
-                            kind == constants.staticMethodKind {
+                            kind == constants.staticMethodKind ||
+                            kind == constants.constructorKind {
                             
                             if let method = parseMethodFrom(json: entity) {
                                 methods.append(method)
@@ -129,6 +131,29 @@ extension SyntaxAnalyser {
             }
             
             let classInstance = Class(name: name, path: path, type: classType, code: dataString, usr: usr, methods: [], variables: [])
+            
+            if let modifiers = json[constants.modifiersKey] as? [[String: Any]] {
+                for modifier in modifiers {
+                    if let name = modifier[constants.nameKey] as? String {
+                        print("modifier: \(name)")
+                        
+                        if name.lowercased() == "abstract" {
+                            classInstance.abstract = true // not possible in swift
+                            continue
+                        } else if name.lowercased() == "final" {
+                            // should we add this to the classInstance
+                            continue
+                        }
+                        
+                        //for java classes only possible access modifiers are public or no modifier
+                        //TODO: check what modifiers might exist for other languages
+                        if name.lowercased() == "public" || name.lowercased() == "private".lowercased() || name.lowercased() == "fileprivate" || name.lowercased() == "protected" {
+                            classInstance.modifier = name.lowercased()
+                            //break
+                        }
+                    }
+                }
+            }
             
             if methods.count > 0 {
                 classInstance.potentialMethods = methods
@@ -176,6 +201,8 @@ extension SyntaxAnalyser {
                 methodKind = .classMethod
             } else if kind == constants.staticMethodKind {
                 methodKind = .staticMethod
+            } else if kind == constants.constructorKind {
+                methodKind = .constructor
             }
             
             var methodType = "" //TODO: should we keep it empty if not defined?

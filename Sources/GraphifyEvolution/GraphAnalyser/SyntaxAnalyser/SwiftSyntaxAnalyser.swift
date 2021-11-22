@@ -133,6 +133,7 @@ struct SwiftKind: Kind {
     let staticMethodKind = "source.lang.swift.decl.function.method.static"
     let classMethodKind = "source.lang.swift.decl.function.method.class"
     let instanceMethodKind = "source.lang.swift.decl.function.method.instance"
+    let constructorKind = "" //?? "ConstructorDeclaration"
     
     let callInstructionKind = "source.lang.swift.expr.call"
     let ifInstructionKind = "source.lang.swift.stmt.if"

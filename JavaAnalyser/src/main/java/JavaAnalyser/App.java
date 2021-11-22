@@ -4,10 +4,7 @@
 package JavaAnalyser;
 
 import com.github.javaparser.*;
-import com.github.javaparser.ast.CompilationUnit;
-import com.github.javaparser.ast.Modifier;
-import com.github.javaparser.ast.Node;
-import com.github.javaparser.ast.NodeList;
+import com.github.javaparser.ast.*;
 import com.github.javaparser.ast.body.*;
 import com.github.javaparser.ast.expr.*;
 import com.github.javaparser.ast.type.ClassOrInterfaceType;
@@ -15,6 +12,7 @@ import com.github.javaparser.ast.type.Type;
 import com.github.javaparser.resolution.UnsolvedSymbolException;
 import com.github.javaparser.resolution.declarations.ResolvedFieldDeclaration;
 import com.github.javaparser.resolution.declarations.ResolvedMethodDeclaration;
+import com.github.javaparser.resolution.declarations.ResolvedReferenceTypeDeclaration;
 import com.github.javaparser.resolution.declarations.ResolvedValueDeclaration;
 import com.github.javaparser.resolution.types.ResolvedReferenceType;
 import com.github.javaparser.resolution.types.ResolvedType;
@@ -28,6 +26,7 @@ import com.github.javaparser.symbolsolver.resolution.typesolvers.ReflectionTypeS
 import com.github.javaparser.symbolsolver.utils.SymbolSolverCollectionStrategy;
 import com.github.javaparser.utils.ProjectRoot;
 import com.github.javaparser.utils.SourceRoot;
+import com.github.javaparser.resolution.MethodUsage;
 
 import javax.swing.text.html.Option;
 import java.io.File;
@@ -38,6 +37,7 @@ import java.lang.reflect.Field;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static java.lang.System.exit;
 
@@ -346,6 +346,48 @@ public class App {
         object.put("'key.endLine'", end);
     }
 
+    private static Map<String, Object> handleConstructor(ConstructorDeclaration constructor) {
+        Map<String,Object> object = new HashMap<>();
+
+        setStartEnd(constructor, object);
+        object.put("'key.name'", "'" + constructor.getNameAsString() + "'");
+
+        List<Map<String,Object>> annotations = new ArrayList<>();
+        for(AnnotationExpr annotation: constructor.getAnnotations()) {
+            annotations.add(handleAnnotation(annotation));
+        }
+
+        List<Map<String,Object>> modifiers = new ArrayList<>();
+        for(Modifier modifier: constructor.getModifiers()) {
+            modifiers.add(handleModifier(modifier));
+        }
+
+        object.put("'key.modifiers'", modifiers);
+        object.put("'key.annotations'", annotations);
+
+        int count = 1;
+        List<Map<String,Object>> parameters = new ArrayList<>();
+        for(Parameter parameter: constructor.getParameters()) {
+            Map<String,Object> handledParameter = handleParameter(parameter);
+            handledParameter.put("'key.position'", count);
+            parameters.add(handledParameter);
+            count++;
+        }
+        object.put("'key.parameters'", parameters); //TODO: parameters are added, why are they missing? missing from swift??
+
+        String usr = constructor.getDeclarationAsString();
+
+        object.put("'key.usr'", "'"+usr+"'");
+        object.put("'key.kind'", "'ConstructorDeclaration'");
+
+        ArrayList<Map<String,Object>> entities = new ArrayList<>();
+
+        entities.add(handleInstruction(constructor.getBody()));
+        object.put("'key.entities'", entities);
+
+        return object;
+    }
+
     private static Map<String,Object> handleMethod(MethodDeclaration method) {
         Map<String,Object> object = new HashMap<>();
 
@@ -568,12 +610,45 @@ public class App {
 
         List<Map<String,Object>> subEntities = new ArrayList<>();
 
+
+        for(BodyDeclaration member: node.getMembers()) {
+            if( member instanceof ConstructorDeclaration) {
+                subEntities.add(handleConstructor((ConstructorDeclaration) member));
+            }
+        }
+
         for(MethodDeclaration method: node.getMethods()) {
             subEntities.add(handleMethod(method));
         }
 
         for(FieldDeclaration fieldDeclaration: node.getFields()) {
             subEntities.addAll(handleVariable(fieldDeclaration, node.getFullyQualifiedName().get()));
+        }
+
+        try {
+            ResolvedReferenceTypeDeclaration resolvedClass = node.resolve();
+            for(MethodUsage methodUsage: resolvedClass.getAllMethods()) {
+                ResolvedMethodDeclaration method = methodUsage.getDeclaration();
+
+                if(method.accessSpecifier() != AccessSpecifier.PRIVATE && !method.declaringType().equals(resolvedClass.asType())) {
+                    // add inherited methods as declarations
+                    Map<String, Object> methodObject = new HashMap<>();
+                    methodObject.put("'key.name'", "'" + method.getName() + "'");
+
+                    if (method.isStatic()) {
+                        methodObject.put("'key.kind'", "'StaticMethodDeclaration'");
+                    } else {
+                        methodObject.put("'key.kind'", "'InstanceMethodDeclaration'");
+                    }
+
+                    methodObject.put("'key.usr'", "'" + method.getQualifiedSignature() + "'");
+                    methodObject.put("'key.isMethodReference'", 1);
+
+                    subEntities.add(methodObject);
+                }
+            }
+        } catch (UnsolvedSymbolException exception) {
+            // if we cannot resolve class, we cannot find inherited methods, so currently fail silently
         }
 
         object.put("'key.entities'", subEntities);
