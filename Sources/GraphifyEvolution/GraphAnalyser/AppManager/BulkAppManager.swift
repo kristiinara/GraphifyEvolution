@@ -154,12 +154,32 @@ func parseProject(json: [String: Any]) -> Project {
         source = json["repository_url"] as? String
     }
     
-    if let title = title {
-       if title.starts(with: "https://github.com/") {
-            source = title
-       } else if title.starts(with: "github.com/") {
-            source = "https://\(title)"
-       }
+    if var titleString = title {
+        if titleString.hasSuffix(".json") {
+            // do nothing, but we will not handle this kind of a project
+        } else if titleString.starts(with: "https://github.com/") {
+            source = titleString
+            
+            if titleString.hasSuffix(".git") {
+                titleString = titleString.replacingOccurrences(of: ".git", with: "")
+            }
+            title = titleString.replacingOccurrences(of: "https://github.com/", with: "")
+            
+        } else if titleString.starts(with: "github.com/") {
+            source = "https://\(titleString)"
+            
+            if titleString.hasSuffix(".git") {
+                titleString = titleString.replacingOccurrences(of: ".git", with: "")
+            }
+            title = titleString.replacingOccurrences(of: "github.com/", with: "")
+        } else if titleString.components(separatedBy: "/").count > 2 {
+            if titleString.starts(with: "https://") {
+                source = titleString
+                title = titleString.replacingOccurrences(of: "https://", with: "")
+            } else {
+                source = "https://\(titleString)"
+            }
+        }
     }
     
     var tags = json["tags"] as? [String]
