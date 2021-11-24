@@ -352,7 +352,7 @@ class Library {
     
     
     init(name: String, versionString: String) {
-        self.name = name
+        self.name = name.lowercased()
         self.versionString = versionString
     }
     
@@ -406,7 +406,7 @@ class LibraryDefinition {
     
     
     init(name: String, versionString: String, type: String) {
-        self.name = name
+        self.name = name.lowercased()
         self.versionString = versionString
         self.type = type
     }
