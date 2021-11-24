@@ -141,6 +141,20 @@ class DependencyAnalyser: ExternalAnalyser {
                 }
                 
                 name = name.replacingOccurrences(of: "\"", with: "")
+                
+                if name.hasSuffix(".git") {
+                    name = name.replacingOccurrences(of: ".git", with: "") // sometimes .git remanes behind name, must be removed
+                }
+                
+                if name.hasPrefix("git@github.com:") {
+                    name = name.replacingOccurrences(of: "git@github.com:", with: "") // for github projects, transform to regular username/projectname format
+                }
+                
+                if name.hasPrefix("git@bitbucket.org:") { // for bitbucket projects keep bitbucket part to distinguish it
+                    name = name.replacingOccurrences(of: "git@", with: "")
+                    name = name.replacingOccurrences(of: ":", with: "/")
+                }
+                
                 let version = components[2].replacingOccurrences(of: "\"", with: "")
                 libraries.append(Library(name: name, versionString: version))
             }
