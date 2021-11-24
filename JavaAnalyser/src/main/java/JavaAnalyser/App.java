@@ -10,10 +10,7 @@ import com.github.javaparser.ast.expr.*;
 import com.github.javaparser.ast.type.ClassOrInterfaceType;
 import com.github.javaparser.ast.type.Type;
 import com.github.javaparser.resolution.UnsolvedSymbolException;
-import com.github.javaparser.resolution.declarations.ResolvedFieldDeclaration;
-import com.github.javaparser.resolution.declarations.ResolvedMethodDeclaration;
-import com.github.javaparser.resolution.declarations.ResolvedReferenceTypeDeclaration;
-import com.github.javaparser.resolution.declarations.ResolvedValueDeclaration;
+import com.github.javaparser.resolution.declarations.*;
 import com.github.javaparser.resolution.types.ResolvedReferenceType;
 import com.github.javaparser.resolution.types.ResolvedType;
 import com.github.javaparser.symbolsolver.JavaSymbolSolver;
@@ -375,7 +372,18 @@ public class App {
         }
         object.put("'key.parameters'", parameters); //TODO: parameters are added, why are they missing? missing from swift??
 
-        String usr = constructor.getDeclarationAsString();
+        //String usr = constructor.getDeclarationAsString();
+
+        String usr;
+        try {
+            ResolvedConstructorDeclaration resolvedConstructor = constructor.resolve();
+            usr = resolvedConstructor.getQualifiedSignature(); //TODO: why does this not always work?
+        } catch (UnsolvedSymbolException exception) {
+            //usr = resolvedMethodDeclaration.getSignature(); //TODO: add class string?
+            usr = constructor.getName().toString();
+        }
+
+        object.put("'key.usr'", "'"+usr+"'");
 
         object.put("'key.usr'", "'"+usr+"'");
         object.put("'key.kind'", "'ConstructorDeclaration'");
