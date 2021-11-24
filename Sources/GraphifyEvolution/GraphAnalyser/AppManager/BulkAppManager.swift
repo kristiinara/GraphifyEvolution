@@ -235,6 +235,7 @@ extension Project: Neo4jObject {
         oldNode.properties["categories"] = self.categories != nil ? "\(self.categories!)" : nil
         oldNode.properties["license"] = self.license
         oldNode.properties["stars"] = self.stars
+        oldNode.properties["analysisStarted"] = self.analysisStarted
         
         self.nodeSet = oldNode
         
