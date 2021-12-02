@@ -94,6 +94,14 @@ class DependencyAnalyser: ExternalAnalyser {
             
             for line in lines {
                 if line.starts(with: "github") || line.starts(with: "git") || line.starts(with: "binary") {
+                    // binary:
+                    //  - do not handle specially, just add LibraryDefinition (we do not handle these projects yet)
+                    // github:
+                    //  - can be either public git repo or private enterprise git repo, only handle public git repo correctly
+                    // git:
+                    //  - can be either public git repo or a local repo, only handle public repo correctly
+                    
+                    
                     var components = line.components(separatedBy: .whitespaces)
                     print("components: \(components)")
                     // components[0] = git, github
@@ -103,7 +111,18 @@ class DependencyAnalyser: ExternalAnalyser {
                     }
                     
                     let type = components.removeFirst()
-                    let name = components.removeFirst().replacingOccurrences(of: "\"", with: "")
+                    var name = components.removeFirst().replacingOccurrences(of: "\"", with: "")
+                    if name.starts(with: "https://github.com/") && !name.hasSuffix(".json") {
+                        name = name.replacingOccurrences(of: "https://github.com/", with: "")
+                    } else if name.starts(with: "github.com/") && !name.hasSuffix(".json") {
+                        name = name.replacingOccurrences(of: "github.com/", with: "")
+                    }
+                    
+                    // version can be for example:
+                    //  >= 2.3.1     -- version 2.3.1 or later
+                    //  <= 2.3.1     -- does this exist?
+                    //  ~> 2.3       -- version 2.3 or later, but less than 3
+                    //  2.3.1        -- exact verson 2.3.1
                     let version = components.joined(separator: " ").replacingOccurrences(of: "\"", with: "")
                     libraries.append(LibraryDefinition(name: name, versionString: version, type: type))
                 }
