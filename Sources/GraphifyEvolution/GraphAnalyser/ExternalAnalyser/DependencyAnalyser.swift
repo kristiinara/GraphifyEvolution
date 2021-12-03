@@ -152,7 +152,7 @@ class DependencyAnalyser: ExternalAnalyser {
                 if dependencyFile.type == .carthage {
                     libraryDefinitions = handleCartfileConfig(path: dependencyFile.definitionFile!)
                 } else if dependencyFile.type == .cocoapods {
-                    //TODO: implement
+                    libraryDefinitions = handlePodsFileConfig(path: dependencyFile.definitionFile!)
                 } else if dependencyFile.type == .swiftPM {
                     //TODO: implement
                 }
@@ -461,10 +461,24 @@ class DependencyAnalyser: ExternalAnalyser {
                     break
                 }
                 
-                let name = components[0]
-                var version = String(components[1].dropLast().dropFirst())
+                var name = components[0]
+                var version = String(components[1].trimmingCharacters(in: .whitespacesAndNewlines).dropLast().dropFirst())
                 //version.remove(at: version.startIndex) // remove (
                 //version.remove(at: version.endIndex) // remove )
+                
+                var cleanedVersion = version.components(separatedBy: " ").last!
+                cleanedVersion = cleanedVersion.replacingOccurrences(of: "=", with: "")
+                cleanedVersion = cleanedVersion.replacingOccurrences(of: ">", with: "")
+                cleanedVersion = cleanedVersion.replacingOccurrences(of: "<", with: "")
+                cleanedVersion = cleanedVersion.replacingOccurrences(of: "~", with: "")
+                
+                // translate to same library names and versions as Carthage
+                if let translation = translateLibraryVersion(name: name, version: cleanedVersion) {
+                    name = translation.name
+                    if let translatedVersion = translation.version {
+                        version = version.replacingOccurrences(of: cleanedVersion, with: translatedVersion)
+                    }
+                }
                 
                 libraries.append(Library(name: name, versionString: version))
                 
