@@ -107,35 +107,60 @@ class BulkAppManager: AppManager {
         
         var projects: [Project] = []
         
-        do {
-            let data = try Data(contentsOf: URL(fileURLWithPath: self.jsonPath))
-            
-            let json = try JSONSerialization.jsonObject(with: data,
-                                                          options: JSONSerialization.ReadingOptions.mutableContainers) as Any
+        if self.jsonPath.hasSuffix(".json") {
+            do {
+                let data = try Data(contentsOf: URL(fileURLWithPath: self.jsonPath))
+                
+                let json = try JSONSerialization.jsonObject(with: data,
+                                                              options: JSONSerialization.ReadingOptions.mutableContainers) as Any
 
-            if let dictionary = json as? [String: Any] {
-                if let projectDicts = dictionary["projects"] as? [[String: Any]] {
+                if let dictionary = json as? [String: Any] {
+                    if let projectDicts = dictionary["projects"] as? [[String: Any]] {
+                        for projectDict in projectDicts {
+                            projects.append(parseProject(json: projectDict))
+                        }
+                    } else {
+                        print("No project in json")
+                    }
+                } else if let projectDicts = json as? [[String: Any]] {
                     for projectDict in projectDicts {
                         projects.append(parseProject(json: projectDict))
                     }
                 } else {
-                    print("No project in json")
+                    print("Incorrect json format")
                 }
-            } else if let projectDicts = json as? [[String: Any]] {
-                for projectDict in projectDicts {
-                    projects.append(parseProject(json: projectDict))
-                }
-            } else {
-                print("Incorrect json format")
+            } catch {
+                fatalError("Parsing json failed: \(error.localizedDescription)")
             }
-        } catch {
-            fatalError("Parsing json failed: \(error.localizedDescription)")
+            
+            print("Projects found in json file: \(projects.count)")
+            
+            self.allProjects = projects
+            self.projectsToAnalyse = projects
+        } else if self.jsonPath.hasSuffix(".txt") {
+            if let dataString = try? String(contentsOfFile: self.jsonPath) {
+                let lines = dataString.split(separator: "\n")
+                for line in lines {
+                    var title: String = String(line)
+                    
+                    if title.contains("github.com") {
+                        title = title.components(separatedBy: "github.com/").last!
+                        title = title.replacingOccurrences(of: ".git", with: "")
+                    } else if title.contains("bitbucket.org") {
+                        title = title.replacingOccurrences(of: "git@", with: "")
+                        title = title.replacingOccurrences(of: ":", with: "/")
+                    }
+                    
+                    var source = String(line)
+                    source = source.replacingOccurrences(of: ".git", with: "")
+                    
+                    let project = Project(title: title, source: source)
+                    projects.append(project)
+                }
+            }
+            self.allProjects = projects
+            self.projectsToAnalyse = projects
         }
-        
-        print("Projects found in json file: \(projects.count)")
-        
-        self.allProjects = projects
-        self.projectsToAnalyse = projects
     }
     
     func newAppManager(path: String, appKey: String?) -> AppManager {

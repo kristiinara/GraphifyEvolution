@@ -8,6 +8,8 @@
 import Foundation
 
 class DependencyAnalyser: ExternalAnalyser {
+    var libraryDictionary: [String: (name: String, versions: [String:String])]?
+    
     func analyseClass(classInstance: Class, app: App) {
         fatalError("DependencyAnalyser does not support class level analysis")
     }
@@ -28,6 +30,105 @@ class DependencyAnalyser: ExternalAnalyser {
     
     var readme: String {
         return "Analyses dependencies of an iOS application/libarary and enters them into the database"
+    }
+    
+    func translateLibraryVersion(name: String, version: String) -> (name: String, version: String?)? {
+        if libraryDictionary == nil {
+            let currentDirectory = FileManager.default.currentDirectoryPath
+            let specDirectory = "\(currentDirectory)/ExternalAnalysers/Specs/Specs" // TODO: check that the repo actually exists + refresh?
+            
+            var libraryPath: String? = nil
+            var libraryName: String? = nil
+            var versionTranslations: [String:String] = [:]
+            
+            let enumerator = FileManager.default.enumerator(atPath: specDirectory)
+            while let filename = enumerator?.nextObject() as? String {
+                if filename.hasSuffix(name) {
+                    libraryPath = "\(specDirectory)/\(filename)"
+                    
+                    if libraryDictionary == nil {
+                        libraryDictionary = [:]
+                    }
+                    
+                    if var libraryDictionary = libraryDictionary {
+                        if let libraryName = libraryName {
+                            libraryDictionary[name] = (name: libraryName, versions: versionTranslations)
+                            self.libraryDictionary = libraryDictionary
+                        }
+                    }
+                    
+                    libraryName = nil
+                    versionTranslations = [:]
+                    
+                } else if filename.contains("/\(name)/") && filename.hasSuffix("podspec.json") {
+                    // grep filename to get:
+                    //  version
+                    //  tag
+                    //  git path --> parse to library name
+                    var version = Helper.shell(launchPath: "/usr/bin/grep", arguments: ["\"version\":", "\(specDirectory)/\(filename)"])
+                    version = version.trimmingCharacters(in: .whitespacesAndNewlines)
+                    version = version.replacingOccurrences(of: "\"version\": ", with: "")
+                    version = version.replacingOccurrences(of: "\"", with: "")
+                    version = version.replacingOccurrences(of: ",", with: "")
+                    
+                    var tag = Helper.shell(launchPath: "/usr/bin/grep", arguments: ["\"tag\":", "\(specDirectory)/\(filename)"])
+                    tag = tag.trimmingCharacters(in: .whitespacesAndNewlines)
+                    tag = tag.replacingOccurrences(of: "\"version\": ", with: "")
+                    tag = tag.replacingOccurrences(of: "\"", with: "")
+                    tag = tag.replacingOccurrences(of: ",", with: "")
+                    
+                    if libraryName == nil {
+                        let gitPath = Helper.shell(launchPath: "/usr/bin/grep", arguments: ["\"git\":", "\(specDirectory)/\(filename)"])
+                        
+                        libraryName = gitPath
+                        if gitPath.contains(".com") {
+                            libraryName = gitPath.components(separatedBy: ".com/").last!.replacingOccurrences(of: ".git", with: "")
+                        } else if gitPath.contains(".org") {
+                            libraryName = gitPath.components(separatedBy: ".org/").last!.replacingOccurrences(of: ".git", with: "")
+                        }
+                    }
+                    
+                    if version != "" && tag != "" {
+                        versionTranslations[version] = tag
+                    }
+                } else {
+                    if libraryPath != nil {
+                        break
+                    }
+                }
+                
+            }
+            
+            if libraryDictionary == nil {
+                libraryDictionary = [:]
+            }
+            
+            if var libraryDictionary = libraryDictionary {
+                if let libraryName = libraryName {
+                    libraryDictionary[name] = (name: libraryName, versions: versionTranslations)
+                    self.libraryDictionary = libraryDictionary
+                }
+            }
+            
+        }
+        
+        if var libraryDictionary = libraryDictionary {
+            if let libraryInfo = libraryDictionary[name] {
+                let name = libraryInfo.name
+                let version = libraryInfo.versions[version]
+                
+                return (name: name, version: version)
+            }
+        }
+        
+        /*
+         cocoaPodsName:
+            ( name:
+              versions:
+                [cocoaPodsVersion: tag]
+            )
+         */
+        return nil
     }
     
     func analyseApp(app: App) {
@@ -83,6 +184,154 @@ class DependencyAnalyser: ExternalAnalyser {
                 }
              }
         }
+    }
+    
+    func handlePodsFileConfig(path: String) -> [LibraryDefinition] {
+        print("handle carthage config")
+        var libraries: [LibraryDefinition] = []
+        do {
+            let data = try String(contentsOfFile: path, encoding: .utf8)
+            let lines = data.components(separatedBy: .newlines)
+            
+            for var line in lines {
+                line = line.trimmingCharacters(in: .whitespacesAndNewlines)
+                line = line.lowercased()
+                    
+                if line.starts(with: "pod") {
+                    let nameComponents = line.components(separatedBy: " ")
+                    if nameComponents.count < 2 {
+                        // pod 'LibraryName'
+                        // pod 'LibraryName', 'versions'
+                        continue
+                    }
+                    
+                    // Clean library name
+                    var libraryName = nameComponents[1].replacingOccurrences(of: ",", with: "")
+                    libraryName = libraryName.replacingOccurrences(of: "'", with: "")
+                    
+                    let components = line.components(separatedBy: ",")
+                    
+                    var version = ""
+
+                    if components.count > 1 {
+                        var optionCompnents: [String] = []
+                        var tempComponent = ""
+                        
+                        for component in components {
+                            // handle following configurations where arrays will be split
+                            //  pod 'LibraryName', :subspecs => ['subspec1', 'subspec2']
+                            if component.contains("[") && !component.contains("]") {
+                                tempComponent += component
+                            } else {
+                                if tempComponent != "" {
+                                    tempComponent += component
+                                    
+                                    if component.contains("]") {
+                                        optionCompnents.append(tempComponent)
+                                        tempComponent = ""
+                                    }
+                                } else {
+                                    optionCompnents.append(component)
+                                }
+                            }
+                        }
+                        
+                        for var component in optionCompnents {
+                            component = component.trimmingCharacters(in: .whitespacesAndNewlines)
+                            if !component.hasPrefix(":") {
+                                version = component
+                                break
+                            }
+                            
+                            if component.contains(":branch") {
+                                version = component
+                            } else if component.contains(":tag") {
+                                version = component
+                            } else if component.contains(":commit") {
+                                version = component
+                            }
+                        }
+                    }
+                    
+                    version = version.replacingOccurrences(of: "'", with: "")
+                    
+                    // library name is enough to find library
+                    // version: branch, tag, commit or
+                    
+                    // options:
+                    //  pod 'LibraryName', :git -> 'git-path'
+                    //  pod 'LibraryName', :git -> 'git-path', :branch => 'branch'
+                    //  pod 'LibraryName', :git -> 'git-path', :tag => 'tag'
+                    //  pod 'LibraryName', :git -> 'git-path', :commit => 'commit'
+                    //  pod 'LibraryName', :configurations => ['Debug', 'Beta']
+                    //  pod 'LibraryName', :configurations => 'Debug'
+                    //  pod 'LibraryName', :modular_headers => false
+                    //  pod 'LibraryName', :source => 'path/specs.git'
+                    //  pod 'LibrrayName/Subspecname'
+                    //  pod 'LibraryName', :subspecs => ['subspec1', 'subspec2']
+                    //  pod 'LibraryName', :testspecs => ['testspec1', 'testspec2']
+                    //  pod 'LibraryName', :path => '../localpath/LibraryName'
+                    //  pod 'LibraryName', :podspec => 'path/libraryName.podspec'
+                    
+                    // split by ","
+                    // first component: pod + name --> split by " " --> second subcomponent name
+                    //    if name contains "/" --> what do we do then?
+                    // for each component:
+                    //    if component contains [, but not ] then join with next components until [ and ] present
+                    //    --> get new list of components
+                    // for each component
+                    //    strip whitespace
+                    //    if starts with :git --> use as git path?
+                    //    if starts with :branch --> set as version
+                    //    if starts with :tag --> set as version
+                    //    if starts with :commit --> set as version
+                    //    if starts with :configuraitons --> ignore component
+                    //    if starts with :modular_headers --> ignore component
+                    //    if starts with :source --> ignore? could also clone this spec and find correct data for the library
+                    //    if starts with :subspecs --> ignore? what do we do then?
+                    //    if starts with :testspecs --> ignore
+                    //    if starts with :path --> indicate, but ignore
+                    //    if starts with :podspec --> currently ignore, we can download podspec and find correct library data from there
+                    //    if starts with ":" --> then record, but ignore
+                    //    if none of the above, then record as version number
+                    // for each component: join all option names --> add them as type
+                    
+                    /* Version options
+                     = 0.1 Version 0.1.
+                     > 0.1 Any version higher than 0.1.
+                     >= 0.1 Version 0.1 and any higher version.
+                     < 0.1 Any version lower than 0.1.
+                     <= 0.1 Version 0.1 and any lower version.
+                     ~> 0.1.2
+                     */
+                    
+                    var cleanedVersion = version.components(separatedBy: " ").last!
+                    cleanedVersion = cleanedVersion.replacingOccurrences(of: "=", with: "")
+                    cleanedVersion = cleanedVersion.replacingOccurrences(of: ">", with: "")
+                    cleanedVersion = cleanedVersion.replacingOccurrences(of: "<", with: "")
+                    cleanedVersion = cleanedVersion.replacingOccurrences(of: "~", with: "")
+                    
+                    if let translation = translateLibraryVersion(name: libraryName, version: cleanedVersion) {
+                        libraryName = translation.name
+                        if let translatedVersion = translation.version {
+                            version = version.replacingOccurrences(of: cleanedVersion, with: translatedVersion)
+                        }
+                    }
+                    
+                    let libraryDefinition = LibraryDefinition(name: libraryName, versionString: version, type: "pod")
+                    libraries.append(libraryDefinition)
+                }
+            }
+            
+        } catch {
+            print("could not read podfile \(path)")
+        }
+        
+        return libraries
+    }
+    
+    func handleSwiftPmFileConfig(path: String) -> [LibraryDefinition] {
+        return []
     }
     
     func handleCartfileConfig(path: String) -> [LibraryDefinition] {
