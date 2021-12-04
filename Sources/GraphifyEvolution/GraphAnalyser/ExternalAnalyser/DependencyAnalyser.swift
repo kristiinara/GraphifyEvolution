@@ -180,7 +180,15 @@ class DependencyAnalyser: ExternalAnalyser {
                 print("libraries: \(libraries)")
                 
                 for library in libraries {
-                    let _ = app.relate(to: library, type: "DEPENDS_ON", properties: ["type": dependencyFile.type])
+                    if let directDependency = library.directDependency {
+                        if directDependency {
+                            let _ = app.relate(to: library, type: "DEPENDS_ON", properties: ["type": dependencyFile.type])
+                        } else {
+                            let _ = app.relate(to: library, type: "DEPENDS_ON_INDIRECTLY", properties: ["type": dependencyFile.type])
+                        }
+                    } else {
+                        let _ = app.relate(to: library, type: "DEPENDS_ON", properties: ["type": dependencyFile.type])
+                    }
                 }
              }
         }
@@ -435,14 +443,18 @@ class DependencyAnalyser: ExternalAnalyser {
     
     func handlePodsFile(path: String) -> [Library] {
         print("handle pods")
+        var reachedDependencies = false
         var libraries: [Library] = []
+        var declaredPods: [String] = []
         do {
             let data = try String(contentsOfFile: path, encoding: .utf8)
             let lines = data.components(separatedBy: .newlines)
             
             for var line in lines {
                 if line.starts(with: "DEPENDENCIES:") {
-                    break
+                    //break
+                    reachedDependencies = true
+                    continue
                 }
                 
                 if line.starts(with: "PODS:") {
@@ -452,40 +464,57 @@ class DependencyAnalyser: ExternalAnalyser {
                 
                 // check if direct or transitive?
                 
-                line = line.replacingOccurrences(of: "  - ", with: "")
-                let components = line.components(separatedBy: .whitespaces)
-                
-                print("components: \(components)")
-                
-                if(components.count != 2) {
-                    break
-                }
-                
-                var name = components[0]
-                var version = String(components[1].trimmingCharacters(in: .whitespacesAndNewlines).dropLast().dropFirst())
-                //version.remove(at: version.startIndex) // remove (
-                //version.remove(at: version.endIndex) // remove )
-                
-                var cleanedVersion = version.components(separatedBy: " ").last!
-                cleanedVersion = cleanedVersion.replacingOccurrences(of: "=", with: "")
-                cleanedVersion = cleanedVersion.replacingOccurrences(of: ">", with: "")
-                cleanedVersion = cleanedVersion.replacingOccurrences(of: "<", with: "")
-                cleanedVersion = cleanedVersion.replacingOccurrences(of: "~", with: "")
-                
-                // translate to same library names and versions as Carthage
-                if let translation = translateLibraryVersion(name: name, version: cleanedVersion) {
-                    name = translation.name
-                    if let translatedVersion = translation.version {
-                        version = version.replacingOccurrences(of: cleanedVersion, with: translatedVersion)
+                //line = line.trimmingCharacters(in: .whitespacesAndNewlines)
+                if line.starts(with: "  -") { // lines with more whitespace will be ignored
+                    line = line.replacingOccurrences(of: "  - ", with: "")
+                    let components = line.components(separatedBy: .whitespaces)
+                    
+                    print("components: \(components)")
+                    
+                    if(components.count != 2) {
+                        continue
                     }
+                    
+                    var name = components[0].replacingOccurrences(of: "\"", with: "").lowercased()
+                    
+                    if reachedDependencies {
+                        declaredPods.append(name)
+                        continue
+                    }
+                    
+                    var version = String(components[1].trimmingCharacters(in: .whitespacesAndNewlines))
+                    version = version.replacingOccurrences(of: ":", with: "")
+                    version = version.replacingOccurrences(of: "\"", with: "")
+                    version = String(version.dropLast().dropFirst())
+                    //version.remove(at: version.startIndex) // remove (
+                    //version.remove(at: version.endIndex) // remove )
+                    
+                    // translate to same library names and versions as Carthage
+                    if let translation = translateLibraryVersion(name: name, version: version) {
+                        name = translation.name
+                        if let translatedVersion = translation.version {
+                            version = translatedVersion
+                        }
+                    }
+                    
+                    libraries.append(Library(name: name, versionString: version))
+                    
+                    print("added library")
+                } else {
+                    // ignore
+                    continue
                 }
-                
-                libraries.append(Library(name: name, versionString: version))
-                
-                print("added library")
             }
         } catch {
             print("could not read pods file \(path)")
+        }
+        
+        for library in libraries {
+            if declaredPods.contains(library.name) {
+                library.directDependency = true
+            } else {
+                library.directDependency = false
+            }
         }
         
         return libraries
@@ -645,7 +674,7 @@ class DependencyAnalyser: ExternalAnalyser {
 class Library {
     let name: String
     let versionString: String
-    
+    var directDependency: Bool? = nil
     
     init(name: String, versionString: String) {
         self.name = name.lowercased()
