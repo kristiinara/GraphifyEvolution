@@ -143,16 +143,22 @@ class BulkAppManager: AppManager {
                 for line in lines {
                     var title: String = String(line)
                     
+                    var source = String(line)
+                    
                     if title.contains("github.com") {
-                        title = title.components(separatedBy: "github.com/").last!
+                        title = title.components(separatedBy: "github.com").last!
                         title = title.replacingOccurrences(of: ".git", with: "")
+                        title = title.replacingOccurrences(of: ":", with: "/")
+                        source = "https://github.com\(title)"
                     } else if title.contains("bitbucket.org") {
+                        title = title.components(separatedBy: "bitbucket.org").last!
+                        title = "bitbucket.org\(title)"
                         title = title.replacingOccurrences(of: "git@", with: "")
                         title = title.replacingOccurrences(of: ":", with: "/")
+                        source = "https://\(title)"
+                    } else {
+                        continue
                     }
-                    
-                    var source = String(line)
-                    source = source.replacingOccurrences(of: ".git", with: "")
                     
                     let project = Project(title: title, source: source)
                     projects.append(project)
