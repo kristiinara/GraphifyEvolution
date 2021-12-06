@@ -457,6 +457,28 @@ class DependencyAnalyser: ExternalAnalyser {
                     continue
                 }
                 
+                if reachedDependencies {
+                    if line.starts(with: "  -") { // lines with more whitespace will be ignored
+                        line = line.replacingOccurrences(of: "  - ", with: "")
+                        let components = line.components(separatedBy: .whitespaces)
+                    
+                        print("components: \(components)")
+                    
+                        if(components.count < 2) {
+                            continue
+                        }
+                    
+                        let name = components[0].replacingOccurrences(of: "\"", with: "").lowercased()
+                        declaredPods.append(name)
+                    }
+                }
+            }
+            
+            for var line in lines {
+                if line.starts(with: "DEPENDENCIES:") {
+                    break
+                }
+                
                 if line.starts(with: "PODS:") {
                     // ignore
                     continue
@@ -476,11 +498,7 @@ class DependencyAnalyser: ExternalAnalyser {
                     }
                     
                     var name = components[0].replacingOccurrences(of: "\"", with: "").lowercased()
-                    
-                    if reachedDependencies {
-                        declaredPods.append(name)
-                        continue
-                    }
+                    let originalName = name
                     
                     var version = String(components[1].trimmingCharacters(in: .whitespacesAndNewlines))
                     version = version.replacingOccurrences(of: ":", with: "")
@@ -497,7 +515,14 @@ class DependencyAnalyser: ExternalAnalyser {
                         }
                     }
                     
-                    libraries.append(Library(name: name, versionString: version))
+                    let library = Library(name: name, versionString: version)
+                    if declaredPods.contains(originalName) {
+                        library.directDependency = true
+                    } else {
+                        library.directDependency = false
+                    }
+                    
+                    libraries.append(library)
                     
                     print("added library")
                 } else {
@@ -507,14 +532,6 @@ class DependencyAnalyser: ExternalAnalyser {
             }
         } catch {
             print("could not read pods file \(path)")
-        }
-        
-        for library in libraries {
-            if declaredPods.contains(library.name) {
-                library.directDependency = true
-            } else {
-                library.directDependency = false
-            }
         }
         
         return libraries
