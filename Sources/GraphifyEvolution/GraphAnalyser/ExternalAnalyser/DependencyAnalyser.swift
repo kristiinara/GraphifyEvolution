@@ -244,8 +244,13 @@ class DependencyAnalyser: ExternalAnalyser {
                             }
                         }
                         
+                        
                         for var component in optionCompnents {
                             component = component.trimmingCharacters(in: .whitespacesAndNewlines)
+                            if component.hasPrefix("pod") {
+                                continue
+                            }
+                            
                             if !component.hasPrefix(":") {
                                 version = component
                                 break
