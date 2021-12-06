@@ -153,7 +153,7 @@ class BulkAppManager: AppManager {
                     } else if title.contains("bitbucket.org") {
                         title = title.components(separatedBy: "bitbucket.org").last!
                         title = "bitbucket.org\(title)"
-                        title = title.replacingOccurrences(of: "git@", with: "")
+                        title = title.replacingOccurrences(of: ".git", with: "")
                         title = title.replacingOccurrences(of: ":", with: "/")
                         source = "https://\(title)"
                     } else {
