@@ -8,7 +8,7 @@
 import Foundation
 
 class DependencyAnalyser: ExternalAnalyser {
-    var libraryDictionary: [String: (name: String, versions: [String:String])]?
+    var libraryDictionary: [String: (name: String, path: String, versions: [String:String])] = [:]
     
     func analyseClass(classInstance: Class, app: App) {
         fatalError("DependencyAnalyser does not support class level analysis")
@@ -33,94 +33,108 @@ class DependencyAnalyser: ExternalAnalyser {
     }
     
     func translateLibraryVersion(name: String, version: String) -> (name: String, version: String?)? {
-        if libraryDictionary == nil {
-            let currentDirectory = FileManager.default.currentDirectoryPath
-            let specDirectory = "\(currentDirectory)/ExternalAnalysers/Specs/Specs" // TODO: check that the repo actually exists + refresh?
-            
-            var libraryPath: String? = nil
-            var libraryName: String? = nil
-            var versionTranslations: [String:String] = [:]
-            
-            let enumerator = FileManager.default.enumerator(atPath: specDirectory)
-            while let filename = enumerator?.nextObject() as? String {
-                if filename.hasSuffix(name) {
-                    libraryPath = "\(specDirectory)/\(filename)"
-                    
-                    if libraryDictionary == nil {
-                        libraryDictionary = [:]
+        print("translate library name: \(name), version: \(version)")
+        
+       // let currentDirectory = FileManager.default.currentDirectoryPath
+        let currentDirectory = "/Users/kristiina/Phd/Tools/GraphifyEvolution"
+        //print("currnent directory: \(currentDirectory)")
+        let specDirectory = "\(currentDirectory)/ExternalAnalysers/Specs/Specs" // TODO: check that the repo actually exists + refresh?
+        //print("specpath: \(specDirectory)")
+        
+        if var translation = libraryDictionary[name] {
+            if let translatedVersion = translation.versions[version] {
+                return (name:translation.name, version: translatedVersion)
+            } else {
+                let enumerator = FileManager.default.enumerator(atPath: translation.path)
+                var podSpecPath: String? = nil
+                while let filename = enumerator?.nextObject() as? String {
+                    print(filename)
+                    if filename.hasSuffix("podspec.json") {
+                        podSpecPath = "\(translation.path)/\(filename)"
+                        print("set podspecpath")
                     }
                     
-                    if var libraryDictionary = libraryDictionary {
-                        if let libraryName = libraryName {
-                            libraryDictionary[name] = (name: libraryName, versions: versionTranslations)
-                            self.libraryDictionary = libraryDictionary
-                        }
-                    }
-                    
-                    libraryName = nil
-                    versionTranslations = [:]
-                    
-                } else if filename.contains("/\(name)/") && filename.hasSuffix("podspec.json") {
-                    // grep filename to get:
-                    //  version
-                    //  tag
-                    //  git path --> parse to library name
-                    var version = Helper.shell(launchPath: "/usr/bin/grep", arguments: ["\"version\":", "\(specDirectory)/\(filename)"])
-                    version = version.trimmingCharacters(in: .whitespacesAndNewlines)
-                    version = version.replacingOccurrences(of: "\"version\": ", with: "")
-                    version = version.replacingOccurrences(of: "\"", with: "")
-                    version = version.replacingOccurrences(of: ",", with: "")
-                    
-                    var tag = Helper.shell(launchPath: "/usr/bin/grep", arguments: ["\"tag\":", "\(specDirectory)/\(filename)"])
-                    tag = tag.trimmingCharacters(in: .whitespacesAndNewlines)
-                    tag = tag.replacingOccurrences(of: "\"version\": ", with: "")
-                    tag = tag.replacingOccurrences(of: "\"", with: "")
-                    tag = tag.replacingOccurrences(of: ",", with: "")
-                    
-                    if libraryName == nil {
+                    if filename.lowercased().hasPrefix("\(version)/") && filename.hasSuffix("podspec.json"){
+                        var newVersion = Helper.shell(launchPath: "/usr/bin/grep", arguments: ["\"version\":", "\(specDirectory)/\(filename)"])
+                        newVersion = newVersion.trimmingCharacters(in: .whitespacesAndNewlines)
+                        newVersion = newVersion.replacingOccurrences(of: "\"version\": ", with: "")
+                        newVersion = newVersion.replacingOccurrences(of: "\"", with: "")
+                        newVersion = newVersion.replacingOccurrences(of: ",", with: "")
+                        
+                        var tag = Helper.shell(launchPath: "/usr/bin/grep", arguments: ["\"tag\":", "\(specDirectory)/\(filename)"])
+                        tag = tag.trimmingCharacters(in: .whitespacesAndNewlines)
+                        tag = tag.replacingOccurrences(of: "\"version\": ", with: "")
+                        tag = tag.replacingOccurrences(of: "\"", with: "")
+                        tag = tag.replacingOccurrences(of: ",", with: "")
+                        
                         let gitPath = Helper.shell(launchPath: "/usr/bin/grep", arguments: ["\"git\":", "\(specDirectory)/\(filename)"])
                         
-                        libraryName = gitPath
+                        var libraryName: String? = nil
                         if gitPath.contains(".com") {
                             libraryName = gitPath.components(separatedBy: ".com/").last!.replacingOccurrences(of: ".git", with: "")
                         } else if gitPath.contains(".org") {
                             libraryName = gitPath.components(separatedBy: ".org/").last!.replacingOccurrences(of: ".git", with: "")
                         }
+                        
+                        if newVersion != "" && tag != "" {
+                            translation.versions[version] = newVersion
+                        }
+                        
+                        if var libraryName = libraryName {
+                            libraryName = libraryName.trimmingCharacters(in: .whitespacesAndNewlines)
+                            libraryName = libraryName.replacingOccurrences(of: "\"", with: "")
+                            libraryName = libraryName.replacingOccurrences(of: ",", with: "")
+                            
+                            translation.name = libraryName
+                        }
+                        libraryDictionary[name] = translation
+                        return (name: translation.name, version: newVersion)
+                    }
+                }
+                
+                if let podSpecPath = podSpecPath {
+                    print("parse podSpecPath: \(podSpecPath)")
+                    var libraryName: String? = nil
+                    
+                    let gitPath = Helper.shell(launchPath: "/usr/bin/grep", arguments: ["\"git\":", "\(podSpecPath)"])
+                    print("found gitPath: \(gitPath)")
+                    
+                    if gitPath.contains(".com") {
+                        libraryName = gitPath.components(separatedBy: ".com/").last!.replacingOccurrences(of: ".git", with: "")
+                    } else if gitPath.contains(".org") {
+                        libraryName = gitPath.components(separatedBy: ".org/").last!.replacingOccurrences(of: ".git", with: "")
                     }
                     
-                    if version != "" && tag != "" {
-                        versionTranslations[version] = tag
-                    }
-                } else {
-                    if libraryPath != nil {
-                        break
+                    if var libraryName = libraryName {
+                        libraryName = libraryName.trimmingCharacters(in: .whitespacesAndNewlines)
+                        libraryName = libraryName.replacingOccurrences(of: "\"", with: "")
+                        libraryName = libraryName.replacingOccurrences(of: ",", with: "")
+                        
+                        translation.name = libraryName
+                        libraryDictionary[name] = translation
+                        
+                        return (name: translation.name, version: nil)
                     }
                 }
                 
+                return (name: translation.name, version: nil)
             }
-            
-            if libraryDictionary == nil {
-                libraryDictionary = [:]
-            }
-            
-            if var libraryDictionary = libraryDictionary {
-                if let libraryName = libraryName {
-                    libraryDictionary[name] = (name: libraryName, versions: versionTranslations)
-                    self.libraryDictionary = libraryDictionary
+        } else {
+            //find library in specs
+            let enumerator = FileManager.default.enumerator(atPath: specDirectory)
+            while let filename = enumerator?.nextObject() as? String {
+                //print(filename)
+                if filename.lowercased().hasSuffix("/\(name)") {
+                    print("found: \(filename)")
+                    libraryDictionary[name] = (name: name, path: "\(specDirectory)/\(filename)", versions: [:])
+                    return translateLibraryVersion(name: name, version: version)
+                }
+                
+                if filename.count > 7 {
+                    enumerator?.skipDescendents()
                 }
             }
-            
         }
-        
-        if var libraryDictionary = libraryDictionary {
-            if let libraryInfo = libraryDictionary[name] {
-                let name = libraryInfo.name
-                let version = libraryInfo.versions[version]
-                
-                return (name: name, version: version)
-            }
-        }
-        
         /*
          cocoaPodsName:
             ( name:
@@ -214,8 +228,11 @@ class DependencyAnalyser: ExternalAnalyser {
                     }
                     
                     // Clean library name
-                    var libraryName = nameComponents[1].replacingOccurrences(of: ",", with: "")
+                    var libraryName = nameComponents[1].components(separatedBy: ",")[0].replacingOccurrences(of: ",", with: "")
                     libraryName = libraryName.replacingOccurrences(of: "'", with: "")
+                    libraryName = libraryName.replacingOccurrences(of: "\"", with: "")
+                    
+                    libraryName = libraryName.components(separatedBy: "#")[0]
                     
                     let components = line.components(separatedBy: ",")
                     
@@ -244,12 +261,17 @@ class DependencyAnalyser: ExternalAnalyser {
                             }
                         }
                         
+                        var isFirst = true
+                        
                         for var component in optionCompnents {
                             component = component.trimmingCharacters(in: .whitespacesAndNewlines)
                             if !component.hasPrefix(":") {
-                                version = component
-                                break
+                                if !isFirst {
+                                    version = component
+                                    break
+                                }
                             }
+                            isFirst = false
                             
                             if component.contains(":branch") {
                                 version = component
@@ -319,7 +341,9 @@ class DependencyAnalyser: ExternalAnalyser {
                     cleanedVersion = cleanedVersion.replacingOccurrences(of: "<", with: "")
                     cleanedVersion = cleanedVersion.replacingOccurrences(of: "~", with: "")
                     
+                    print("translating librarydefinition name: ")
                     if let translation = translateLibraryVersion(name: libraryName, version: cleanedVersion) {
+                        print("translation: \(translation)")
                         libraryName = translation.name
                         if let translatedVersion = translation.version {
                             version = version.replacingOccurrences(of: cleanedVersion, with: translatedVersion)
@@ -327,6 +351,8 @@ class DependencyAnalyser: ExternalAnalyser {
                     }
                     
                     let libraryDefinition = LibraryDefinition(name: libraryName, versionString: version, type: "pod")
+                    print("save library, name: \(libraryDefinition.name), version: \(version)")
+                    
                     libraries.append(libraryDefinition)
                 }
             }
@@ -443,20 +469,35 @@ class DependencyAnalyser: ExternalAnalyser {
     
     func handlePodsFile(path: String) -> [Library] {
         print("handle pods")
-        var reachedDependencies = false
         var libraries: [Library] = []
         var declaredPods: [String] = []
         do {
             let data = try String(contentsOfFile: path, encoding: .utf8)
             let lines = data.components(separatedBy: .newlines)
             
+            var reachedDependencies = false
+            
             for var line in lines {
-                if line.starts(with: "DEPENDENCIES:") {
-                    //break
-                    reachedDependencies = true
-                    continue
+                for var line in lines {
+                    if line.starts(with: "DEPENDENCIES:") {
+                        //break
+                        reachedDependencies = true
+                        continue
+                    }
+                    
+                    if reachedDependencies {
+                        if line.starts(with: "  -") { // lines with more whitespace will be ignored
+                            line = line.replacingOccurrences(of: "  - ", with: "")
+                            let components = line.components(separatedBy: .whitespaces)
+                            var name = components[0].replacingOccurrences(of: "\"", with: "").lowercased()
+                        
+                            declaredPods.append(name)
+                        }
+                    }
                 }
-                
+            }
+            
+            for var line in lines {
                 if line.starts(with: "PODS:") {
                     // ignore
                     continue
@@ -466,6 +507,7 @@ class DependencyAnalyser: ExternalAnalyser {
                 
                 //line = line.trimmingCharacters(in: .whitespacesAndNewlines)
                 if line.starts(with: "  -") { // lines with more whitespace will be ignored
+                    line = line.lowercased()
                     line = line.replacingOccurrences(of: "  - ", with: "")
                     let components = line.components(separatedBy: .whitespaces)
                     
@@ -476,11 +518,7 @@ class DependencyAnalyser: ExternalAnalyser {
                     }
                     
                     var name = components[0].replacingOccurrences(of: "\"", with: "").lowercased()
-                    
-                    if reachedDependencies {
-                        declaredPods.append(name)
-                        continue
-                    }
+                    name = components[0].replacingOccurrences(of: "'", with: "")
                     
                     var version = String(components[1].trimmingCharacters(in: .whitespacesAndNewlines))
                     version = version.replacingOccurrences(of: ":", with: "")
@@ -488,6 +526,11 @@ class DependencyAnalyser: ExternalAnalyser {
                     version = String(version.dropLast().dropFirst())
                     //version.remove(at: version.startIndex) // remove (
                     //version.remove(at: version.endIndex) // remove )
+                    
+                    var direct = false
+                    if declaredPods.contains(name) {
+                        direct = true
+                    }
                     
                     // translate to same library names and versions as Carthage
                     if let translation = translateLibraryVersion(name: name, version: version) {
@@ -497,9 +540,12 @@ class DependencyAnalyser: ExternalAnalyser {
                         }
                     }
                     
-                    libraries.append(Library(name: name, versionString: version))
+                    let library = Library(name: name, versionString: version)
+                    library.directDependency = direct
                     
-                    print("added library")
+                    libraries.append(library)
+                    
+                    print("save library, name: \(library.name), version: \(version)")
                 } else {
                     // ignore
                     continue
