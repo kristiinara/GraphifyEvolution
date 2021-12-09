@@ -32,6 +32,23 @@ class DependencyAnalyser: ExternalAnalyser {
         return "Analyses dependencies of an iOS application/libarary and enters them into the database"
     }
     
+    func getNameFromGitPath(path: String) -> String? {
+        var libraryName: String? = nil
+        if path.contains(".com") {
+            libraryName = path.components(separatedBy: ".com").last!.replacingOccurrences(of: ".git", with: "")
+        } else if path.contains(".org") {
+            libraryName = path.components(separatedBy: ".org").last!.replacingOccurrences(of: ".git", with: "")
+        }
+        
+        if var foundName = libraryName {
+            foundName = foundName.lowercased()
+            foundName.removeFirst()
+            libraryName = foundName
+        }
+        
+        return libraryName
+    }
+        
     func translateLibraryVersion(name: String, version: String) -> (name: String, version: String?)? {
         print("translate library name: \(name), version: \(version)")
         
@@ -51,30 +68,25 @@ class DependencyAnalyser: ExternalAnalyser {
                     print(filename)
                     if filename.hasSuffix("podspec.json") {
                         podSpecPath = "\(translation.path)/\(filename)"
-                        print("set podspecpath")
+                        print("set podspecpath: \(podSpecPath)")
                     }
                     
                     if filename.lowercased().hasPrefix("\(version)/") && filename.hasSuffix("podspec.json"){
-                        var newVersion = Helper.shell(launchPath: "/usr/bin/grep", arguments: ["\"version\":", "\(specDirectory)/\(filename)"])
+                        var newVersion = Helper.shell(launchPath: "/usr/bin/grep", arguments: ["\"version\":", "\(translation.path)/\(filename)"])
                         newVersion = newVersion.trimmingCharacters(in: .whitespacesAndNewlines)
                         newVersion = newVersion.replacingOccurrences(of: "\"version\": ", with: "")
                         newVersion = newVersion.replacingOccurrences(of: "\"", with: "")
                         newVersion = newVersion.replacingOccurrences(of: ",", with: "")
                         
-                        var tag = Helper.shell(launchPath: "/usr/bin/grep", arguments: ["\"tag\":", "\(specDirectory)/\(filename)"])
+                        var tag = Helper.shell(launchPath: "/usr/bin/grep", arguments: ["\"tag\":", "\(translation.path)/\(filename)"])
                         tag = tag.trimmingCharacters(in: .whitespacesAndNewlines)
                         tag = tag.replacingOccurrences(of: "\"version\": ", with: "")
                         tag = tag.replacingOccurrences(of: "\"", with: "")
                         tag = tag.replacingOccurrences(of: ",", with: "")
                         
-                        let gitPath = Helper.shell(launchPath: "/usr/bin/grep", arguments: ["\"git\":", "\(specDirectory)/\(filename)"])
+                        let gitPath = Helper.shell(launchPath: "/usr/bin/grep", arguments: ["\"git\":", "\(translation.path)/\(filename)"])
                         
-                        var libraryName: String? = nil
-                        if gitPath.contains(".com") {
-                            libraryName = gitPath.components(separatedBy: ".com/").last!.replacingOccurrences(of: ".git", with: "")
-                        } else if gitPath.contains(".org") {
-                            libraryName = gitPath.components(separatedBy: ".org/").last!.replacingOccurrences(of: ".git", with: "")
-                        }
+                        var libraryName = getNameFromGitPath(path: gitPath)
                         
                         if newVersion != "" && tag != "" {
                             translation.versions[version] = newVersion
@@ -99,11 +111,7 @@ class DependencyAnalyser: ExternalAnalyser {
                     let gitPath = Helper.shell(launchPath: "/usr/bin/grep", arguments: ["\"git\":", "\(podSpecPath)"])
                     print("found gitPath: \(gitPath)")
                     
-                    if gitPath.contains(".com") {
-                        libraryName = gitPath.components(separatedBy: ".com/").last!.replacingOccurrences(of: ".git", with: "")
-                    } else if gitPath.contains(".org") {
-                        libraryName = gitPath.components(separatedBy: ".org/").last!.replacingOccurrences(of: ".git", with: "")
-                    }
+                    libraryName = getNameFromGitPath(path: gitPath)
                     
                     if var libraryName = libraryName {
                         libraryName = libraryName.trimmingCharacters(in: .whitespacesAndNewlines)
