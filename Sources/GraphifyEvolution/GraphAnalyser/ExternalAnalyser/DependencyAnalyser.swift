@@ -260,11 +260,14 @@ class DependencyAnalyser: ExternalAnalyser {
                                 }
                             }
                         }
-                        
                         var isFirst = true
                         
                         for var component in optionCompnents {
                             component = component.trimmingCharacters(in: .whitespacesAndNewlines)
+                            if component.hasPrefix("pod") {
+                                continue
+                            }
+                            
                             if !component.hasPrefix(":") {
                                 if !isFirst {
                                     version = component
@@ -498,6 +501,10 @@ class DependencyAnalyser: ExternalAnalyser {
             }
             
             for var line in lines {
+                if line.starts(with: "DEPENDENCIES:") {
+                    break
+                }
+                
                 if line.starts(with: "PODS:") {
                     // ignore
                     continue
@@ -513,7 +520,7 @@ class DependencyAnalyser: ExternalAnalyser {
                     
                     print("components: \(components)")
                     
-                    if(components.count != 2) {
+                    if(components.count < 2) {
                         continue
                     }
                     
@@ -553,14 +560,6 @@ class DependencyAnalyser: ExternalAnalyser {
             }
         } catch {
             print("could not read pods file \(path)")
-        }
-        
-        for library in libraries {
-            if declaredPods.contains(library.name) {
-                library.directDependency = true
-            } else {
-                library.directDependency = false
-            }
         }
         
         return libraries
