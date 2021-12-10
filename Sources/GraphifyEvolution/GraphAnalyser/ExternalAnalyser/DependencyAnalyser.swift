@@ -235,17 +235,17 @@ class DependencyAnalyser: ExternalAnalyser {
     func saveLibrary(app: App, library: Library, type: DependencyType) {
         if let directDependency = library.directDependency {
             if directDependency {
-                let _ = app.relate(to: library, type: "DEPENDS_ON", properties: ["type": type])
+                let _ = app.relate(to: library, type: "DEPENDS_ON", properties: ["type": type, "subtarget": library.subtarget])
             } else {
-                let _ = app.relate(to: library, type: "DEPENDS_ON_INDIRECTLY", properties: ["type": type])
+                let _ = app.relate(to: library, type: "DEPENDS_ON_INDIRECTLY", properties: ["type": type, "subtarget": library.subtarget])
             }
         } else {
-            let _ = app.relate(to: library, type: "DEPENDS_ON", properties: ["type": type])
+            let _ = app.relate(to: library, type: "DEPENDS_ON", properties: ["type": type, "subtarget": library.subtarget])
         }
     }
     
     func saveLibraryDefinition(app: App, library: LibraryDefinition, type: DependencyType) {
-        let _ = app.relate(to: library, type: "DEPENDS_ON", properties: ["type": type, "definitionType": library.type])
+        let _ = app.relate(to: library, type: "DEPENDS_ON", properties: ["type": type, "definitionType": library.type, "subtarget": library.subtarget])
     }
     
     func handlePodsFileConfig(path: String) -> [LibraryDefinition] {
@@ -384,6 +384,13 @@ class DependencyAnalyser: ExternalAnalyser {
                     cleanedVersion = cleanedVersion.replacingOccurrences(of: "<", with: "")
                     cleanedVersion = cleanedVersion.replacingOccurrences(of: "~", with: "")
                     
+                    var subspec: String? = nil
+                    if libraryName.contains("/") {
+                        var components = libraryName.split(separator: "/")
+                        libraryName = String(components.removeFirst())
+                        subspec = components.joined(separator: "/")
+                    }
+                    
                     print("translating librarydefinition name: ")
                     if let translation = translateLibraryVersion(name: libraryName, version: cleanedVersion) {
                         print("translation: \(translation)")
@@ -394,6 +401,7 @@ class DependencyAnalyser: ExternalAnalyser {
                     }
                     
                     let libraryDefinition = LibraryDefinition(name: libraryName, versionString: version, type: "pod")
+                    libraryDefinition.subtarget = subspec
                     print("save library, name: \(libraryDefinition.name), version: \(version)")
                     
                     libraries.append(libraryDefinition)
@@ -579,6 +587,13 @@ class DependencyAnalyser: ExternalAnalyser {
                         direct = true
                     }
                     
+                    var subspec: String? = nil
+                    if name.contains("/") {
+                        var components = name.split(separator: "/")
+                        name = String(components.removeFirst())
+                        subspec = components.joined(separator: "/")
+                    }
+                    
                     // translate to same library names and versions as Carthage
                     if let translation = translateLibraryVersion(name: name, version: version) {
                         name = translation.name
@@ -589,6 +604,7 @@ class DependencyAnalyser: ExternalAnalyser {
                     
                     let library = Library(name: name, versionString: version)
                     library.directDependency = direct
+                    library.subtarget = subspec
                     
                     libraries.append(library)
                     
@@ -758,6 +774,7 @@ class DependencyAnalyser: ExternalAnalyser {
 
 class Library {
     let name: String
+    var subtarget: String?
     let versionString: String
     var directDependency: Bool? = nil
     
@@ -813,6 +830,7 @@ class LibraryDefinition {
     let name: String
     let versionString: String
     let type: String
+    var subtarget: String?
     
     
     init(name: String, versionString: String, type: String) {
