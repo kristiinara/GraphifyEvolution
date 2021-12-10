@@ -161,6 +161,7 @@ class BulkAppManager: AppManager {
                     }
                     
                     let project = Project(title: title, source: source)
+                    
                     projects.append(project)
                 }
             }
@@ -171,6 +172,43 @@ class BulkAppManager: AppManager {
     
     func newAppManager(path: String, appKey: String?) -> AppManager {
         fatalError("BulkAppManager does not allow generation of new app managers")
+    }
+    
+    func findCpeString(project: Project) {
+        if let title = project.title  {
+            if title.contains("/") {
+                let cpePath = "/Users/kristiina/Phd/Tools/GraphifyEvolution/ExternalAnalysers/CPE/official-cpe-dictionary_v2.3.xml"
+
+                if FileManager.default.fileExists(atPath: cpePath) {
+                    print("cpe for title: \(title)")
+                    
+                    Helper.shellAsync(launchPath: "/bin/zsh", arguments: ["-c", "grep -A3 -i -e \(title) \(cpePath) | grep \"<cpe-23:cpe23-item name\""]) { (output, finished) in
+                        if output != "" {
+                            let items = output.components(separatedBy: "\n")
+                            if items.count > 0 {
+                                var first = items.first!
+                                let components = first.components(separatedBy: "<cpe-23:cpe23-item name=\"")
+                                if components.count > 0 {
+                                    first = components.last!
+                                    first = first.replacingOccurrences(of: "\"/>", with: "")
+                                    //print(first)
+                                    
+                                    var splitValues = first.components(separatedBy: ":")
+                                    splitValues[5] = "*"
+                                    let cleanedCpe = "\(splitValues.joined(separator: ":"))"
+                                    print("cleaned: \(cleanedCpe)")
+                                    
+                                    project.cpeString = cleanedCpe
+                                    let _ = project.save()
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    print("cpe dictionary not found!")
+                }
+            }
+        }
     }
 }
 
@@ -260,6 +298,7 @@ class Project {
     var categories: [String]?
     var license: String?
     var stars: Int?
+    var cpeString: String?
 
     init(title: String?, source: String?) {
         self.title = title
@@ -287,6 +326,7 @@ extension Project: Neo4jObject {
         oldNode.properties["license"] = self.license
         oldNode.properties["stars"] = self.stars
         oldNode.properties["analysisStarted"] = self.analysisStarted
+        oldNode.properties["cpe_string"] = self.cpeString
         
         self.nodeSet = oldNode
         

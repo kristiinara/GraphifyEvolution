@@ -639,6 +639,10 @@ class AppAnalysisController {
         }
         app.save()
         
+        if let project = appManager.project {
+            project.relate(to: app, type: "HAS_APP")
+        }
+        
         if !self.noSourceCodeAnalysis {
             for method in methodsToBeHandled {
                 addCallAndUseConnectionsFrom(method: method, app: app)
