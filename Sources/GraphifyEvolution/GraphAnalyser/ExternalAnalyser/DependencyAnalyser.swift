@@ -182,7 +182,7 @@ class DependencyAnalyser: ExternalAnalyser {
                 print("libraryDefinitions: \(libraryDefinitions)")
                 
                 for library in libraryDefinitions {
-                    let _ = app.relate(to: library, type: "DEPENDS_ON", properties: ["type": dependencyFile.type, "definitionType": library.type])
+                    addLibraryDefinition(app: app, library: library, type: dependencyFile.type)
                 }
                 
                 if !dependencyFile.resolved {
@@ -202,18 +202,44 @@ class DependencyAnalyser: ExternalAnalyser {
                 print("libraries: \(libraries)")
                 
                 for library in libraries {
-                    if let directDependency = library.directDependency {
-                        if directDependency {
-                            let _ = app.relate(to: library, type: "DEPENDS_ON", properties: ["type": dependencyFile.type])
-                        } else {
-                            let _ = app.relate(to: library, type: "DEPENDS_ON_INDIRECTLY", properties: ["type": dependencyFile.type])
-                        }
-                    } else {
-                        let _ = app.relate(to: library, type: "DEPENDS_ON", properties: ["type": dependencyFile.type])
-                    }
+                    addLibrary(app: app, library: library, type: dependencyFile.type)
                 }
              }
         }
+    }
+    
+    func addLibrary(app: App, library: Library, type: DependencyType) {
+        if type == .carthage || type == .swiftPM {
+            saveLibrary(app: app, library: library, type: type)
+        } else {
+            // translate, then save
+            saveLibrary(app: app, library: library, type: type)
+        }
+    }
+    
+    func addLibraryDefinition(app: App, library: LibraryDefinition, type: DependencyType) {
+        if type == .carthage || type == .swiftPM {
+            saveLibraryDefinition(app: app, library: library, type: type)
+        } else {
+            // translate, then save
+            saveLibraryDefinition(app: app, library: library, type: type)
+        }
+    }
+    
+    func saveLibrary(app: App, library: Library, type: DependencyType) {
+        if let directDependency = library.directDependency {
+            if directDependency {
+                let _ = app.relate(to: library, type: "DEPENDS_ON", properties: ["type": type])
+            } else {
+                let _ = app.relate(to: library, type: "DEPENDS_ON_INDIRECTLY", properties: ["type": type])
+            }
+        } else {
+            let _ = app.relate(to: library, type: "DEPENDS_ON", properties: ["type": type])
+        }
+    }
+    
+    func saveLibraryDefinition(app: App, library: LibraryDefinition, type: DependencyType) {
+        let _ = app.relate(to: library, type: "DEPENDS_ON", properties: ["type": type, "definitionType": library.type])
     }
     
     func handlePodsFileConfig(path: String) -> [LibraryDefinition] {
