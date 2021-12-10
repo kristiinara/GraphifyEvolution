@@ -233,19 +233,32 @@ class DependencyAnalyser: ExternalAnalyser {
     }
     
     func saveLibrary(app: App, library: Library, type: DependencyType) {
+        var properties: [String:String] = [:]
+        properties["type"] = type.rawValue
+        if let subtarget = library.subtarget {
+            properties["subtarget"] = subtarget
+        }
+        
         if let directDependency = library.directDependency {
             if directDependency {
-                let _ = app.relate(to: library, type: "DEPENDS_ON", properties: ["type": type, "subtarget": library.subtarget])
+                let _ = app.relate(to: library, type: "DEPENDS_ON", properties: properties)
             } else {
-                let _ = app.relate(to: library, type: "DEPENDS_ON_INDIRECTLY", properties: ["type": type, "subtarget": library.subtarget])
+                let _ = app.relate(to: library, type: "DEPENDS_ON_INDIRECTLY", properties: properties)
             }
         } else {
-            let _ = app.relate(to: library, type: "DEPENDS_ON", properties: ["type": type, "subtarget": library.subtarget])
+            let _ = app.relate(to: library, type: "DEPENDS_ON", properties: properties)
         }
     }
     
     func saveLibraryDefinition(app: App, library: LibraryDefinition, type: DependencyType) {
-        let _ = app.relate(to: library, type: "DEPENDS_ON", properties: ["type": type, "definitionType": library.type, "subtarget": library.subtarget])
+        var properties: [String:String] = [:]
+        properties["type"] = type.rawValue
+        properties["definitionType"] = library.type
+        if let subtarget = library.subtarget {
+            properties["subtarget"] = subtarget
+        }
+        
+        let _ = app.relate(to: library, type: "DEPENDS_ON", properties: properties)
     }
     
     func handlePodsFileConfig(path: String) -> [LibraryDefinition] {
