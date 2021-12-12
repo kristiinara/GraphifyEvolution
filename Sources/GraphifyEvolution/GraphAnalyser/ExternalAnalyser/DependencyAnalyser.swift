@@ -557,6 +557,14 @@ class DependencyAnalyser: ExternalAnalyser {
                         
                             declaredPods.append(name)
                         }
+                        
+                        if line.trimmingCharacters(in: .whitespaces) == "" {
+                            break
+                        }
+                        
+                        if line.starts(with: "SPEC REPOS:") {
+                            break
+                        }
                     }
                 }
             }
