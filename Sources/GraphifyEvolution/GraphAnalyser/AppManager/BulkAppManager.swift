@@ -183,6 +183,7 @@ class BulkAppManager: AppManager {
                     print("cpe for title: \(title)")
                     
                     Helper.shellAsync(launchPath: "/bin/zsh", arguments: ["-c", "grep -A3 -i -e \(title) \(cpePath) | grep \"<cpe-23:cpe23-item name\""]) { (output, finished) in
+                        print("cpe output: \(output)")
                         if output != "" {
                             let items = output.components(separatedBy: "\n")
                             if items.count > 0 {
