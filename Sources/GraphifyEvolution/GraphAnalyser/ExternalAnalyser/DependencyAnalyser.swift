@@ -594,7 +594,7 @@ class DependencyAnalyser: ExternalAnalyser {
                     }
                     
                     var name = components[0].replacingOccurrences(of: "\"", with: "").lowercased()
-                    name = components[0].replacingOccurrences(of: "'", with: "")
+                    name = name.replacingOccurrences(of: "'", with: "")
                     
                     var version = String(components[1].trimmingCharacters(in: .whitespacesAndNewlines))
                     version = version.replacingOccurrences(of: ":", with: "")
