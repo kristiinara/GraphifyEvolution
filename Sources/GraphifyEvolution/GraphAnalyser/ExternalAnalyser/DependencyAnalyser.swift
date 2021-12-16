@@ -538,36 +538,57 @@ class DependencyAnalyser: ExternalAnalyser {
         do {
             let data = try String(contentsOfFile: path, encoding: .utf8)
             let lines = data.components(separatedBy: .newlines)
+            print("lines: \(lines)")
+            
+            // at some point there was a change with intendations in
+            
+            var charactersBeforeDash = ""
+            for line in lines {
+                var chagnedLine = line
+                chagnedLine = chagnedLine.trimmingCharacters(in: .whitespaces)
+                
+                if chagnedLine.starts(with: "PODS:") {
+                    continue
+                }
+                
+                if chagnedLine.starts(with: "-") {
+                    charactersBeforeDash = line.components(separatedBy: "-")[0]
+                    break
+                }
+                print("characters before dash: \(charactersBeforeDash)")
+            }
+            
             
             var reachedDependencies = false
             
-            for var line in lines {
-                for var line in lines {
-                    if line.starts(with: "DEPENDENCIES:") {
-                        //break
-                        reachedDependencies = true
-                        continue
+            for fixedLine in lines {
+                var line = fixedLine
+                if line.starts(with: "DEPENDENCIES:") {
+                    //break
+                    reachedDependencies = true
+                    continue
+                }
+                
+                if reachedDependencies {
+                    if line.starts(with: "\(charactersBeforeDash)- ") { // lines with more whitespace will be ignored
+                        line = line.replacingOccurrences(of: "\(charactersBeforeDash)- ", with: "")
+                        let components = line.components(separatedBy: .whitespaces)
+                        var name = components[0].replacingOccurrences(of: "\"", with: "").lowercased()
+                    
+                        declaredPods.append(name)
                     }
                     
-                    if reachedDependencies {
-                        if line.starts(with: "  -") { // lines with more whitespace will be ignored
-                            line = line.replacingOccurrences(of: "  - ", with: "")
-                            let components = line.components(separatedBy: .whitespaces)
-                            var name = components[0].replacingOccurrences(of: "\"", with: "").lowercased()
-                        
-                            declaredPods.append(name)
-                        }
-                        
-                        if line.trimmingCharacters(in: .whitespaces) == "" {
-                            break
-                        }
-                        
-                        if line.starts(with: "SPEC REPOS:") {
-                            break
-                        }
+                    if line.trimmingCharacters(in: .whitespaces) == "" {
+                        break
+                    }
+                    
+                    if line.starts(with: "SPEC REPOS:") {
+                        break
                     }
                 }
             }
+            
+            print("declared pods: \(declaredPods)")
             
             for var line in lines {
                 if line.starts(with: "DEPENDENCIES:") {
@@ -582,9 +603,9 @@ class DependencyAnalyser: ExternalAnalyser {
                 // check if direct or transitive?
                 
                 //line = line.trimmingCharacters(in: .whitespacesAndNewlines)
-                if line.starts(with: "  -") { // lines with more whitespace will be ignored
+                if line.starts(with: "\(charactersBeforeDash)- ") { // lines with more whitespace will be ignored
                     line = line.lowercased()
-                    line = line.replacingOccurrences(of: "  - ", with: "")
+                    line = line.replacingOccurrences(of: "\(charactersBeforeDash)- ", with: "")
                     let components = line.components(separatedBy: .whitespaces)
                     
                     print("components: \(components)")
