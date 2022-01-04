@@ -175,6 +175,7 @@ class BulkAppManager: AppManager {
     }
     
     func findCpeString(project: Project) {
+        /*
         if let title = project.title  {
             if title.contains("/") {
                 let cpePath = "/Users/kristiina/Phd/Tools/GraphifyEvolution/ExternalAnalysers/CPE/official-cpe-dictionary_v2.3.xml"
@@ -210,6 +211,7 @@ class BulkAppManager: AppManager {
                 }
             }
         }
+ */
     }
 }
 
