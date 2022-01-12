@@ -1,4 +1,5 @@
 import ArgumentParser
+import Foundation
 
 struct Application: ParsableCommand {
     static var configuration = CommandConfiguration(
@@ -14,7 +15,7 @@ struct Application: ParsableCommand {
     struct Analyse: ParsableCommand {
         
         @Argument(help: "Path where the project folder or the folder with multiple projects is located. If doing bulk analysis and analysed projects are not in this folder their git repositories are cloned.")
-        var path: String
+        var path: String = FileManager.default.currentDirectoryPath
         
         @Option(help: "Applications appKey, should be a uniqe identifier. (optional)")
         var appKey: String?
@@ -27,6 +28,9 @@ struct Application: ParsableCommand {
         
         @Flag(help: "Only git tags")
         var onlyGitTags: Bool = false
+        
+        @Flag(help: "Only projects that are on appstore (only works with open source app json)")
+        var onlyAppstore: Bool = false
         
         @Option(help: "Provide path to json file if bulk of apps should be analysed at once")
         var bulkJsonPath: String?
@@ -114,10 +118,14 @@ struct Application: ParsableCommand {
                     let gitManager = GitManager()
                     gitManager.onlyTags = onlyGitTags
                     
-                    appManager = BulkAppManager(folderPath: path, jsonPath: bulkPath, appManager: gitManager)
+                    let bulkManager = BulkAppManager(folderPath: path, jsonPath: bulkPath, appManager: gitManager)
+                    bulkManager.onlyAppStore = onlyAppstore
+                    appManager = bulkManager
                     print("bulk analysis + evolution")
                 } else {
-                    appManager = BulkAppManager(folderPath: path, jsonPath: bulkPath, appManager: SimpleAppManager())
+                    let bulkManager  = BulkAppManager(folderPath: path, jsonPath: bulkPath, appManager: SimpleAppManager())
+                    bulkManager.onlyAppStore = onlyAppstore
+                    appManager = bulkManager
                     print("bulk analysis without evolution")
                 }
             } else {

@@ -16,8 +16,9 @@ class BulkAppManager: AppManager {
     let jsonPath: String
     var parsedAppVersions: [AppVersion]?
     //var appVersionsToAnalyse: [AppVersion] = []
+    var onlyAppStore = false
     
-    var allProjects: [Project]?
+    var projectsAnalysed = false
     var projectsToAnalyse: [Project] = []
     
     var project: Project? = nil // holds the last project that was analysed
@@ -34,16 +35,14 @@ class BulkAppManager: AppManager {
     }
     
     func nextAppVersion() -> AppVersion? {
-        if allProjects == nil {
+        if self.projectsAnalysed == false {
             parseJson()
             
-            if let allProjects = allProjects {
-                for project in allProjects {
+            for project in self.projectsToAnalyse {
                     let _ = project.save()
-                }
-            } else {
-                print("Still no projects?")
             }
+            
+            projectsAnalysed = true
         }
         
         var appManager: AppManager?
@@ -57,6 +56,7 @@ class BulkAppManager: AppManager {
             
             while(!projectsToAnalyse.isEmpty) {
                 let nextProject = projectsToAnalyse.removeFirst()
+                print("next project: \(nextProject.title)")
                 
                 if let name = nextProject.title, let source = nextProject.source {
                     let path = "\(folderPath)\(name)"
@@ -117,14 +117,20 @@ class BulkAppManager: AppManager {
                 if let dictionary = json as? [String: Any] {
                     if let projectDicts = dictionary["projects"] as? [[String: Any]] {
                         for projectDict in projectDicts {
-                            projects.append(parseProject(json: projectDict))
+                            let project = parseProject(json: projectDict)
+                            if project.itunes != nil || self.onlyAppStore == false {
+                                projects.append(project)
+                            }
                         }
                     } else {
                         print("No project in json")
                     }
                 } else if let projectDicts = json as? [[String: Any]] {
                     for projectDict in projectDicts {
-                        projects.append(parseProject(json: projectDict))
+                        let project = parseProject(json: projectDict)
+                        if project.itunes != nil || self.onlyAppStore == false {
+                            projects.append(project)
+                        }
                     }
                 } else {
                     print("Incorrect json format")
@@ -135,7 +141,6 @@ class BulkAppManager: AppManager {
             
             print("Projects found in json file: \(projects.count)")
             
-            self.allProjects = projects
             self.projectsToAnalyse = projects
         } else if self.jsonPath.hasSuffix(".txt") {
             if let dataString = try? String(contentsOfFile: self.jsonPath) {
@@ -160,12 +165,13 @@ class BulkAppManager: AppManager {
                         continue
                     }
                     
+                    print("add project: \(title)")
+                    
                     let project = Project(title: title, source: source)
                     
                     projects.append(project)
                 }
             }
-            self.allProjects = projects
             self.projectsToAnalyse = projects
         }
     }
@@ -274,6 +280,8 @@ func parseProject(json: [String: Any]) -> Project {
     if license == nil {
         license = json["licenses"] as? String
     }
+
+    let itunes = json["itunes"] as? String
     
     let stars = json["stars"] as? Int
     
@@ -284,6 +292,7 @@ func parseProject(json: [String: Any]) -> Project {
     project.categories = categorites
     project.license = license
     project.stars = stars
+    project.itunes = itunes
     
     return project
 }
@@ -302,6 +311,7 @@ class Project {
     var license: String?
     var stars: Int?
     var cpeString: String?
+    var itunes: String?
 
     init(title: String?, source: String?) {
         self.title = title
