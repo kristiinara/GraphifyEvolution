@@ -209,8 +209,8 @@ class DependencyAnalyser: ExternalAnalyser {
                     }
                 }
                 
-                let name = String(components[0 + 1])
-                let version = String(components[1])
+                let name = String(components[0 + i])
+                let version = String(components[1 + i])
                 
                 var subTarget: String? = nil
                 
