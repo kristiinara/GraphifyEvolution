@@ -171,8 +171,9 @@ class DependencyAnalyser: ExternalAnalyser {
     func analyseApp(app: App) {
         //app.homePath
         
-        // what if :
-        let res = Helper.shell(launchPath: "/bin/bash", arguments: ["-c", "/opt/homebrew/bin/SwiftDependencyChecker analyse \(app.homePath) --action dependencies"])
+        let checkerPath = "/Users/kristiina/PhD/Tools/DependencyChecker/.build/release/SwiftDependencyChecker"
+        //let checkerPath = "/opt/homebrew/bin/SwiftDependencyChecker"
+        let res = Helper.shell(launchPath: "/bin/bash", arguments: ["-c", "\(checkerPath) analyse \(app.homePath) --action dependencies"])
         print("res: \(res)")
         
         var resultsReached = false
@@ -195,7 +196,20 @@ class DependencyAnalyser: ExternalAnalyser {
                     continue
                 }
                 
-                let name = String(components[0])
+                var i = 0
+                
+                var platform: String = ""
+                if components[0].hasSuffix(":") {
+                    var platformValue = components[0].replacingOccurrences(of: ":", with: "")
+                    platform = platformValue
+                    i = 1
+                    
+                    if components.count < 3 {
+                        continue
+                    }
+                }
+                
+                let name = String(components[0 + 1])
                 let version = String(components[1])
                 
                 var subTarget: String? = nil
@@ -212,7 +226,7 @@ class DependencyAnalyser: ExternalAnalyser {
                 
                 print("library: \(name), version: \(version)")
                 
-                self.saveLibrary(app: app, library: library, type: .cocoapods)
+                self.saveLibrary(app: app, library: library, type: platform)
             }
             
             var dependencyFiles: [DependencyFile] = []
@@ -299,7 +313,7 @@ class DependencyAnalyser: ExternalAnalyser {
         }
          */
     }
-    
+    /*
     func addLibrary(app: App, library: Library, type: DependencyType) {
         if type == .carthage || type == .swiftPM {
             saveLibrary(app: app, library: library, type: type)
@@ -308,6 +322,8 @@ class DependencyAnalyser: ExternalAnalyser {
             saveLibrary(app: app, library: library, type: type)
         }
     }
+     
+     */
     
     func addLibraryDefinition(app: App, library: LibraryDefinition, type: DependencyType) {
         if type == .carthage || type == .swiftPM {
@@ -318,9 +334,9 @@ class DependencyAnalyser: ExternalAnalyser {
         }
     }
     
-    func saveLibrary(app: App, library: Library, type: DependencyType) {
+    func saveLibrary(app: App, library: Library, type: String) {
         var properties: [String:String] = [:]
-        properties["type"] = type.rawValue
+        properties["type"] = type
         if let subtarget = library.subtarget {
             properties["subtarget"] = subtarget
         }
