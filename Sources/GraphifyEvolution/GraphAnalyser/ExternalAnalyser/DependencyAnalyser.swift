@@ -158,9 +158,94 @@ class DependencyAnalyser: ExternalAnalyser {
          */
         return nil
     }
+    /*
+     kristiina@Kristiinas-Mac-mini afone % time SwiftDependencyChecker analyse --action dependencies
+     path: /Users/kristiina/PhD/Experiments/OpenSourceApps/afone
+     action: dependencies
+     Dependencies:
+     Indirect: cocoalumberjack/cocoalumberjack 3.5.3 - core
+     cocoalumberjack/cocoalumberjack 3.5.3 - swift
+     toddkramer/codablekeychain 1.0.0 (CodableKeychain)
+     */
     
     func analyseApp(app: App) {
         //app.homePath
+        
+        // what if :
+        let res = Helper.shell(launchPath: "/bin/bash", arguments: ["-c", "/opt/homebrew/bin/SwiftDependencyChecker analyse \(app.homePath) --action dependencies"])
+        print("res: \(res)")
+        
+        var resultsReached = false
+        let lines = res.components(separatedBy: .newlines)
+        for var line in lines {
+            if line.starts(with: "Dependencies:") {
+                resultsReached = true
+                print("reached dependencies")
+                continue
+            }
+            print("line: \(line)")
+            
+            if resultsReached {
+                let indirect = line.hasPrefix("Indirect:")
+                line = line.replacingOccurrences(of: "Indirect:", with: "")
+                line = line.trimmingCharacters(in: .whitespaces)
+                
+                let components = line.components(separatedBy: " ")
+                if components.count < 2 {
+                    continue
+                }
+                
+                let name = String(components[0])
+                let version = String(components[1])
+                
+                var subTarget: String? = nil
+                
+                if components.count >= 4 {
+                    if components[2] == "-" {
+                        subTarget = components[3]
+                    }
+                }
+                
+                let library = Library(name: name, versionString: version)
+                library.directDependency = !indirect
+                library.subtarget = subTarget
+                
+                print("library: \(name), version: \(version)")
+                
+                self.saveLibrary(app: app, library: library, type: .cocoapods)
+            }
+            
+            var dependencyFiles: [DependencyFile] = []
+            dependencyFiles.append(findPodFile(homePath: app.homePath))
+            dependencyFiles.append(findCarthageFile(homePath: app.homePath))
+            dependencyFiles.append(findSwiftPMFile(homePath: app.homePath))
+            
+            for dependencyFile in dependencyFiles {
+                if dependencyFile.used {
+                    var libraryDefinitions: [LibraryDefinition] = []
+                    if dependencyFile.type == .carthage {
+                        libraryDefinitions = handleCartfileConfig(path: dependencyFile.definitionFile!)
+                    } else if dependencyFile.type == .cocoapods {
+                        libraryDefinitions = handlePodsFileConfig(path: dependencyFile.definitionFile!)
+                    } else if dependencyFile.type == .swiftPM {
+                        //TODO: implement
+                    }
+                    
+                    print("libraryDefinitions: \(libraryDefinitions)")
+                    
+                    for library in libraryDefinitions {
+                        addLibraryDefinition(app: app, library: library, type: dependencyFile.type)
+                    }
+                    
+                    if !dependencyFile.resolved {
+                        let _ = app.relate(to: Library(name: "missing_dependency_\(dependencyFile.type)", versionString: ""), type: "MISSING")
+                        continue
+                    }
+                }
+            }
+        }
+        
+        /*
         
         var dependencyFiles: [DependencyFile] = []
         dependencyFiles.append(findPodFile(homePath: app.homePath))
@@ -212,6 +297,7 @@ class DependencyAnalyser: ExternalAnalyser {
                 }
              }
         }
+         */
     }
     
     func addLibrary(app: App, library: Library, type: DependencyType) {
@@ -429,7 +515,79 @@ class DependencyAnalyser: ExternalAnalyser {
     }
     
     func handleSwiftPmFileConfig(path: String) -> [LibraryDefinition] {
-        return []
+        print("handle swiftpm config")
+        var libraries: [LibraryDefinition] = []
+        do {
+            let data = try String(contentsOfFile: path, encoding: .utf8)
+            let lines = data.components(separatedBy: .newlines)
+            
+            var dependenciesReached = false
+            for var line in lines {
+                line = line.trimmingCharacters(in: .whitespaces)
+                if line.starts(with: "dependencies:") {
+                    dependenciesReached = true
+                    continue
+                }
+                
+                if dependenciesReached {
+                    if line.starts(with: ".package") {
+                        // find url: , from:
+                        // url:, requirement: ??
+                        // url:, range:
+                        // url: closed range:
+                        // path: local - ignore
+                        
+                        line = line.replacingOccurrences(of: ".package(", with: "")
+                        let parts = line.split(separator: ",")
+                        
+                        var url: String? = nil
+                        var version: String? = nil
+                        var module: String? = nil
+                        var name: String? = nil
+                        
+                        for part in parts {
+                            var partString = String(part)
+                            partString = partString.trimmingCharacters(in: .whitespaces)
+                            if partString.hasPrefix("url:") {
+                                partString = partString.replacingOccurrences(of: "url:", with: "")
+                                partString = partString.trimmingCharacters(in: .whitespaces)
+                                
+                                url = partString
+                                name = getNameFromGitPath(path: partString)
+                            } else if partString.hasPrefix("name:") {
+                                partString = partString.replacingOccurrences(of: "name:", with: "")
+                                partString = partString.trimmingCharacters(in: .whitespaces)
+                                
+                                module = partString
+                            } else if partString.hasPrefix("from:") {
+                                partString = partString.replacingOccurrences(of: "from:", with: "")
+                                partString = partString.trimmingCharacters(in: .whitespaces)
+                                
+                                version = partString
+                            } else if partString.hasPrefix("path:") {
+                                break // ignore
+                            } else {
+                                partString = partString.trimmingCharacters(in: .whitespaces)
+                                
+                                version = partString
+                            }
+                        }
+                        
+                        if let url = url, let name = name {
+                            let librarydef = LibraryDefinition(name: name, versionString: version ?? "", type: "swiftpm")
+                            libraries.append(librarydef)
+                        }
+                    }
+                    
+                    if line.contains("]") {
+                        break
+                    }
+                }
+            }
+        } catch {
+            print("failed to read swiftpm file")
+        }
+        return libraries
     }
     
     func handleCartfileConfig(path: String) -> [LibraryDefinition] {
