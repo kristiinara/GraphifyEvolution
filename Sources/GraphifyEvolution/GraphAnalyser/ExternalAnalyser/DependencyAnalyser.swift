@@ -48,6 +48,31 @@ class DependencyAnalyser: ExternalAnalyser {
         
         return libraryName
     }
+    
+    func runTranslate(name: String, version: String) -> (name: String, version: String?)? {
+        let checkerPath = "/Users/kristiina/PhD/Tools/DependencyChecker/.build/release/SwiftDependencyChecker"
+        //let checkerPath = "/opt/homebrew/bin/SwiftDependencyChecker"
+        let res = Helper.shell(launchPath: "/bin/bash", arguments: ["-c", "\(checkerPath) --action translate \(name),\(version)"])
+        print("res: \(res)")
+        
+        for var line in res.components(separatedBy: .newlines) {
+            if line.hasPrefix("no translation") {
+                return nil
+            }
+            
+            if line.hasPrefix("translation:") {
+                line = line.replacingOccurrences(of: "translation: ", with: "")
+                
+                let components = line.split(separator: ",")
+                if components.count == 2 {
+                    return (name: String(components[0]), version: String(components[1]))
+                }
+            }
+        }
+        return nil
+    }
+    
+    var translations: [String:[String: (name: String, version: String?)]] = [:]
         
     func translateLibraryVersion(name: String, version: String) -> (name: String, version: String?)? {
         print("translate library name: \(name), version: \(version)")
@@ -58,6 +83,41 @@ class DependencyAnalyser: ExternalAnalyser {
         let specDirectory = "\(currentDirectory)/ExternalAnalysers/Specs/Specs" // TODO: check that the repo actually exists + refresh?
         //print("specpath: \(specDirectory)")
         
+        if var translation = translations[name] {
+            if let versionTranslation = translation[version] {
+                return versionTranslation
+            } else {
+                if let newTranslation = runTranslate(name: name, version: version) {
+                    translation[version] = newTranslation
+                    translations[name] = translation
+                    return newTranslation
+                } else {
+                    if let first = translation.first {
+                        let noVersion: String? = nil
+                        let newTranslation = (name: first.value.name, version: noVersion)
+                        translation[version] = newTranslation
+                        translations[name] = translation
+                        return newTranslation
+                    } else {
+                        return nil
+                    }
+                }
+                
+            }
+        } else {
+            if let newTranslation = runTranslate(name: name, version: version) {
+                translations[name] = [version: newTranslation]
+                return newTranslation
+            } else {
+                let newTranslation: [String: (name: String, version: String?)] = [version: (name: name, version: nil)]
+                translations[name] = newTranslation
+                return newTranslation[version]
+            }
+        }
+        
+        return nil
+        /*
+
         if var translation = libraryDictionary[name] {
             if let translatedVersion = translation.versions[version] {
                 return (name:translation.name, version: translatedVersion)
@@ -157,6 +217,8 @@ class DependencyAnalyser: ExternalAnalyser {
             )
          */
         return nil
+         
+         */
     }
     /*
      kristiina@Kristiinas-Mac-mini afone % time SwiftDependencyChecker analyse --action dependencies
@@ -171,6 +233,41 @@ class DependencyAnalyser: ExternalAnalyser {
     func analyseApp(app: App) {
         //app.homePath
         
+        var dependencyFiles: [DependencyFile] = []
+        dependencyFiles.append(findPodFile(homePath: app.homePath))
+        dependencyFiles.append(findCarthageFile(homePath: app.homePath))
+        dependencyFiles.append(findSwiftPMFile(homePath: app.homePath))
+        
+        var allLibraryDefinitions: [LibraryDefinition] = []
+        
+        for dependencyFile in dependencyFiles {
+            var libraryDefinitions: [LibraryDefinition] = []
+            
+            if dependencyFile.used {
+                if dependencyFile.type == .carthage {
+                    libraryDefinitions = handleCartfileConfig(path: dependencyFile.definitionFile!)
+                } else if dependencyFile.type == .cocoapods {
+                    libraryDefinitions = handlePodsFileConfig(path: dependencyFile.definitionFile!)
+                } else if dependencyFile.type == .swiftPM {
+                    libraryDefinitions = handleSwiftPmFileConfig(path: dependencyFile.definitionFile!)
+                }
+                
+                allLibraryDefinitions.append(contentsOf: libraryDefinitions)
+                
+                //print("libraryDefinitions: \(libraryDefinitions)")
+                
+                for library in libraryDefinitions {
+                    addLibraryDefinition(app: app, library: library, type: dependencyFile.type)
+                    //print("found library def: \(library.name), \(dependencyFile.type)")
+                }
+                
+                if !dependencyFile.resolved {
+                    let _ = app.relate(to: Library(name: "missing_dependency_\(dependencyFile.type)", versionString: ""), type: "MISSING")
+                    continue
+                }
+            }
+        }
+        
         let checkerPath = "/Users/kristiina/PhD/Tools/DependencyChecker/.build/release/SwiftDependencyChecker"
         //let checkerPath = "/opt/homebrew/bin/SwiftDependencyChecker"
         let res = Helper.shell(launchPath: "/bin/bash", arguments: ["-c", "\(checkerPath) analyse \(app.homePath) --action dependencies"])
@@ -184,77 +281,69 @@ class DependencyAnalyser: ExternalAnalyser {
                 print("reached dependencies")
                 continue
             }
-            print("line: \(line)")
+           // print("line: \(line)")
             
             if resultsReached {
-                let indirect = line.hasPrefix("Indirect:")
-                line = line.replacingOccurrences(of: "Indirect:", with: "")
-                line = line.trimmingCharacters(in: .whitespaces)
+                //Indirect platform:cocoapods name:moya/moya version:12.0.1 sub-target:rxswift module:moya
                 
-                let components = line.components(separatedBy: " ")
-                if components.count < 2 {
-                    continue
-                }
-                
-                var i = 0
-                
-                var platform: String = ""
-                if components[0].hasSuffix(":") {
-                    var platformValue = components[0].replacingOccurrences(of: ":", with: "")
-                    platform = platformValue
-                    i = 1
-                    
-                    if components.count < 3 {
-                        continue
-                    }
-                }
-                
-                let name = String(components[0 + i])
-                let version = String(components[1 + i])
-                
+                var indirect: Bool = false
+                var platform: String? = nil
+                var name: String? = nil
+                var version: String? = nil
                 var subTarget: String? = nil
+                var module: String? = nil
                 
-                if components.count >= 4 {
-                    if components[2] == "-" {
-                        subTarget = components[3]
+                let componets = line.split(separator: " ")
+                for componet in componets {
+                    if componet.starts(with: "Indirect") {
+                        indirect = true
+                    } else if componet.starts(with: "platform:") {
+                        platform = componet.replacingOccurrences(of: "platform:", with: "")
+                    } else if componet.starts(with: "name:") {
+                        name = componet.replacingOccurrences(of: "name:", with: "")
+                    } else if componet.starts(with: "version:") {
+                        version = componet.replacingOccurrences(of: "version:", with: "")
+                    } else if componet.starts(with: "sub-target:") {
+                        subTarget = componet.replacingOccurrences(of: "sub-target:", with: "")
+                    } else if componet.starts(with: "module:") {
+                        module = componet.replacingOccurrences(of: "module:", with: "")
                     }
                 }
                 
-                let library = Library(name: name, versionString: version)
-                library.directDependency = !indirect
-                library.subtarget = subTarget
-                
-                print("library: \(name), version: \(version)")
-                
-                self.saveLibrary(app: app, library: library, type: platform)
-            }
-            
-            var dependencyFiles: [DependencyFile] = []
-            dependencyFiles.append(findPodFile(homePath: app.homePath))
-            dependencyFiles.append(findCarthageFile(homePath: app.homePath))
-            dependencyFiles.append(findSwiftPMFile(homePath: app.homePath))
-            
-            for dependencyFile in dependencyFiles {
-                if dependencyFile.used {
-                    var libraryDefinitions: [LibraryDefinition] = []
-                    if dependencyFile.type == .carthage {
-                        libraryDefinitions = handleCartfileConfig(path: dependencyFile.definitionFile!)
-                    } else if dependencyFile.type == .cocoapods {
-                        libraryDefinitions = handlePodsFileConfig(path: dependencyFile.definitionFile!)
-                    } else if dependencyFile.type == .swiftPM {
-                        //TODO: implement
+                if let name = name, let version = version {
+                    let library = Library(name: name, versionString: version)
+                    library.directDependency = !indirect
+                    library.subtarget = subTarget
+                    
+                    if subTarget == nil && module != nil {
+                        library.subtarget = module
                     }
                     
-                    print("libraryDefinitions: \(libraryDefinitions)")
-                    
-                    for library in libraryDefinitions {
-                        addLibraryDefinition(app: app, library: library, type: dependencyFile.type)
+                    if platform == "carthage" || platform == "swiftpm" {
+                        // check if there is a definition file to figure out if library is direct or indirect dependency
+                        
+                        library.directDependency = false
+                        
+                        for libraryDef in allLibraryDefinitions {
+                            //print("platform: \(platform), libraryname: \(library.name) librarydef.platform: \(libraryDef.platform), defname: \(libraryDef.name)")
+
+                            if let defPlatform = libraryDef.platform {
+                                if library.name == libraryDef.name && defPlatform == platform {
+                                   // print("equal")
+                                    library.directDependency = true
+                                    break
+                                }
+                            }
+                        }
+                                
                     }
                     
-                    if !dependencyFile.resolved {
-                        let _ = app.relate(to: Library(name: "missing_dependency_\(dependencyFile.type)", versionString: ""), type: "MISSING")
-                        continue
-                    }
+                     
+                     //print("library: \(name), version: \(version)")
+                     
+                     self.saveLibrary(app: app, library: library, type: platform ?? "")
+                } else {
+                    print("name or version missing: \(line)")
                 }
             }
         }
@@ -335,6 +424,8 @@ class DependencyAnalyser: ExternalAnalyser {
     }
     
     func saveLibrary(app: App, library: Library, type: String) {
+        print("saveLibrary: \(library.name), \(library.versionString), \(library.directDependency ?? true)")
+        
         var properties: [String:String] = [:]
         properties["type"] = type
         if let subtarget = library.subtarget {
@@ -353,6 +444,8 @@ class DependencyAnalyser: ExternalAnalyser {
     }
     
     func saveLibraryDefinition(app: App, library: LibraryDefinition, type: DependencyType) {
+        print("save library def: \(library.name)-\(library.subtarget), \(library.versionString), \(type.rawValue)")
+        
         var properties: [String:String] = [:]
         properties["type"] = type.rawValue
         properties["definitionType"] = library.type
@@ -518,6 +611,7 @@ class DependencyAnalyser: ExternalAnalyser {
                     let libraryDefinition = LibraryDefinition(name: libraryName, versionString: version, type: "pod")
                     libraryDefinition.subtarget = subspec
                     print("save library, name: \(libraryDefinition.name), version: \(version)")
+                    libraryDefinition.platform = "cocoapods"
                     
                     libraries.append(libraryDefinition)
                 }
@@ -567,30 +661,37 @@ class DependencyAnalyser: ExternalAnalyser {
                             if partString.hasPrefix("url:") {
                                 partString = partString.replacingOccurrences(of: "url:", with: "")
                                 partString = partString.trimmingCharacters(in: .whitespaces)
+                                partString = partString.replacingOccurrences(of: "\"", with: "")
                                 
                                 url = partString
                                 name = getNameFromGitPath(path: partString)
                             } else if partString.hasPrefix("name:") {
                                 partString = partString.replacingOccurrences(of: "name:", with: "")
                                 partString = partString.trimmingCharacters(in: .whitespaces)
+                                partString = partString.replacingOccurrences(of: "\"", with: "")
                                 
                                 module = partString
                             } else if partString.hasPrefix("from:") {
                                 partString = partString.replacingOccurrences(of: "from:", with: "")
                                 partString = partString.trimmingCharacters(in: .whitespaces)
+                                partString = partString.replacingOccurrences(of: "\"", with: "")
                                 
                                 version = partString
                             } else if partString.hasPrefix("path:") {
                                 break // ignore
                             } else {
                                 partString = partString.trimmingCharacters(in: .whitespaces)
+                                partString = partString.replacingOccurrences(of: "\"", with: "")
                                 
                                 version = partString
                             }
                         }
                         
+                        print("parse swift pm. Name: \(name), url: \(url), version: \(version)")
+                        
                         if let url = url, let name = name {
                             let librarydef = LibraryDefinition(name: name, versionString: version ?? "", type: "swiftpm")
+                            librarydef.platform = "swiftpm"
                             libraries.append(librarydef)
                         }
                     }
@@ -645,7 +746,10 @@ class DependencyAnalyser: ExternalAnalyser {
                     //  ~> 2.3       -- version 2.3 or later, but less than 3
                     //  2.3.1        -- exact verson 2.3.1
                     let version = components.joined(separator: " ").replacingOccurrences(of: "\"", with: "")
-                    libraries.append(LibraryDefinition(name: name, versionString: version, type: type))
+                    let  library = LibraryDefinition(name: name, versionString: version, type: type)
+                    library.platform = "carthage"
+                    
+                    libraries.append(library)
                 }
             }
         } catch {
@@ -993,6 +1097,7 @@ class Library {
     var subtarget: String?
     let versionString: String
     var directDependency: Bool? = nil
+    var platform: String?
     
     init(name: String, versionString: String) {
         self.name = name.lowercased()
@@ -1047,6 +1152,7 @@ class LibraryDefinition {
     let versionString: String
     let type: String
     var subtarget: String?
+    var platform: String?
     
     
     init(name: String, versionString: String, type: String) {
