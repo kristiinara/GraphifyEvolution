@@ -238,6 +238,11 @@ class DependencyAnalyser: ExternalAnalyser {
         dependencyFiles.append(findCarthageFile(homePath: app.homePath))
         dependencyFiles.append(findSwiftPMFile(homePath: app.homePath))
         
+        if let tag = app.commit?.tag { //TODO: also handle podspec?
+            let library = Library(name: app.name, versionString: tag.removingCommonLeadingWhitespaceFromLines())
+            let _ = app.relate(to: library, type: "IS")
+        }
+        
         var allLibraryDefinitions: [LibraryDefinition] = []
         
         for dependencyFile in dependencyFiles {
