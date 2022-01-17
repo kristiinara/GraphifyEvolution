@@ -32,6 +32,9 @@ struct Application: ParsableCommand {
         @Flag(help: "Only projects that are on appstore (only works with open source app json)")
         var onlyAppstore: Bool = false
         
+        @Flag(help: "Only projects that are not yet in the database")
+        var checkIfProjectExistis: Bool = false
+        
         @Option(help: "Provide path to json file if bulk of apps should be analysed at once")
         var bulkJsonPath: String?
         
@@ -120,11 +123,13 @@ struct Application: ParsableCommand {
                     
                     let bulkManager = BulkAppManager(folderPath: path, jsonPath: bulkPath, appManager: gitManager)
                     bulkManager.onlyAppStore = onlyAppstore
+                    bulkManager.checkIfProjectExistis = checkIfProjectExistis
                     appManager = bulkManager
                     print("bulk analysis + evolution")
                 } else {
                     let bulkManager  = BulkAppManager(folderPath: path, jsonPath: bulkPath, appManager: SimpleAppManager())
                     bulkManager.onlyAppStore = onlyAppstore
+                    bulkManager.checkIfProjectExistis = checkIfProjectExistis
                     appManager = bulkManager
                     print("bulk analysis without evolution")
                 }

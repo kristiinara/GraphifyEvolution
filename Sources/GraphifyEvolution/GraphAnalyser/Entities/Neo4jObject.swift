@@ -24,12 +24,25 @@ protocol Neo4jObject: Neo4jNode {
     // Need to be implemented:
     //static func initFrom(node:Node) -> ObjectType
     static var nodeType: String {get}
+    
+    static func objectWith(properties: [String: String]) -> Int? //TODO: change it later to actual object and not just the id
 }
 
 extension Neo4jObject {
     
     var nodeType: String {
         return Self.nodeType
+    }
+    
+    static func objectWith(properties: [String: String]) -> Int? {
+        var returnID: Int? = nil
+        
+        if let client = DatabaseController.currentDatabase.client {
+            returnID = client.requestNodeSync(label: Self.nodeType, properties: properties)
+            
+        }
+        
+        return returnID
     }
     
     func newNode() -> Node {

@@ -100,6 +100,8 @@ class BulkAppManager: AppManager {
         print("Git clone.. \(res)")
     }
     
+    var checkIfProjectExistis = false
+    
     func parseJson() {
         self.parsedAppVersions = []
         // parse json, enter appVersions into array
@@ -118,16 +120,36 @@ class BulkAppManager: AppManager {
                     if let projectDicts = dictionary["projects"] as? [[String: Any]] {
                         for projectDict in projectDicts {
                             let project = parseProject(json: projectDict)
+                            if self.checkIfProjectExistis {
+                                if let title = project.title {
+                                    if Project.objectWith(properties: ["title": title]) != nil {
+                                        print("Project \(title) already exisists")
+                                        continue
+                                    }
+                                }
+                            }
+                            
                             if project.itunes != nil || self.onlyAppStore == false {
                                 projects.append(project)
                             }
                         }
+                        
+                        
                     } else {
                         print("No project in json")
                     }
                 } else if let projectDicts = json as? [[String: Any]] {
                     for projectDict in projectDicts {
                         let project = parseProject(json: projectDict)
+                        if self.checkIfProjectExistis {
+                            if let title = project.title {
+                                if Project.objectWith(properties: ["title": title]) != nil {
+                                    print("Project \(title) already exisists")
+                                    continue
+                                }
+                            }
+                        }
+                        
                         if project.itunes != nil || self.onlyAppStore == false {
                             projects.append(project)
                         }
@@ -166,6 +188,12 @@ class BulkAppManager: AppManager {
                     }
                     
                     print("add project: \(title)")
+                    if self.checkIfProjectExistis {
+                        if Project.objectWith(properties: ["title": title]) != nil {
+                            print("Project \(title) already exisists")
+                            continue
+                        }
+                    }
                     
                     let project = Project(title: title, source: source)
                     

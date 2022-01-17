@@ -22,14 +22,18 @@ class Node {
     }
     
     var propertyString: String {
+        return Self.propertyStringFor(dictionary: self.properties)
+    }
+    
+    static func propertyStringFor(dictionary: [String:Any]) -> String {
         var res = ""
         
-        if self.properties.keys.count == 0 {
+        if dictionary.keys.count == 0 {
             res += "{}"
             return res
         }
-        for key in self.properties.keys {
-            if let value = self.properties[key] {
+        for key in dictionary.keys {
+            if let value = dictionary[key] {
                 if var value = value as? String {
                     value = value.replacingOccurrences(of: "\"", with: "\\\"")
                     value = value.replacingOccurrences(of: "\'", with: "\\\'")
@@ -133,6 +137,24 @@ class Neo4jClient {
             return nil
         }
         return node
+    }
+    
+    //TODO change it so that it includes all the properties?
+    func requestNodeSync(label: String, properties: [String:String]) -> Int? {
+        let transaction = "match (n:\(label) \(Node.propertyStringFor(dictionary: properties))) return id(n)"
+        
+        let group = DispatchGroup()
+        group.enter()
+        
+        var foundId: Int? = nil
+        
+        requestWithDefaultCompletition(transaction: transaction) { id in
+            foundId = id
+            group.leave()
+        }
+        group.wait()
+        
+        return foundId
     }
     
     func mergeNodeSync(node:Node) -> Node? {
@@ -478,10 +500,14 @@ class Neo4jRelationship {
     var id : Int?
     
     var properitesString: String {
+        return Self.propertyStringFor(dictionary: self.properties)
+    }
+    
+    static func propertyStringFor(dictionary: [String:Any]) -> String {
         var propertiesString = "{"
         
-        for key in properties.keys {
-            let value = properties[key]!
+        for key in dictionary.keys {
+            let value = dictionary[key]!
             if let intValue = value as? Int {
                 propertiesString += " \(key): \(intValue),"
             } else {
@@ -494,7 +520,7 @@ class Neo4jRelationship {
             }
         }
         
-        if properties.keys.count > 0 {
+        if dictionary.keys.count > 0 {
             propertiesString = String(propertiesString.dropLast())
         }
         
