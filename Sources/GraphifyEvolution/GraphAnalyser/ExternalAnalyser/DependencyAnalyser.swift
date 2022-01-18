@@ -52,7 +52,7 @@ class DependencyAnalyser: ExternalAnalyser {
     func runTranslate(name: String, version: String) -> (name: String, version: String?)? {
         let checkerPath = "/Users/kristiina/PhD/Tools/DependencyChecker/.build/release/SwiftDependencyChecker"
         //let checkerPath = "/opt/homebrew/bin/SwiftDependencyChecker"
-        let res = Helper.shell(launchPath: "/bin/bash", arguments: ["-c", "\(checkerPath) --action translate \(name),\(version)"])
+        let res = Helper.shell(launchPath: "/bin/bash", arguments: ["-c", "\(checkerPath) --action translate --specific-value \(name),\(version)"])
         print("res: \(res)")
         
         for var line in res.components(separatedBy: .newlines) {
