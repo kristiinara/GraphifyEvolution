@@ -272,6 +272,8 @@ class DependencyAnalyser: ExternalAnalyser {
                 }
             }
         }
+
+	if dependencyFiles.count > 0 {
         
         let checkerPath = "/Users/kristiina/PhD/Tools/DependencyChecker/.build/release/SwiftDependencyChecker"
         //let checkerPath = "/opt/homebrew/bin/SwiftDependencyChecker"
@@ -352,6 +354,7 @@ class DependencyAnalyser: ExternalAnalyser {
                 }
             }
         }
+}
         
         /*
         
