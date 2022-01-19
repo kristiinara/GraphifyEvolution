@@ -237,6 +237,8 @@ class DependencyAnalyser: ExternalAnalyser {
         dependencyFiles.append(findPodFile(homePath: app.homePath))
         dependencyFiles.append(findCarthageFile(homePath: app.homePath))
         dependencyFiles.append(findSwiftPMFile(homePath: app.homePath))
+
+	var hasDependencies = false
         
         if let tag = app.commit?.tag { //TODO: also handle podspec?
             let library = Library(name: app.name, versionString: tag.removingCommonLeadingWhitespaceFromLines())
@@ -249,6 +251,8 @@ class DependencyAnalyser: ExternalAnalyser {
             var libraryDefinitions: [LibraryDefinition] = []
             
             if dependencyFile.used {
+		hasDependencies = true
+
                 if dependencyFile.type == .carthage {
                     libraryDefinitions = handleCartfileConfig(path: dependencyFile.definitionFile!)
                 } else if dependencyFile.type == .cocoapods {
@@ -273,7 +277,7 @@ class DependencyAnalyser: ExternalAnalyser {
             }
         }
 
-	if dependencyFiles.count > 0 {
+	if hasDependencies {
         
         let checkerPath = "/Users/kristiina/PhD/Tools/DependencyChecker/.build/release/SwiftDependencyChecker"
         //let checkerPath = "/opt/homebrew/bin/SwiftDependencyChecker"
