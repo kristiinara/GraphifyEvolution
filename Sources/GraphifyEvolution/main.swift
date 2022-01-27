@@ -184,15 +184,23 @@ struct Application: ParsableCommand {
         var path: String = FileManager.default.currentDirectoryPath
         
         enum DataClass: String, ExpressibleByArgument {
-            case vulnerability
+            case vulnerability, cpe
         }
         
         @Option(help: "Class of data to read and enter")
         var dataClass: DataClass = .vulnerability
         
         mutating func run() {
-            let analyser = VulnerabilityAnalyser()
-            analyser.insertVulnerabilitiesFrom(path: path)
+            switch dataClass {
+            case .vulnerability:
+                print("Enering vulnerabilities")
+                let analyser = VulnerabilityAnalyser()
+                analyser.insertVulnerabilitiesFrom(path: path)
+            case .cpe:
+                print("Entering cpes:")
+                let analyser = VulnerabilityAnalyser()
+                analyser.addCPEValuesFrom(path: path)
+            }
         }
     }
 }
