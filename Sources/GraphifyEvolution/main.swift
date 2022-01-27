@@ -6,7 +6,7 @@ struct Application: ParsableCommand {
     abstract: "A tool for analysing swift applicatins.",
     // Commands can define a version for automatic '--version' support.
     version: "1.0.0",
-    subcommands: [Analyse.self, Query.self],
+    subcommands: [Analyse.self, Query.self, InsertDatabase.self],
 
     // A default subcommand, when provided, is automatically selected if a
     // subcommand is not given on the command line.
