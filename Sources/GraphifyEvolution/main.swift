@@ -178,6 +178,23 @@ struct Application: ParsableCommand {
         @Option(help: "Provide output path for html or csv files.")
         var outputPath: String = "outputFolder/"
     }
+    
+    struct InsertDatabase: ParsableCommand {
+        @Argument(help: "Path of file to read and enter into db.")
+        var path: String = FileManager.default.currentDirectoryPath
+        
+        enum DataClass: String, ExpressibleByArgument {
+            case vulnerability
+        }
+        
+        @Option(help: "Class of data to read and enter")
+        var dataClass: DataClass = .vulnerability
+        
+        mutating func run() {
+            let analyser = VulnerabilityAnalyser()
+            analyser.insertVulnerabilitiesFrom(path: path)
+        }
+    }
 }
 
 Application.main()
