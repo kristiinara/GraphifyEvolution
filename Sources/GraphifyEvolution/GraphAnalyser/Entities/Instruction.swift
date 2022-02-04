@@ -5,8 +5,6 @@
 //  Created by Kristiina Rahkema on 23.10.2020.
 //
 
-import Foundation
-
 //TODO: how should we handle instructions? Enter the into the db? Use them to clculate metrics and save metrics?
 class Instruction {
     enum InstructionType {

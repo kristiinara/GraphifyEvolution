@@ -5,8 +5,6 @@
 //  Created by Kristiina Rahkema on 23.10.2020.
 //
 
-import Foundation
-
 class SimpleAppManager: AppManager {
     // manager used for single project
     let path: String?

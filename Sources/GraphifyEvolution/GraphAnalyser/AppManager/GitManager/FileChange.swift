@@ -5,8 +5,6 @@
 //  Created by Kristiina Rahkema on 23.10.2020.
 //
 
-import Foundation
-
 class FileChange {
     enum FileChangeType {
         case changed, added, removed, renamed

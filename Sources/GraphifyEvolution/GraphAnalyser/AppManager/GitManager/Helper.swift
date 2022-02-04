@@ -26,6 +26,13 @@ class Helper {
         return ""
     }
     
+#if os(linux)
+    static func autoreleasepool(_ argument: () -> ()) {
+        print("-- running on linux: override autoreleasepool")
+        argument()
+    }
+#endif
+    
     static func shellOptinal(launchPath path: String, arguments args: [String]) -> String? {
         //print("Helper.shell")
         
@@ -58,7 +65,10 @@ class Helper {
     
     static func shellAsync(launchPath path: String, arguments args: [String], completion: @escaping ((String, Bool) -> Void )){
         //print("Helper.shell")
-        autoreleasepool {
+     //   #if os(macOS)
+        autoreleasepool
+     //   #endif
+        {
             let task = Process()
             task.launchPath = path
             task.arguments = args
@@ -70,27 +80,27 @@ class Helper {
             
             task.terminationHandler = { returnedTask in
 
-                    let status = returnedTask.terminationStatus
-                    if status == 0 {
-                       completion("", true)
-                    } else {
-                        let errorData = pipe.fileHandleForReading.readDataToEndOfFile()
-                        let errorString = String(data:errorData, encoding: .utf8)!
-                        completion(errorString, true)
-                    }
+                let status = returnedTask.terminationStatus
+                if status == 0 {
+                    completion("", true)
+                } else {
+                    let errorData = pipe.fileHandleForReading.readDataToEndOfFile()
+                    let errorString = String(data:errorData, encoding: .utf8)!
+                    completion(errorString, true)
                 }
-                let outputHandle = (task.standardOutput as! Pipe).fileHandleForReading
-                NotificationCenter.default.addObserver(forName: FileHandle.readCompletionNotification, object: outputHandle, queue: OperationQueue.current, using: { notification in
-                    if let data = notification.userInfo?[NSFileHandleNotificationDataItem] as? Data, !data.isEmpty {
-                        completion(String(data: data, encoding: . utf8)!, false)
-                    } else {
-                        task.terminate()
-                        return
-                    }
-                    outputHandle.readInBackgroundAndNotify()
-                })
+            }
+            let outputHandle = (task.standardOutput as! Pipe).fileHandleForReading
+            NotificationCenter.default.addObserver(forName: FileHandle.readCompletionNotification, object: outputHandle, queue: OperationQueue.current, using: { notification in
+                if let data = notification.userInfo?[NSFileHandleNotificationDataItem] as? Data, !data.isEmpty {
+                    completion(String(data: data, encoding: . utf8)!, false)
+                } else {
+                    task.terminate()
+                    return
+                }
                 outputHandle.readInBackgroundAndNotify()
-                task.launch()
+            })
+            outputHandle.readInBackgroundAndNotify()
+            task.launch()
         }
     }
 }

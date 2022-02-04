@@ -5,8 +5,6 @@
 //  Created by Kristiina Rahkema on 23.10.2020.
 //
 
-import Foundation
-
 class Change {
     enum ChangeType {
         case changed, added, removed, confused

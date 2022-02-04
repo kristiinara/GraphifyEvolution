@@ -5,8 +5,6 @@
 //  Created by Kristiina Rahkema on 26.10.2020.
 //
 
-import Foundation
-
 class AppVersion {
     var children: [AppVersion] = []
     var parent: AppVersionParent?

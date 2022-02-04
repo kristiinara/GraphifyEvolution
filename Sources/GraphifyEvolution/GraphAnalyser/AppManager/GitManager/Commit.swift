@@ -5,8 +5,6 @@
 //  Created by Kristiina Rahkema on 23.10.2020.
 //
 
-import Foundation
-
 class Commit: Codable {
     var parentCommit: Commit?
     var alternateParentCommit: Commit?

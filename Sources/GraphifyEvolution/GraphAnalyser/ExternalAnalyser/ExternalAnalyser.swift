@@ -5,8 +5,6 @@
 //  Created by Kristiina Rahkema on 08.02.2021.
 //
 
-import Foundation
-
 protocol ExternalAnalyser {
     func analyseApp(app:App)
     func analyseClass(classInstance:Class, app:App)

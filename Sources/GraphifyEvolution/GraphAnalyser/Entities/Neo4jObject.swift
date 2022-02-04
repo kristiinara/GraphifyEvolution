@@ -5,8 +5,6 @@
 //  Created by Kristiina Rahkema on 23.10.2020.
 //
 
-import Foundation
-
 protocol Neo4jNode {
     var node: Node {get}
     var updatedNode: Node {get}

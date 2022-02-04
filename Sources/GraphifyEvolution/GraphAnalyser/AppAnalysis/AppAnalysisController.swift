@@ -5,8 +5,6 @@
 //  Created by Kristiina Rahkema on 14.09.2020.
 //
 
-import Foundation
-
 class AppAnalysisController {
     let appManager: AppManager
     let syntaxAnalyser: SyntaxAnalyser

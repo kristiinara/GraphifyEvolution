@@ -5,7 +5,6 @@
 //  Created by Kristiina Rahkema on 15.02.2021.
 //
 
-import Foundation
 
 class MetricsAnalyser: ExternalAnalyser {
     let queries: [MetricsQuery]
