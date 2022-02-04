@@ -26,7 +26,7 @@ class Helper {
         return ""
     }
     
-#if os(linux)
+#if os(Linux)
     static func autoreleasepool(_ argument: () -> ()) {
         print("-- running on linux: override autoreleasepool")
         argument()
