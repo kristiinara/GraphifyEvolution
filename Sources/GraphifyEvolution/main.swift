@@ -41,6 +41,18 @@ struct Application: ParsableCommand {
         @Option(help: "Provide starting commit if needed")
         var startCommit: String?
         
+        @Option(help: "Provide neo4j username, default is 'neo4j'")
+        var neo4jUsername: String = "neo4j"
+        
+        @Option(help: "Provide neo4j password, default is 1234")
+        var neo4jPassword: String = "1234"
+        
+        @Option(help: "Provide neo4j hostname, default is localhost")
+        var neo4jHost: String = "localhost"
+        
+        @Option(help: "Provide neo4j port, default is 7474")
+        var neo4jPort: Int = 7474
+        
         enum Language: String, ExpressibleByArgument {
             case swift, cpp, java
         }
@@ -66,6 +78,8 @@ struct Application: ParsableCommand {
             var appManager: AppManager?
             var syntaxAnalyser: SyntaxAnalyser?
             var fileManager: LocalFileManager?
+            
+            DatabaseController.currentDatabase = DatabaseController(hostname: neo4jHost, port: neo4jPort, username: neo4jUsername, password: neo4jPassword)
             
             if dependencyManager == .maven || dependencyManager == .gradle {
                 if language != .java {
