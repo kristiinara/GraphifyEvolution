@@ -11,6 +11,10 @@ import Theo
 import PackStream
 import Dispatch
 
+#if os(Linux)
+  import FoundationNetworking
+#endif
+
 class Node {
     var label: String
     var id: Int?

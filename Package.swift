@@ -11,10 +11,9 @@ let package = Package(
     dependencies: [
         // Dependencies declare other packages that this package depends on.
         // .package(url: /* package url */, from: "1.0.0"),
-        .package(url: "https://github.com/jpsim/SourceKitten.git", from: "0.23.1"),
-        .package(url: "https://github.com/apple/swift-argument-parser", from: "0.3.0"),
-        .package(name: "Theo", url: "https://github.com/Neo4j-Swift/Neo4j-Swift.git", .branch("master")),
-        .package(url: "https://github.com/Neo4j-Swift/Bolt-swift.git", .branch("master"))
+        .package(url: "https://github.com/jpsim/SourceKitten.git", from: "0.31.1"),
+        .package(url: "https://github.com/apple/swift-argument-parser", from: "1.0.3"),
+        .package(name: "Theo", url: "https://github.com/Neo4j-Swift/Neo4j-Swift.git", .branch("master"))
     ],
     
     targets: [
