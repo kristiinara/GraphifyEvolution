@@ -87,6 +87,31 @@ extension SyntaxAnalyser {
                 }
             }
             
+            var relatedClasses: [(name: String, usr: String?)] = []
+            var relatedStructures: [(name: String, usr: String?)] = []
+            
+            if let relatedObjects = json["key.related"] as? [[String: Any]] {
+                for related in relatedObjects {
+                    let kind = related["key.kind"] as? String
+                    let name = related["key.name"] as? String
+                    let usr = related["key.usr"] as? String
+                                    
+                    if kind == "source.lang.swift.ref.class" {
+                        if let name = name {
+                            relatedClasses.append((name: name, usr: usr))
+                        }
+                    } else if kind == "source.lang.swift.ref.struct" {
+                        if let name = name {
+                            relatedStructures.append((name: name, usr: usr))
+                        }
+                    } else if kind == "source.lang.swift.ref.protocol" {
+                        if let name = name {
+                            relatedClasses.append((name: name, usr: usr))
+                        }
+                    }
+                }
+            }
+            
             var dataString = "--"
             var path = path
             
@@ -131,6 +156,8 @@ extension SyntaxAnalyser {
             }
             
             let classInstance = Class(name: name, path: path, type: classType, code: dataString, usr: usr, methods: [], variables: [])
+            classInstance.relatedClasses = relatedClasses
+            classInstance.relatedStructs = relatedStructures
             
             if let modifiers = json[constants.modifiersKey] as? [[String: Any]] {
                 for modifier in modifiers {
@@ -393,6 +420,17 @@ extension SyntaxAnalyser {
             var type = ""
             if let variableType = json[constants.typeKey] as? String {
                 type = variableType
+            }
+            
+            if let entities = json[constants.entitiesKey] as? [[String: Any]] {
+                for entity in entities {
+                    if let kind = entity[constants.kindKey] as? String,
+                       let name = entity[constants.nameKey] as? String {
+                        if kind == "source.lang.swift.ref.typealias" {
+                            type = name
+                        }
+                    }
+                }
             }
             
             //TODO: add code

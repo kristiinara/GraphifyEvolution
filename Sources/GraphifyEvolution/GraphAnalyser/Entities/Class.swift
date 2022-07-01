@@ -33,6 +33,9 @@ class Class {
     var potentialMethods: [Method]?
     var potentialVariables: [Variable]?
     
+    var relatedClasses: [(name: String, usr: String?)] = []
+    var relatedStructs: [(name: String, usr: String?)] = []
+    
     var id: Int? {
         return self.nodeSet?.id
     }

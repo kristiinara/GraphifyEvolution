@@ -656,6 +656,10 @@ class AppAnalysisController {
                     addCallAndUseConnectionsTo(app: app)
                 }
             }
+            
+            for classInstance in newClassVersions {
+                addParentsForClass(classInstance: classInstance, app: app)
+            }
         }
         
         print("running external analysers for \(newClassVersions.map() {value in return value.name} )")
@@ -675,6 +679,26 @@ class AppAnalysisController {
         print("Externalanalysers reset")
         for externalAnalyser in self.externalAnalysers {
             externalAnalyser.reset()
+        }
+    }
+    
+    func addParentsForClass(classInstance: Class, app: App) {
+        for parentClass in classInstance.relatedClasses {
+            for anotherClass in app.classes {
+                if anotherClass.name == parentClass.name {
+                    classInstance.relate(to: anotherClass, type: "EXTENDS")
+                    continue
+                }
+            }
+        }
+        
+        for parentStruct in classInstance.relatedStructs {
+            for anotherClass in app.classes {
+                if anotherClass.name == parentStruct.name {
+                    classInstance.relate(to: anotherClass, type: "EXTENDS")
+                    continue
+                }
+            }
         }
     }
     

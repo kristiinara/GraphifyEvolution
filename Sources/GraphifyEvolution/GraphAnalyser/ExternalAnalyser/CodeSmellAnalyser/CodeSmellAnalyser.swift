@@ -67,21 +67,7 @@ class CodeSmellAnalyser: ExternalAnalyser {
     }
     
     init() {
-        var queries: [CodeSmellQuery] = []
-        
-        queries.append(LongMethodQuery())
-        queries.append(BlobClassQuery())
-        queries.append(BrainMethodQuery())
-        queries.append(ComplexClassQuery())
-        queries.append(CyclicDependenciesQuery())
-        queries.append(DataClassQuery())
-        queries.append(DivergentChangeQuery())
-        queries.append(FeatureEnvyQuery())
-        queries.append(GodClassQuery())
-        queries.append(IgnoringLowMemoryWarningQuery())
-        queries.append(InappropriateIntimacyQuery())
-        queries.append(IntensiveCouplingQuery())
-        queries.append(InternalDuplicationQuery())
+        var queries: [CodeSmellQuery] = [LongMethodQuery(), BlobClassQuery(), BrainMethodQuery(), ComplexClassQuery(), CyclicDependenciesQuery(), DataClassQuery(), DistortedHierarchyQuery(), DivergentChangeQuery(), FeatureEnvyQuery(), GodClassQuery(), IgnoringLowMemoryWarningQuery(), InappropriateIntimacyQuery(), IntensiveCouplingQuery(), InternalDuplicationQuery(), LazyClassQuery(), LongParameterListQuery(), MassiveViewControllerQuery(), LongMessageChainsQuery(), MiddleManQuery(), MissingTemplateMethodQuery(), ParallelInheritanceHierarchiesQuery(), SAPBreakerQuery(), ShotgunSurgeryQuery(), SiblingDuplicationQuery(), SpeculativeGeneralityProtocolQuery(), SwissArmyKnifeQuery(), TraditionBreakerQuery()]
     
         self.queries = queries
     }
@@ -241,9 +227,25 @@ class DataClassQuery: CodeSmellQuery {
 //class DataClumpFieldsQuery: CodeSmellQuery {
 //}
 
-////TODO: implement (needs parent classes)
-//class DistortedHierarchyQuery: CodeSmellQuery {
-//}
+class DistortedHierarchyQuery: CodeSmellQuery {
+    var name: String = "DistortedHierarchy"
+    let shortTermMemoryCap = Metrics.shorTermMemoryCap
+    
+    var description: String = "Queries methods that call too many methods."
+    
+    func queryStringFor(classInstance: Class) -> String? {
+        if let id = classInstance.id {
+            return
+            """
+            return MATCH (c:Class) where id(c) = \(id)
+            MATCH path = (c)-[:EXTENDS*]->()
+            where length(path) > ( 1 + \(shortTermMemoryCap))
+            SET c.is_distorted_hierarchy = TRUE
+            """
+        }
+        return nil
+    }
+}
 
 class DivergentChangeQuery: CodeSmellQuery {
     var name: String = "DivergentChange"
@@ -408,40 +410,416 @@ class InternalDuplicationQuery: CodeSmellQuery {
         return nil
     }
 }
-//class LasyClassQuery: CodeSmellQuery {
-//}
-//class LongParameterListQuery: CodeSmellQuery {
-//}
-//class MassiveViewControllerQuery: CodeSmellQuery {
-//}
-//class MessageChainsQuery: CodeSmellQuery {
-//}
-//class MiddleManQuery: CodeSmellQuery {
-//}
-//class MissingTemplateMethodQuery: CodeSmellQuery {
-//}
-//class ParallelInheritanceHierarchiesQuery: CodeSmellQuery {
-//}
+class LazyClassQuery: CodeSmellQuery {
+    var name: String = "LazyClass"
+    let mediumNumberOfInstructions = Metrics.medianNumberOfInstructionsClass
+    let lowComplexityMethodRatio = Metrics.LowComplexityMethodRatio
+    let mediumCouplingBetweenObjectClasses = Metrics.medianCouplingBetweenObjectClasses
+    let numberOfSomeDepthOfInheritance = 1
+    
+    var description: String = "Queries lazy classes that either have no methods, have low class complexity to method ratio or that have low coupling but where there is some depth of inheritance."
+    
+    func queryStringFor(classInstance: Class) -> String? {
+        if let id = classInstance.id {
+            return "MATCH (class:Class) where id(class) = \(id) and c.number_of_methods = 0 OR (c.number_of_instructions < \(mediumNumberOfInstructions) AND c.class_complexity/c.number_of_methods <= \(lowComplexityMethodRatio) OR (c.coupling_between_object_classes < \(mediumCouplingBetweenObjectClasses) AND c.depth_of_inheritance > \(numberOfSomeDepthOfInheritance) set class.is_lazy_class = TRUE"
+        }
+        return nil
+    }
+}
+
+
+class LongParameterListQuery: CodeSmellQuery {
+    var name: String = "LongParameterList"
+    let veryHighNumberOfParameters = Metrics.veryHighNumberOfParameters
+    
+    var description: String = "Queries lazy classes that either have no methods, have low class complexity to method ratio or that have low coupling but where there is some depth of inheritance."
+    
+    func queryStringFor(classInstance: Class) -> String? {
+        if let id = classInstance.id {
+            return "MATCH (class:Class)-[:CLASS_OWNS_METHOD]->(m:Method) where id(class) = \(id) with class, m, size(split(m.name, ':')) -1 as argument_count where argument_count > \(veryHighNumberOfParameters) set m.is_long_parameter_list = TRUE"
+        }
+        return nil
+    }
+}
+
+
+class MassiveViewControllerQuery: CodeSmellQuery {
+    var name: String = "MassiveViewController"
+    let veryHighNumberOfMethods = Metrics.veryHighNumberOfMethods
+    let veryHighNumberOfAttributes = Metrics.veryHighNumberOfAttributes
+    let veryHighNumberOfInstructions = Metrics.veryHighNumberOfInstructionsClass
+    
+    var description: String = "Queries lazy classes that either have no methods, have low class complexity to method ratio or that have low coupling but where there is some depth of inheritance."
+    
+    func queryStringFor(classInstance: Class) -> String? {
+        if let id = classInstance.id {
+            return "MATCH (class:Class)-[:CLASS_OWNS_METHOD]->(m:Method) where id(class) = \(id) and class.name contains 'ViewController' and class.number_of_methods > \(veryHighNumberOfMethods) and class.number_of_attributes > \(veryHighNumberOfAttributes) and class.number_of_instructions > \(veryHighNumberOfInstructions) set class.is_massive_view_controller = TRUE"
+        }
+        return nil
+    }
+}
+
+
+class LongMessageChainsQuery: CodeSmellQuery {
+    var name: String = "LongMessageChain"
+    let veryHighNumberOfChainedMessages = Metrics.veryHighNumberOfChainedMessages
+    
+    var description: String = "Queries all methods, where the maximum number of chained message calls is larger than very high."
+    
+    func queryStringFor(classInstance: Class) -> String? {
+        if let id = classInstance.id {
+            return "MATCH (class:Class)-[:CLASS_OWNS_METHOD]->(m:Method) where id(class) = \(id) and m.max_number_of_chaned_message_calls > \(veryHighNumberOfChainedMessages) set m.is_long_message_chain = TRUE"
+        }
+        return nil
+    }
+}
+
+
+class MiddleManQuery: CodeSmellQuery {
+    var name: String = "MiddleMan"
+    let lowNumberOfInstructionsMethod = Metrics.lowNumberOfInstructionsMethod
+    let delegationToAllMethodsRatioHalf = 0.5
+    
+    var description: String = "Querying all classes where more than half of the methods are delegation methods. Delegation methods are methods that have at least one reference (uses/calles) to another class but have less than a small number of lines"
+    
+    func queryStringFor(classInstance: Class) -> String? {
+        if let id = classInstance.id {
+            return
+            """
+            MATCH (class:Class) id(class) = \(id) and
+            
+            (class)-[:CLASS_OWNS_METHOD]->(method:Method)-[:USES|CALLS]->(ref)<-[:CLASS_OWNS_VARIABLE|CLASS_OWNS_METHOD]-(other_class:Class)
+        WHERE
+            class <> other_class and
+            method.number_of_instructions < \(lowNumberOfInstructionsMethod)
+        WITH
+            class,
+            method,
+            collect(ref.name) as referenced_names,
+            collect(other_class.name) as class_names
+        WITH
+            collect(method.name) as method_names,
+            collect(referenced_names) as references,
+            collect(class_names) as classes,
+            collect(method.number_of_instructions) as
+            numbers_of_instructions,
+            class,
+            count(method) as method_count,
+            count(method)*1.0/class.number_of_methods as method_ratio
+        WHERE
+            method_ratio > \(delegationToAllMethodsRatioHalf)
+
+        SET
+            class.is_middle_man = TRUE
+"""
+        }
+        return nil
+    }
+}
+
+class MissingTemplateMethodQuery: CodeSmellQuery {
+    var name: String = "MissingTemplateMethod"
+    let minimalCommonMethodAndVariableCount = 5
+    let minimalMethodCount = 2
+    
+    var description: String = "Queries methods that call the same methods and use the same variables. Number of common methods and common variables should be at least minimalCommonMethodAndVariableCount. Number of methods having these variables and methods in common should be at least minimalMethodCount."
+    
+    func queryStringFor(classInstance: Class) -> String? {
+        if let id = classInstance.id {
+            return
+             """
+            "MATCH (class:Class)-[:CLASS_OWNS_METHOD]->(m:Method) where id(class) = \(id)
+             MATCH
+                 (class)
+                     -[:CLASS_OWNS_METHOD]->(method:Method)-[:USES|:CALLS]->(common)
+                     <-[:USES|:CALLS]-(other_method)<-[:CLASS_OWNS_METHOD]-(other_class:Class)
+             WHERE
+                 method <> other_method
+             WITH
+                 collect(distinct common) as commons,
+                 count(distinct common) as common_count,
+                  class, other_class, method, other_method
+             WHERE
+                  common_count >= \(minimalCommonMethodAndVariableCount)
+             WITH
+                 [common in commons | class.name+"."+common.name] as common_names,
+                 class,
+                 other_class,
+                 method,
+                 other_method,
+                 common_count
+             with
+                  collect(class.name) as class_names,
+                 collect(class.name + "." + method.name + '-' + other_class.name + '.' + other_method.name) as method_names,
+                  count(distinct method) as method_count,
+                  class.name as app_key,
+                 common_names, common_count,
+                 collect(distinct method) as methods
+              where
+                             method_count >= \(minimalMethodCount)
+             unwind methods as method
+             set m.is_missing_template_method = TRUE
+"""
+        }
+        return nil
+    }
+}
+
+
+class ParallelInheritanceHierarchiesQuery: CodeSmellQuery {
+    var name: String = "ParallelInheritanceHierachie"
+    let minimumNumberOfClassesInHierarchy = 5
+    let prefixLength = 3
+    
+    var description: String = "Queries parallel hierarchy trees for classes that start with the same prefixes. Prefix length currently set to 3, minimumNumberOfClassesInHierarchy set to 5."
+    
+    func queryStringFor(classInstance: Class) -> String? {
+        if let id = classInstance.id {
+            return
+"""
+            "MATCH (parent:Class) where id(parent) = \(id)
+             MATCH
+                 (parent)<-[:APP_OWNS_CLASS]-(app:App)
+             MATCH
+                 (app)-[:APP_OWNS_CLASS]->(other_parent:Class)
+             WHERE
+                 parent <> other_parent
+             MATCH
+                 path = (class:Class)-[:EXTENDS*]->(parent)
+             MATCH
+                 other_path = (other_class:Class)-[:EXTENDS*]->(other_parent)
+             WHERE
+                 length(path) = length(other_path) and
+                 length(path) > 0 and
+                 class.name starts with substring(other_class.name, 0, \(prefixLength))
+                 and parent.name starts with substring(other_parent.name, 0, \(prefixLength))
+             WITH
+                 collect(distinct [n in nodes(path) | n.name ]) as first,
+                 collect(distinct [n in nodes(other_path) | n.name]) as second,
+                 parent,
+                 other_parent
+             WITH
+                 REDUCE(output = [], r IN first | output + r) as first_names,
+                 REDUCE(output = [], r IN second | output + r) AS second_names,
+                 parent,
+                 other_parent
+             UNWIND
+                 first_names as first_name
+             WITH
+                 collect(distinct first_name) as first_names,
+                 second_names,
+                 parent,
+                 other_parent
+             UNWIND
+                 second_names as second_name
+             WITH
+                 collect(distinct second_name) as second_names,
+                 first_names,
+                 parent,
+                 other_parent
+             WHERE
+                 size(first_names) >= \(minimumNumberOfClassesInHierarchy) and
+                 size(second_names) >= \(minimumNumberOfClassesInHierarchy)
+             SET parent.is_parent_of_parallel_inheritance_tree = TRUE
+"""
+        }
+        return nil
+    }
+}
+
+// TODO: implement, variable types not added correctly
 //class PrimitiveObsessionQuery: CodeSmellQuery {
 //}
+
+// not applicable to Swift
 //class RefusedBequestQuery: CodeSmellQuery {
 //}
-//class SAPBreakerQuery: CodeSmellQuery {
-//}
-//class ShotgunSurgeryQuery: CodeSmellQuery {
-//}
-//class SiblingDuplicationQuery: CodeSmellQuery {
-//}
+
+
+class SAPBreakerQuery: CodeSmellQuery {
+    var name: String = "SAPBreaker"
+    let allowedDistanceFromMain = 0.5
+    
+    var description: String = "Queries classes where class abstractness + instability is far from the 1-x mainline. AllowedDistanceFromMain is currently set to 0.5."
+    
+    func queryStringFor(classInstance: Class) -> String? {
+        if let id = classInstance.id {
+            return
+            """
+            MATCH (class:Class)-[:CLASS_OWNS_METHOD]->(m:Method) where id(class) = \(id)
+            MATCH
+                (app:App)-[:APP_OWNS_CLASS]->(class)
+            MATCH
+                (app:App)-[:APP_OWNS_CLASS]->(other_class:Class)
+            WHERE
+                (other_class)-[:CLASS_OWNS_METHOD]->()-[:USES|:CALLS]->()
+                        <-[:CLASS_OWNS_METHOD|:CLASS_OWNS_VARIABLE]-(class) and
+                class <> other_class
+            WITH
+                count(distinct other_class) as number_of_dependant_classes,
+                class,
+                app
+            WITH
+                class,
+                number_of_dependant_classes as efferent_coupling_number,
+                app
+
+            MATCH
+                (app)-[:APP_OWNS_MODULE]->(module:Module)-[:MODULE_OWNS_CLASS]->(other_class:Class)
+            WHERE
+                (class)-[:CLASS_OWNS_METHOD]->()-[:USES|:CALLS]->()
+                        <-[:CLASS_OWNS_METHOD|:CLASS_OWNS_VARIABLE]-(other_class) and
+                class <> other_class
+            WITH
+                count(distinct other_class) as afferent_coupling_number,
+                class,
+                efferent_coupling_number
+            WITH
+                efferent_coupling_number*1.0/(efferent_coupling_number + afferent_coupling_number) as instability_number,
+                class,
+                afferent_coupling_number,
+                efferent_coupling_number
+
+            OPTIONAL MATCH
+                (class)-[:CLASS_OWNS_METHOD]->(method:Method)
+            WHERE
+                method.is_abstract
+            WITH
+                count(distinct method)/class.number_of_methods as abstractness_number,
+                instability_number,
+                afferent_coupling_number,
+                efferent_coupling_number,
+                class
+            WITH
+                1 - (abstractness_number + instability_number)^2 as difference_from_main,
+                instability_number,
+                abstractness_number,
+                class
+
+            WHERE
+                difference_from_main < -\(allowedDistanceFromMain) or
+                difference_from_main > \(allowedDistanceFromMain)
+                
+            SET class.is_sap_breaker = TRUE
+            """
+        }
+        return nil
+    }
+}
+
+class ShotgunSurgeryQuery: CodeSmellQuery {
+    var name: String = "ShotgunSurgery"
+    let veryHighNumberOfCallers = Metrics.veryHighNumberOfCallers
+    
+    var description: String = "Queries all methods that are called by more than a very high number of callers"
+    
+    func queryStringFor(classInstance: Class) -> String? {
+        if let id = classInstance.id {
+            return
+            """
+            MATCH (class:Class)-[:CLASS_OWNS_METHOD]->(m:Method) where id(class) = \(id)
+            MATCH (other_m:Method)-[r:CALLS]->(m:Method)<-[:CLASS_OWNS_METHOD]-(class)
+            WITH
+                class,
+                m,
+                COUNT(r) as number_of_callers
+            WHERE number_of_callers > \(veryHighNumberOfCallers)
+            SET m.is_shotgun_surgery = TRUE
+            """
+        }
+        return nil
+    }
+}
+
+class SiblingDuplicationQuery: CodeSmellQuery {
+    var name: String = "SiblingDuplication"
+    
+    var description: String = "Query classes that have a common parent class (somewhere in the hierarchy) and that share duplicated code."
+    
+    func queryStringFor(classInstance: Class) -> String? {
+        if let id = classInstance.id {
+            return "MATCH (firstClass:Class) where id(firstClass) = \(id) MATCH  (firstClass:Class)-[:EXTENDS*]-> (parent:Class)<-[:EXTENDS*]-(secondClass:Class), (firstClass)-[r:DUPLICATES]-(secondClass:Class) with firstClass, count(distinct r) as number_of_smells SET firstClass.is_sibling_duplication = number_of_smells"
+        }
+        return nil
+    }
+}
+
+class SpeculativeGeneralityProtocolQuery: CodeSmellQuery {
+    var name: String = "SpeculativeGeneralityProtocol"
+    
+    var description: String = "Query interfaces that are not implemented or extended."
+    
+    func queryStringFor(classInstance: Class) -> String? {
+        if let id = classInstance.id {
+            return
+            """
+            MATCH (class:Class) where id(class) = \(id)
+             WHERE NOT
+                 ()-[:IMPLEMENTS|EXTENDS]->(class) and
+                 class.kind = "protocolType"
+             SET class.is_speculative_generality = TRUE
+            """
+        }
+        return nil
+    }
+}
+
+
+//TODO: implement, needs arguments
 //class SpeculativeGeneralityMethodQuery: CodeSmellQuery {
 //}
-//class SpeculativeGeneralityProtocolQuery: CodeSmellQuery {
-//}
-//class SwissArmyKnifeQuery: CodeSmellQuery {
-//}
+
+class SwissArmyKnifeQuery: CodeSmellQuery {
+    var name: String = "SwissArmyKnife"
+    let veryHighNumberOfMethods = Metrics.veryHighNumberOfMethodsInterface
+    
+    var description: String = "Queries classes that are interfaces (i.e. protocols) that have a very high number of methods."
+    
+    func queryStringFor(classInstance: Class) -> String? {
+        if let id = classInstance.id {
+            return
+            """
+            MATCH (cl:Class) where id(cl) = \(id)
+            AND
+                 cl.kind = "protocolKind" AND
+                 cl.number_of_methods > \(veryHighNumberOfMethods)
+            SET cl.is_swiss_army_knife
+            """
+        }
+        return nil
+    }
+}
+
+//TODO: needs switch statements
 //class SwitchStatementsQuery: CodeSmellQuery {
 //}
-//class TraditionBreakerQuery: CodeSmellQuery {
-//}
+
+
+class TraditionBreakerQuery: CodeSmellQuery {
+    var name: String = "TraditionBreaker"
+    let lowNumberOfmethodsAndAttributes = Metrics.lowNumberOfMethodsAndAttributes
+    let veryHighNumberOfMethodsAndAttributes = Metrics.veryHighNumberOfMethodsAndAttributes
+    
+    var description: String = "Queries classes that do not have any subclasses, where number of methods and attributes is low and where they inherit from a class whose number of methods and attributes is very high."
+    
+    func queryStringFor(classInstance: Class) -> String? {
+        if let id = classInstance.id {
+            return
+            """
+            MATCH (c:Class) where id(c) = \(id)
+             MATCH (c:Class)-[r:EXTENDS]->(parent:Class)
+             WHERE
+                 NOT ()-[:EXTENDS]->(c) AND
+                 c.number_of_methods + c.number_of_attributes < \(lowNumberOfmethodsAndAttributes) AND
+                 parent.number_of_methods + parent.number_of_attributes >= \(veryHighNumberOfMethodsAndAttributes)
+            SET cl.is_tradition_breaker = TRUE
+            """
+        }
+        return nil
+    }
+}
+
+//TODO: implement
 //class UnstableDependenciesQuery: CodeSmellQuery {
 //}
 

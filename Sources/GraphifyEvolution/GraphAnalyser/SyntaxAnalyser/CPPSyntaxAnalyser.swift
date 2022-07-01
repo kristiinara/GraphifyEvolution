@@ -81,7 +81,7 @@ class CPPSyntaxAnalyser: SyntaxAnalyser {
        // let res = Helper.shell(launchPath: "/usr/bin/python", arguments:
         //    ["\(currentDirectory)/PythonCppAnalyser/analyse.py", path])
         
-        let res = Helper.shell(launchPath: "/bin/bash", arguments: ["-c", "\(currentDirectory)/CAnalyser/test \(path) -I\(path)/include -x c++ -I/usr/local/opt/llvm/bin/../include/c++/v1 -I/usr/local/Cellar/llvm/9.0.0_1/lib/clang/9.0.0/include -I/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include -I/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks -I/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks/Kernel.framework/Headers/ -lclang -std=c++20"])
+        let res = Helper.shell(launchPath: "/bin/bash", arguments: ["-c", "\(currentDirectory)/CAnalyser/analyser \(path) -I\(path)/include -x c++ -I/usr/local/opt/llvm/bin/../include/c++/v1 -I/usr/local/Cellar/llvm/9.0.0_1/lib/clang/9.0.0/include -I/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include -I/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks -I/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks/Kernel.framework/Headers/ -lclang -std=c++20"])
         
         var json = res
         json = json.replacingOccurrences(of: "\"\"", with: "\"")

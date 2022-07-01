@@ -142,6 +142,20 @@ class Method {
         return 0
     }
     
+    var maxNumberOfChanedMessageCalls: Int {
+        var biggestChangedMessageCall = 0
+        
+        if let instructions = self.instructions {
+            for instruction in instructions {
+                if instruction.maxNumberOfChanedMessageCalls > biggestChangedMessageCall {
+                    biggestChangedMessageCall = instruction.maxNumberOfChanedMessageCalls
+                }
+            }
+        }
+        
+        return biggestChangedMessageCall
+    }
+    
     var numberOfInstructions : Int? {
         /*
         if let isDefinition = self.isDefinition {
@@ -188,6 +202,7 @@ extension Method: Neo4jObject {
         oldNode.properties["is_constructor"] = self.kind == .constructor
         oldNode.properties["is_definition"] = isDefinition
         oldNode.properties["modifier"] = self.modifier
+        oldNode.properties["max_number_of_chaned_message_calls"] = self.maxNumberOfChanedMessageCalls
         
         self.nodeSet = oldNode
         
