@@ -43,6 +43,10 @@ class App {
         }
     }
     
+    var id: Int? {
+        return self.nodeSet?.id
+    }
+    
     var nodeSet: Node?
 }
 
