@@ -128,7 +128,11 @@ struct Application: ParsableCommand {
                 } else if value == .dependencies {
                     externalAnalysers.append(DependencyAnalyser())
                 } else if value == .imports {
-                    externalAnalysers.append(ImportAnalyser())
+                    if noSourceAnalysis {
+                        externalAnalysers.append(ImportAnalyser())
+                    } else {
+                        externalAnalysers.append(ImportAnalyserClass())
+                    }
                 } else if value == .languages {
                     externalAnalysers.append(LanguageAnayser())
                 }
