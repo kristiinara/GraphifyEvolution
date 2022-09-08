@@ -83,7 +83,7 @@ struct Application: ParsableCommand {
             var fileManager: LocalFileManager?
             
             DatabaseController.currentDatabase = DatabaseController(hostname: neo4jHost, port: neo4jPort, username: neo4jUsername, password: neo4jPassword)
-            DatabaseController.noParallelRequests = noParallelRequests
+            DatabaseController.currentDatabase.noParallelRequests = noParallelRequests
             
             if dependencyManager == .maven || dependencyManager == .gradle {
                 if language != .java {
