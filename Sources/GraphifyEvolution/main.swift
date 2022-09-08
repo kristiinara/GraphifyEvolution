@@ -35,6 +35,9 @@ struct Application: ParsableCommand {
         @Flag(help: "Only projects that are not yet in the database")
         var checkIfProjectExistis: Bool = false
         
+        @Flag(help: "Do not allow making multiple neo4j requests in parallel")
+        var noParallelRequests: Bool = false
+        
         @Option(help: "Provide path to json file if bulk of apps should be analysed at once")
         var bulkJsonPath: String?
         
@@ -80,6 +83,7 @@ struct Application: ParsableCommand {
             var fileManager: LocalFileManager?
             
             DatabaseController.currentDatabase = DatabaseController(hostname: neo4jHost, port: neo4jPort, username: neo4jUsername, password: neo4jPassword)
+            DatabaseController.noParallelRequests = noParallelRequests
             
             if dependencyManager == .maven || dependencyManager == .gradle {
                 if language != .java {

@@ -15,6 +15,7 @@ class Node {
     var label: String
     var id: Int?
     var properties: [String:Any] = [:]
+    var noParallelRequests: Bool = false
     
     init(label: String, properties: [String:Any]) {
         self.label = label
