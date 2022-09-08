@@ -15,7 +15,6 @@ class Node {
     var label: String
     var id: Int?
     var properties: [String:Any] = [:]
-    var noParallelRequests: Bool = false
     
     init(label: String, properties: [String:Any]) {
         self.label = label
@@ -56,6 +55,7 @@ class Node {
 
 class DatabaseController {
     let client: Neo4jClient?
+    var noParallelRequests: Bool = false
     static var currentDatabase = DatabaseController() //TODO: should we do it another way?
     
     init() {

@@ -95,7 +95,7 @@ extension Neo4jObject {
         }
         
         if let client = DatabaseController.currentDatabase.client {
-            if DatabaseController.currentDatabase.client.noParallelRequests {
+            if DatabaseController.currentDatabase.noParallelRequests {
                 client.relateInParallel(node: self.updatedNode, to: updatedNodes, type: type, batchSize: 1)
             } else {
                 client.relateInParallel(node: self.updatedNode, to: updatedNodes, type: type, batchSize: 10)
