@@ -6,7 +6,7 @@ import PackageDescription
 let package = Package(
     name: "GraphifyEvolution",
     platforms: [
-          .macOS(.v10_14),
+        .macOS(.v10_15),
        ],
     dependencies: [
         // Dependencies declare other packages that this package depends on.
@@ -14,7 +14,7 @@ let package = Package(
         .package(url: "https://github.com/jpsim/SourceKitten.git", from: "0.23.1"),
         .package(url: "https://github.com/apple/swift-argument-parser", from: "0.3.0"),
         .package(name: "Theo", url: "https://github.com/Neo4j-Swift/Neo4j-Swift.git", .branch("master")),
-        .package(url: "https://github.com/Neo4j-Swift/Bolt-swift.git", .branch("master"))
+        .package(url: "https://github.com/Neo4j-Swift/Bolt-swift.git", .exact("5.2.0"))
     ],
     
     targets: [
