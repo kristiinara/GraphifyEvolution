@@ -56,6 +56,9 @@ struct Application: ParsableCommand {
         @Option(help: "Provide neo4j port, default is 7474")
         var neo4jPort: Int = 7474
         
+        @Option(help: "Neo4j path if neo4j should be restarted after many app versions are analysed.")
+        var neo4jPath: String?
+        
         enum Language: String, ExpressibleByArgument {
             case swift, cpp, java
         }
@@ -146,6 +149,7 @@ struct Application: ParsableCommand {
                 if(evolution) {
                     let gitManager = GitManager()
                     gitManager.onlyTags = onlyGitTags
+                    gitManager.neo4jPath = neo4jPath
                     
                     let bulkManager = BulkAppManager(folderPath: path, jsonPath: bulkPath, appManager: gitManager)
                     bulkManager.onlyAppStore = onlyAppstore
@@ -163,6 +167,7 @@ struct Application: ParsableCommand {
                 if(evolution) {
                     let gitManager = GitManager(path: path, appKey: appKey)
                     gitManager.onlyTags = onlyGitTags
+                    gitManager.neo4jPath = neo4jPath
                     
                     if let startCommit = startCommit {
                         gitManager.startCommit = startCommit

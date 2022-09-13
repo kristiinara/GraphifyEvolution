@@ -14,6 +14,8 @@ class GitManager: AppManager {          // manager used for project evolution
     var started = false
     var onlyTags = false
     var project: Project? = nil
+    var numberOfVersions = 0
+    var neo4jPath: String?
     
     var commits: [Commit]?  //TODO: change type, maybe create new class/structure?
     var commitsToBeAnalysed: [Commit] = []
@@ -76,6 +78,47 @@ class GitManager: AppManager {          // manager used for project evolution
                 print("found correct commit: \(nextCommit.commit)")
                 self.started = true
             }
+        } else {
+            if let neo4jPath = neo4jPath {
+                if numberOfVersions >= 2 { // if a project has too many commits, then Neo4j needs to be restarted in between, otherwise neo4j crashes and requests time out
+                    numberOfVersions = 0
+                
+                    print("Restarting neo4j database...")
+                    let _ = Helper.shell(launchPath: "/bin/bash", arguments: [neo4jPath, "restart"])
+                    
+                    sleep(30) // sleep for 30s, so that neo4j has time to start up again
+                    
+                    if let project = project {
+                        if Project.objectWith(properties: ["title": (project.title ?? "--" )]) != nil {
+                            print("Database successfully restarted")
+                        } else {
+                            print("Database restart failed, trying to start again")
+                            
+                            let _ = Helper.shell(launchPath: "/bin/bash", arguments: [neo4jPath, "stop"])
+                            let _ =  Helper.shell(launchPath: "/bin/bash", arguments: [neo4jPath, "start"])
+                            
+                            sleep(60)
+                            
+                            if Project.objectWith(properties: ["title": (project.title ?? "--" )]) != nil {
+                                print("Database successfully restarted")
+                            } else {
+                                print("Database restart failed")
+                                fatalError("Neo4j database nonresponsive after restart!")
+                            }
+                        }
+                    }
+                }
+            }
+            
+            
+            // if number of app versions analysed > 400
+                // restart neo4j
+                // sleep for specified amount of time
+                // try to project with name (current project)
+                // if found
+                    // continue
+                // if not found
+                    // sleep for specified amount of time, continue with previous step
         }
         
         
@@ -83,6 +126,8 @@ class GitManager: AppManager {          // manager used for project evolution
         appVersion.appKey = appKey
         //appVersion.changedFilePaths
         nextCommit.appVersion = appVersion
+        
+        numberOfVersions = numberOfVersions + 1
         
         //print("finding parent commit")
         if let parentCommit = nextCommit.parentCommit {
