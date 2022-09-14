@@ -78,37 +78,44 @@ class GitManager: AppManager {          // manager used for project evolution
                 print("found correct commit: \(nextCommit.commit)")
                 self.started = true
             }
-        } else {
-            if let neo4jPath = neo4jPath {
-                if numberOfVersions >= 2 { // if a project has too many commits, then Neo4j needs to be restarted in between, otherwise neo4j crashes and requests time out
-                    numberOfVersions = 0
+        }
+        
+        var res = Helper.shell(launchPath: "/usr/bin/java", arguments: ["--version"])
+        print("Java version: \(res)")
+        
+        print("Java home: \(ProcessInfo.processInfo.environment["JAVA_HOME"])")
+        
+        if let neo4jPath = neo4jPath {
+            if numberOfVersions >= 400 { // if a project has too many commits, then Neo4j needs to be restarted in between, otherwise neo4j crashes and requests time out
+                numberOfVersions = 0
+            
+                print("Restarting neo4j database...")
+                let res = Helper.shell(launchPath: "/bin/bash", arguments: [neo4jPath, "restart"])
+                print("restart: \(res)")
                 
-                    print("Restarting neo4j database...")
-                    let _ = Helper.shell(launchPath: "/bin/bash", arguments: [neo4jPath, "restart"])
-                    
-                    sleep(30) // sleep for 30s, so that neo4j has time to start up again
-                    
-                    if let project = project {
+                sleep(30) // sleep for 30s, so that neo4j has time to start up again
+                
+                if let project = project {
+                    if Project.objectWith(properties: ["title": (project.title ?? "--" )]) != nil {
+                        print("Database successfully restarted")
+                    } else {
+                        print("Database restart failed, trying to start again")
+                        
+                        let _ = Helper.shell(launchPath: "/bin/bash", arguments: [neo4jPath, "stop"])
+                        let _ = Helper.shell(launchPath: "/bin/bash", arguments: [neo4jPath, "start"])
+                        
+                        sleep(60)
+                        
                         if Project.objectWith(properties: ["title": (project.title ?? "--" )]) != nil {
                             print("Database successfully restarted")
                         } else {
-                            print("Database restart failed, trying to start again")
-                            
-                            let _ = Helper.shell(launchPath: "/bin/bash", arguments: [neo4jPath, "stop"])
-                            let _ =  Helper.shell(launchPath: "/bin/bash", arguments: [neo4jPath, "start"])
-                            
-                            sleep(60)
-                            
-                            if Project.objectWith(properties: ["title": (project.title ?? "--" )]) != nil {
-                                print("Database successfully restarted")
-                            } else {
-                                print("Database restart failed")
-                                fatalError("Neo4j database nonresponsive after restart!")
-                            }
+                            print("Database restart failed")
+                            fatalError("Neo4j database nonresponsive after restart!")
                         }
                     }
                 }
             }
+        }
             
             
             // if number of app versions analysed > 400
@@ -119,8 +126,7 @@ class GitManager: AppManager {          // manager used for project evolution
                     // continue
                 // if not found
                     // sleep for specified amount of time, continue with previous step
-        }
-        
+
         
         let appVersion = AppVersion(directoryPath: path)
         appVersion.appKey = appKey

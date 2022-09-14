@@ -43,13 +43,14 @@ class Helper {
             task.launchPath = path
             task.arguments = args
             
-            if var environment = task.environment {
-                environment["GIT_TERMINAL_PROMPT"] = "0"
-                task.environment = environment
-            } else {
-                task.environment = ["GIT_TERMINAL_PROMPT": "0"]
+            var environment = ProcessInfo.processInfo.environment
+            
+            if environment["JAVA_HOME"] == nil {
+                environment["JAVA_HOME"] = "/Library/Java/JavaVirtualMachines/zulu-11.jdk/Contents/Home"
             }
 
+            environment["GIT_TERMINAL_PROMPT"] = "0"
+            task.environment = environment
             let pipe = Pipe()
             task.standardOutput = pipe
             task.standardError = pipe
