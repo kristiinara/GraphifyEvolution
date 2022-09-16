@@ -5,8 +5,8 @@
 //  Created by Kristiina Rahkema on 23.10.2020.
 //
 
-class FileChange {
-    enum FileChangeType {
+class FileChange: Codable {
+    enum FileChangeType: Codable {
         case changed, added, removed, renamed
     }
     

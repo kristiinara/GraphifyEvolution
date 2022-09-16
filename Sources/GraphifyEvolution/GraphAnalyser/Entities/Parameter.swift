@@ -7,7 +7,7 @@
 
 import Theo
 
-class Parameter {
+class Parameter: Codable {
     var name: String
     var type: String
     var code: String

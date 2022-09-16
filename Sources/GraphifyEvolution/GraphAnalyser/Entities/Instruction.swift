@@ -6,8 +6,8 @@
 //
 
 //TODO: how should we handle instructions? Enter the into the db? Use them to clculate metrics and save metrics?
-class Instruction {
-    enum InstructionType {
+class Instruction: Codable {
+    enum InstructionType: Codable {
         case whileInstruction, forInstruction, ifInstruction, switchInstruction, caseInstruction, regularInstruction //TODO: regular instruction??
     }
     

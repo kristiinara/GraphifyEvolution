@@ -7,16 +7,16 @@
 
 import Theo
 
-class Variable {
-    enum VariableKind: String {
+class Variable: Codable {
+    enum VariableKind: String, Codable {
         case instanceVariable, classVariable, staticVariable
     }
         
-    var name: String
-    var kind: VariableKind
-    var type: String
-    var code: String
-    var usr: String
+    var name: String = ""
+    var kind: VariableKind = .instanceVariable
+    var type: String = ""
+    var code: String = ""
+    var usr: String = ""
     var version: Int = 0
     var changeType: ChangeType = .undefined
     var isDefinition: Bool?

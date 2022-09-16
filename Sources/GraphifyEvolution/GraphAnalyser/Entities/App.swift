@@ -6,7 +6,7 @@
 //
 import Theo
 
-class App {
+class App: Codable {
     var name: String
     var appKey: String?
     //var code: String
@@ -25,7 +25,7 @@ class App {
     weak var alternateApp: App?
     
     var appIdentifier: String {
-        if let commit = self.commit?.commit {
+        if let commit = self.commit?.gitCommit.commit {
             return "\(self.name)-\(commit)"
         }
         return self.name
@@ -83,19 +83,19 @@ extension App: Neo4jObject {
         oldNode.properties["appKey"] = self.appKey
         oldNode.properties["usr"] = self.usr
         oldNode.properties["version_number"] = self.versionNumber
-        oldNode.properties["commit"] = self.commit?.commit
-        oldNode.properties["tree"] = self.commit?.tree
+        oldNode.properties["commit"] = self.commit?.gitCommit.commit
+        oldNode.properties["tree"] = self.commit?.gitCommit.tree
         oldNode.properties["branch"] = self.commit?.branch
         oldNode.properties["branch_debug"] = self.commit?.branchDebug
         oldNode.properties["tag"] = self.commit?.tag?.trimmingCharacters(in:.whitespaces)
-        oldNode.properties["time"] = self.commit?.date
-        oldNode.properties["timestamp"] = self.commit?.timestamp
-        oldNode.properties["author_timestamp"] = self.commit?.authorTimestamp
+        oldNode.properties["time"] = self.commit?.gitCommit.date
+        oldNode.properties["timestamp"] = self.commit?.gitCommit.timestamp
+        oldNode.properties["author_timestamp"] = self.commit?.gitCommit.authorTimestamp
         oldNode.properties["repository_url"] = self.commit?.url
-        oldNode.properties["author"] = self.commit?.author
-        oldNode.properties["message"] = self.commit?.message
-        oldNode.properties["parent_commit"] = self.parentCommit?.commit
-        oldNode.properties["alternate_parent_commit"] = self.alternateParentCommit?.commit
+        oldNode.properties["author"] = self.commit?.gitCommit.author
+        oldNode.properties["message"] = self.commit?.gitCommit.message
+        oldNode.properties["parent_commit"] = self.parentCommit?.gitCommit.commit
+        oldNode.properties["alternate_parent_commit"] = self.alternateParentCommit?.gitCommit.commit
         
         self.nodeSet = oldNode
         

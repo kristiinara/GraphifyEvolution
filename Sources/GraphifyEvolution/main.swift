@@ -59,6 +59,9 @@ struct Application: ParsableCommand {
         @Option(help: "Neo4j path if neo4j should be restarted after many app versions are analysed.")
         var neo4jPath: String?
         
+        @Flag(help: "Specify if analysis state should be saved and restored.")
+        var shouldSaveState = false
+        
         enum Language: String, ExpressibleByArgument {
             case swift, cpp, java
         }
@@ -150,6 +153,7 @@ struct Application: ParsableCommand {
                     let gitManager = GitManager()
                     gitManager.onlyTags = onlyGitTags
                     gitManager.neo4jPath = neo4jPath
+                    gitManager.shouldSaveState = shouldSaveState //TODO: retreiving state not yet implemented for evolution
                     
                     let bulkManager = BulkAppManager(folderPath: path, jsonPath: bulkPath, appManager: gitManager)
                     bulkManager.onlyAppStore = onlyAppstore
@@ -165,9 +169,33 @@ struct Application: ParsableCommand {
                 }
             } else {
                 if(evolution) {
-                    let gitManager = GitManager(path: path, appKey: appKey)
-                    gitManager.onlyTags = onlyGitTags
-                    gitManager.neo4jPath = neo4jPath
+                    var gitManager: GitManager?
+                    
+                    let saveUrl = GitManager.saveURL(for: path)
+                    if self.shouldSaveState &&  FileManager.default.fileExists(atPath: saveUrl.path) {
+                        
+                        if let data = try? Data(contentsOf: saveUrl) {
+                            let decoder = JSONDecoder()
+                        
+                            gitManager = try? decoder.decode(GitManager.self, from: data)
+                            
+                            print("gitManager retreived from saved state")
+                        }
+                    }
+                    
+                    if gitManager == nil {
+                        let newGitManager = GitManager(path: path, appKey: appKey)
+                        newGitManager.onlyTags = onlyGitTags
+                        newGitManager.neo4jPath = neo4jPath
+                        newGitManager.shouldSaveState = shouldSaveState
+                        
+                        gitManager = newGitManager
+                    }
+                    
+                    guard let gitManager = gitManager else {
+                        fatalError("GitManager not created correctly")
+                    }
+
                     
                     if let startCommit = startCommit {
                         gitManager.startCommit = startCommit
