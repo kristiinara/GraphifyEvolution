@@ -7,12 +7,17 @@
 
 import Theo
 
-enum ChangeType {
+enum ChangeType: Codable {
     case updated, created, undefined
 }
+
+struct RelatedObject: Codable {
+    var name: String
+    var usr: String?
+}
     
-class Class {
-    enum ClassType: String {
+class Class: Codable {
+    enum ClassType: String, Codable {
         case classType, structureType, protocolType
     }
     
@@ -33,8 +38,8 @@ class Class {
     var potentialMethods: [Method]?
     var potentialVariables: [Variable]?
     
-    var relatedClasses: [(name: String, usr: String?)] = []
-    var relatedStructs: [(name: String, usr: String?)] = []
+    var relatedClasses: [RelatedObject] = []
+    var relatedStructs: [RelatedObject] = []
     
     var id: Int? {
         return self.nodeSet?.id

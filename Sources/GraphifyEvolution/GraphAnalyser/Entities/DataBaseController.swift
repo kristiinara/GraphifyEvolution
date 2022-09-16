@@ -11,8 +11,8 @@ import Theo
 import PackStream
 import Dispatch
 
-class Node {
-    var label: String
+class Node: Codable {
+    var label: String = ""
     var id: Int?
     var properties: [String:Any] = [:]
     
@@ -50,6 +50,11 @@ class Node {
         res = String(res.dropLast()) // remove last ","
         res = "{ \(res) }"
         return res
+    }
+    
+    private enum CodingKeys: String, CodingKey {
+        case label
+        case id
     }
 }
 

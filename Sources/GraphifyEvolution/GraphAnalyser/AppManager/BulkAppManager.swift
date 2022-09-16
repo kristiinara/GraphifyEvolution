@@ -325,7 +325,7 @@ func parseProject(json: [String: Any]) -> Project {
     return project
 }
 
-class Project {
+class Project: Codable {
     let title: String?
     let source: String?
     var failed = false

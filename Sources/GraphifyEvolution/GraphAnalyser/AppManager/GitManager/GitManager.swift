@@ -7,7 +7,7 @@
 
 import Foundation
 
-class GitManager: AppManager {          // manager used for project evolution
+class GitManager: AppManager, Codable {          // manager used for project evolution
     let path: String?
     var appKey: String?
     var startCommit: String?
@@ -16,9 +16,14 @@ class GitManager: AppManager {          // manager used for project evolution
     var project: Project? = nil
     var numberOfVersions = 0
     var neo4jPath: String?
+    var shouldSaveState = false
     
     var commits: [Commit]?  //TODO: change type, maybe create new class/structure?
     var commitsToBeAnalysed: [Commit] = []
+    
+    private enum CodingKeys: String, CodingKey {
+        case path, appKey, startCommit, started, onlyTags, project, numberOfVersions, shouldSaveState, commitsToBeAnalysed
+    }
     
     init(path: String, appKey: String?) {
         var gitPath = path
@@ -38,14 +43,46 @@ class GitManager: AppManager {          // manager used for project evolution
         self.path = nil
     }
     
+    static func saveURL(for path: String) -> URL{
+        var pathURL = URL(fileURLWithPath: path.replacingOccurrences(of: ".git", with: ""))
+        pathURL = pathURL.appendingPathComponent("analysisState.json")
+        
+        return pathURL
+    }
+    
+    func saveCurrentState() {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .prettyPrinted
+        
+        if let endodedData = try? encoder.encode(self) {
+            if let path = self.path {
+                var pathURL = GitManager.saveURL(for: path)
+                
+                print("Saving current analysis state to \(pathURL.absoluteString)")
+                
+                do {
+                    try endodedData.write(to: pathURL)
+                } catch {
+                    print("Failed to save current analysis state! \(error.localizedDescription)")
+                    fatalError("Failed to save current analysis state!")
+                }
+            }
+        }
+    }
+    
     func nextAppVersion() -> AppVersion? {
+        if self.shouldSaveState {
+            // save state before giving out next app version
+            saveCurrentState()
+        }
+            
         guard let path = path else {
             self.project?.failed = true
             let _ = self.project?.save()
             fatalError("Path for gitAppManager not defined")
         }
         
-        if self.commits == nil {
+        if self.commits == nil && self.started == false {
             self.getCommits()
         }
         
@@ -59,7 +96,7 @@ class GitManager: AppManager {          // manager used for project evolution
             //TODO: figure out where to find out which files to add as include paths/probably during analysis? Since we have to run some dependency management software? // option: figure this out later
          */
         
-        if self.commits == nil || self.commitsToBeAnalysed.isEmpty {
+        if self.commitsToBeAnalysed.isEmpty {
             self.analysisFinished(successfully: true) // TODO: add possibility to fail if did not find commits?
             return nil
         }
@@ -71,13 +108,13 @@ class GitManager: AppManager {          // manager used for project evolution
         if self.started == false{
             print("Searching for startCommit: \(startCommit)")
             if let startCommit = self.startCommit  {
-                while nextCommit.commit != startCommit {
+                while nextCommit.gitCommit.commit != startCommit {
                     nextCommit = self.commitsToBeAnalysed.removeFirst()
                     //nextCommit = self.commitsToBeAnalysed.removeLast()
                 }
-                print("found correct commit: \(nextCommit.commit)")
-                self.started = true
+                print("found correct commit: \(nextCommit.gitCommit.commit)")
             }
+            self.started = true
         }
         
         var res = Helper.shell(launchPath: "/usr/bin/java", arguments: ["--version"])
@@ -260,7 +297,7 @@ class GitManager: AppManager {          // manager used for project evolution
         if let path = self.path {
             let notGitPath = String(path.dropLast(".git".count))
             
-            let res = Helper.shell(launchPath: "/usr/bin/git", arguments: ["--git-dir", path, "--work-tree", notGitPath, "tag", "--points-at", forCommit.commit])
+            let res = Helper.shell(launchPath: "/usr/bin/git", arguments: ["--git-dir", path, "--work-tree", notGitPath, "tag", "--points-at", forCommit.gitCommit.commit])
             
             if res.count > 0 {
                 return res
@@ -280,7 +317,7 @@ class GitManager: AppManager {          // manager used for project evolution
         if let path = self.path {
             let notGitPath = String(path.dropLast(".git".count))
             
-            let res = Helper.shell(launchPath: "/usr/bin/git", arguments: ["--git-dir", path, "--work-tree", notGitPath, "name-rev", "--name-only", "--exclude=tags/*", forCommit.commit ])
+            let res = Helper.shell(launchPath: "/usr/bin/git", arguments: ["--git-dir", path, "--work-tree", notGitPath, "name-rev", "--name-only", "--exclude=tags/*", forCommit.gitCommit.commit ])
             
             //print("Branch result: \(res)")
             let split = res.split(separator: "~")
@@ -368,7 +405,7 @@ class GitManager: AppManager {          // manager used for project evolution
            // var res = Helper.shell(launchPath: "/usr/bin/git", arguments: ["--git-dir", path, "--work-tree", notGitPath, "status"])
            // //print("Status command result: \(res)")
             var res = Helper.shell(launchPath: "/usr/bin/git", arguments: ["--git-dir", path, "--work-tree", notGitPath, "stash"])
-            res = Helper.shell(launchPath: "/usr/bin/git", arguments: ["--git-dir", path, "--work-tree", notGitPath, "checkout", forCommit.commit])
+            res = Helper.shell(launchPath: "/usr/bin/git", arguments: ["--git-dir", path, "--work-tree", notGitPath, "checkout", forCommit.gitCommit.commit])
             //print("Checkout command result: \(res)")
         } else {
             self.project?.failed = true
@@ -403,10 +440,10 @@ class GitManager: AppManager {          // manager used for project evolution
         //print("runGitDiffCommand")
         // git diff -r a35ecb4b3a18f72888197bae92d38293981da335 --unified=0
         
-        if forCommit.parent != "" {
+        if forCommit.gitCommit.parent != "" {
             if let path = self.path {
                 //print("path: \(path)")
-                let res = Helper.shell(launchPath: "/usr/bin/git", arguments: ["--git-dir", path, "diff", "-r", toCommit.commit, forCommit.commit, "--unified=0"])
+                let res = Helper.shell(launchPath: "/usr/bin/git", arguments: ["--git-dir", path, "diff", "-r", toCommit.gitCommit.commit, forCommit.gitCommit.commit, "--unified=0"])
                 
                 //print("git diff result: \(res)")
                 
@@ -558,7 +595,13 @@ class GitManager: AppManager {          // manager used for project evolution
 
             do {
                 print("---------")
-                let allCommits = try decoder.decode([Commit].self, from: json.data(using: .utf8)!)
+                
+                let gitCommits = try decoder.decode([GitCommit].self, from: json.data(using: .utf8)!)
+                
+                var allCommits: [Commit] = []
+                for gitCommit in gitCommits {
+                    allCommits.append(Commit(gitCommit: gitCommit))
+                }
                 
                 print("total number of commits found: \(allCommits.count)")
                 
@@ -567,7 +610,7 @@ class GitManager: AppManager {          // manager used for project evolution
                     if let path = self.path {
                         commit.url = path
                     }
-                    commitDict[commit.commit] = commit
+                    commitDict[commit.gitCommit.commit] = commit
                 }
                 
                 var commits: [Commit] = []
@@ -578,14 +621,14 @@ class GitManager: AppManager {          // manager used for project evolution
                 //}
                 
                 self.commitsToBeAnalysed = allCommits.sorted() { commit1, commit2 in
-                    return commit1.timestamp < commit2.timestamp
+                    return commit1.gitCommit.timestamp < commit2.gitCommit.timestamp
                 }
                 
                 //TODO: possible solution: create a new list that is ordered so that all parents will be analysed at a later time
                 
                 for commit in self.commitsToBeAnalysed {
-                    if commit.additional != "" {
-                        let parts = commit.additional.split(separator: ",")
+                    if commit.gitCommit.additional != "" {
+                        let parts = commit.gitCommit.additional.split(separator: ",")
                         for part in parts {
                             var partString = String(part)
                             partString = partString.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -617,10 +660,10 @@ class GitManager: AppManager {          // manager used for project evolution
                         //print("commit.commit: \(commit.commit)")
                         //print("commit.parent: \(commit.parent)")
                         //print("all commits: \(commitDict)")
-                        if commit.parent == nil || commit.parent == "" {
+                        if commit.gitCommit.parent == nil || commit.gitCommit.parent == "" {
                             commits.append(commit)
                         } else {
-                            let splitParents = commit.parent.split(separator: " ")
+                            let splitParents = commit.gitCommit.parent.split(separator: " ")
                             
                             if splitParents.count > 1 {
                                 if let parent = commitDict[String(splitParents[0])] {
@@ -631,11 +674,11 @@ class GitManager: AppManager {          // manager used for project evolution
                                 if let otherParent = commitDict[String(splitParents[1])] {
                                     commit.alternateParentCommit = otherParent
                                     
-                                    commit.branch = extractProbableBranch(from: commit.message)
+                                    commit.branch = extractProbableBranch(from: commit.gitCommit.message)
                                 }
                             }
                             
-                            if let parent = commitDict[commit.parent] {
+                            if let parent = commitDict[commit.gitCommit.parent] {
                                 commit.parentCommit = parent
                                 parent.children.append(commit) // TODO: do we create a retain cycle here?
                             }

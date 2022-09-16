@@ -8,7 +8,7 @@
 import Foundation
 import Theo
 
-class ExternalObject {
+class ExternalObject: Codable {
     var name: String?
     var usr: String //TODO: should we add something
     

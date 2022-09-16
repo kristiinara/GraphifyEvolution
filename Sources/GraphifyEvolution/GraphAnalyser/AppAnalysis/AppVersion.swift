@@ -5,7 +5,7 @@
 //  Created by Kristiina Rahkema on 26.10.2020.
 //
 
-class AppVersion {
+class AppVersion: Codable {
     var children: [AppVersion] = []
     var parent: AppVersionParent?
     var alternateParent: AppVersionParent?
@@ -52,7 +52,7 @@ class AppVersion {
     
 }
 
-class AppVersionParent {
+class AppVersionParent: Codable {
     let appVersion: AppVersion
     let changes: [FileChange]
     let addedPaths: [String]

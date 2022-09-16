@@ -7,8 +7,8 @@
 
 import Theo
 
-class Method {
-    enum MethodKind: String {
+class Method: Codable {
+    enum MethodKind: String, Codable {
         case instanceMethod, classMethod, staticMethod, setMethod, getMethod, constructor
     }
         

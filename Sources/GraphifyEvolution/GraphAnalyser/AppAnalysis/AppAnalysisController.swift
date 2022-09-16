@@ -204,7 +204,7 @@ class AppAnalysisController {
                             addedClass.version = classInstance.version + 1
                             
                             var properties: [String: Any] = [:]
-                            if let commit = appVersion.commit?.commit {
+                            if let commit = appVersion.commit?.gitCommit.commit {
                                 properties["commit"] = commit
                             }
                             
@@ -280,7 +280,7 @@ class AppAnalysisController {
                                 
                                 
                                 var properties: [String: Any] = [:]
-                                if let commit = appVersion.commit?.commit {
+                                if let commit = appVersion.commit?.gitCommit.commit {
                                     properties["commit"] = commit
                                 }
                                 
@@ -360,7 +360,7 @@ class AppAnalysisController {
                                         //classInstance.saveParent()
                                         
                                         var properties: [String: Any] = [:]
-                                        if let commit = appVersion.commit?.commit {
+                                        if let commit = appVersion.commit?.gitCommit.commit {
                                             properties["commit"] = commit
                                         }
                                         
@@ -400,7 +400,7 @@ class AppAnalysisController {
                                         notChangedClass.alternateParent = classInstance
                                         
                                         var properties: [String:String] = [:]
-                                        if let commit = appVersion.commit?.commit {
+                                        if let commit = appVersion.commit?.gitCommit.commit {
                                             properties["commit"] = commit
                                         }
                                         
@@ -434,7 +434,7 @@ class AppAnalysisController {
                                     notChangedClass.alternateParent = classInstance
                                     
                                     var properties: [String: Any] = [:]
-                                    if let commit = appVersion.commit?.commit {
+                                    if let commit = appVersion.commit?.gitCommit.commit {
                                         properties["commit"] = commit
                                     }
                                     
@@ -1159,7 +1159,7 @@ class AppAnalysisController {
         return (changed: changed, added: added, deleted: deleted)
     }
     
-    func changedLines(classInstance: Class, lines: (start: Int, length: Int)?) -> Int {
+    func changedLines(classInstance: Class, lines: LineInterval?) -> Int {
         var start = -1
         var end = -1
         

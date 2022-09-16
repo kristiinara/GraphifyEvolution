@@ -87,8 +87,8 @@ extension SyntaxAnalyser {
                 }
             }
             
-            var relatedClasses: [(name: String, usr: String?)] = []
-            var relatedStructures: [(name: String, usr: String?)] = []
+            var relatedClasses: [RelatedObject] = []
+            var relatedStructures: [RelatedObject] = []
             
             if let relatedObjects = json["key.related"] as? [[String: Any]] {
                 for related in relatedObjects {
@@ -98,15 +98,15 @@ extension SyntaxAnalyser {
                                     
                     if kind == "source.lang.swift.ref.class" {
                         if let name = name {
-                            relatedClasses.append((name: name, usr: usr))
+                            relatedClasses.append(RelatedObject(name: name, usr: usr))
                         }
                     } else if kind == "source.lang.swift.ref.struct" {
                         if let name = name {
-                            relatedStructures.append((name: name, usr: usr))
+                            relatedStructures.append(RelatedObject(name: name, usr: usr))
                         }
                     } else if kind == "source.lang.swift.ref.protocol" {
                         if let name = name {
-                            relatedClasses.append((name: name, usr: usr))
+                            relatedClasses.append(RelatedObject(name: name, usr: usr))
                         }
                     }
                 }
