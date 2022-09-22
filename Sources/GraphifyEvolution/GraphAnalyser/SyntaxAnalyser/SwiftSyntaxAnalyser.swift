@@ -23,6 +23,10 @@ class SwiftSyntaxAnalyser: SyntaxAnalyser {
         arguments.append(contentsOf: includePaths)
                
         let request = Request.index(file: filePath, arguments: arguments)
+        
+        if !filePath.hasSuffix(".swift") {
+            return [] // do not analyse if it is not a Swift class
+        }
                
         do {
             let result = try request.send()

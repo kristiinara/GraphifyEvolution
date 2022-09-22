@@ -100,7 +100,7 @@ class BulkAppManager: AppManager {
         print("Git clone.. \(res)")
     }
     
-    var checkIfProjectExistis = false
+    var checkIfProjectExistis = false // default value
     
     func parseJson() {
         self.parsedAppVersions = []
@@ -122,9 +122,12 @@ class BulkAppManager: AppManager {
                             let project = parseProject(json: projectDict)
                             if self.checkIfProjectExistis {
                                 if let title = project.title {
+                                    print("searching for project: \(title)")
                                     if Project.objectWith(properties: ["title": title]) != nil {
                                         print("Project \(title) already exisists")
                                         continue
+                                    } else {
+                                        print("project \(title) does not exist yet, adding ..")
                                     }
                                 }
                             }
@@ -146,6 +149,8 @@ class BulkAppManager: AppManager {
                                 if Project.objectWith(properties: ["title": title]) != nil {
                                     print("Project \(title) already exisists")
                                     continue
+                                } else {
+                                    print("project \(title) does not exist yet, adding ..")
                                 }
                             }
                         }

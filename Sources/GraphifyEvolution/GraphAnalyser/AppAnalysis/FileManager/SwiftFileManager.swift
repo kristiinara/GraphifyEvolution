@@ -32,6 +32,7 @@ class SwiftFileManager: LocalFileManager {
     
     func fetchAllFiles(folderPath: String, ignore: [String]) -> [URL] {
         var files: [String: URL] = [:]
+        var atLeastOneSwiftFile = false
         
         let resourceKeys : [URLResourceKey] = [
             .creationDateKey,
@@ -71,6 +72,10 @@ class SwiftFileManager: LocalFileManager {
                 
                 if let name = resourceValues.name {
                     if name.hasSuffix(".swift") || name.hasSuffix(".h") {
+                        if name.hasSuffix(".swift") {
+                            atLeastOneSwiftFile = true
+                        }
+                        
                         //let size = resourceValues.fileSize!
                         //print("\(fileURL.path)")
                         //self.app.size = self.app.size + size
@@ -101,6 +106,10 @@ class SwiftFileManager: LocalFileManager {
                 print("Error")
             }
         }
-        return [URL] (files.values)
+        if (atLeastOneSwiftFile) {
+            return [URL] (files.values)
+        } else {
+            return []
+        }
     }
 }

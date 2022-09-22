@@ -30,10 +30,16 @@ class LanguageAnayser: ExternalAnalyser {
                 }
             }
         }
+        var count = 0
         
         for key in dict.keys {
             let language = Language(name: key)
             language.save()
+            count = count + 1
+            if count > 10 {
+                sleep(3) // sometimes when too many languages are saved at the same time neo4j crashes
+                count = 0
+            }
             
             app.relate(to: language, type: "USES_LANGUAGE")
             app.relate(to: language, type: "USES_LANGUAGE", properties: ["count": dict[key]!])
