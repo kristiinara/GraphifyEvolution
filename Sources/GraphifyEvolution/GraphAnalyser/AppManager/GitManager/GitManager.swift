@@ -17,6 +17,7 @@ class GitManager: AppManager, Codable {          // manager used for project evo
     var numberOfVersions = 0
     var neo4jPath: String?
     var shouldSaveState = false
+    var limitCommits = false
     
     var commits: [Commit]?  //TODO: change type, maybe create new class/structure?
     var commitsToBeAnalysed: [Commit] = []
@@ -601,6 +602,10 @@ class GitManager: AppManager, Codable {          // manager used for project evo
                 var allCommits: [Commit] = []
                 for gitCommit in gitCommits {
                     allCommits.append(Commit(gitCommit: gitCommit))
+                }
+                
+                if self.limitCommits == true && allCommits.count > 300 {
+                    allCommits = [] // pretend as if there were no commits
                 }
                 
                 print("total number of commits found: \(allCommits.count)")

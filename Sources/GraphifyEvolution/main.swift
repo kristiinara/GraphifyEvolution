@@ -83,6 +83,9 @@ struct Application: ParsableCommand {
         @Option(help: "Which dependency manager should be used.")
         var dependencyManager: DependencyManagerChoice = .simple
         
+        @Flag(help: "Limit max number of commits to 300")
+        var limitCommits = false
+        
         mutating func run() {
             var appManager: AppManager?
             var syntaxAnalyser: SyntaxAnalyser?
@@ -154,6 +157,7 @@ struct Application: ParsableCommand {
                     gitManager.onlyTags = onlyGitTags
                     gitManager.neo4jPath = neo4jPath
                     gitManager.shouldSaveState = shouldSaveState //TODO: retreiving state not yet implemented for evolution
+                    gitManager.limitCommits = limitCommits
                     
                     let bulkManager = BulkAppManager(folderPath: path, jsonPath: bulkPath, appManager: gitManager)
                     bulkManager.onlyAppStore = onlyAppstore
@@ -188,6 +192,7 @@ struct Application: ParsableCommand {
                         newGitManager.onlyTags = onlyGitTags
                         newGitManager.neo4jPath = neo4jPath
                         newGitManager.shouldSaveState = shouldSaveState
+                        newGitManager.limitCommits = limitCommits
                         
                         gitManager = newGitManager
                     }
