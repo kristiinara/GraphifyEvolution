@@ -18,6 +18,7 @@ class GitManager: AppManager, Codable {          // manager used for project evo
     var neo4jPath: String?
     var shouldSaveState = false
     var limitCommits = false
+    var gitLogSince: String?
     
     var commits: [Commit]?  //TODO: change type, maybe create new class/structure?
     var commitsToBeAnalysed: [Commit] = []
@@ -276,6 +277,7 @@ class GitManager: AppManager, Codable {          // manager used for project evo
         manager.neo4jPath = self.neo4jPath
         manager.shouldSaveState = self.shouldSaveState
         manager.limitCommits = self.limitCommits
+        manager.gitLogSince = self.gitLogSince
         
         return manager
     }
@@ -591,6 +593,11 @@ class GitManager: AppManager, Codable {          // manager used for project evo
                 args.append("--tags")
                 args.append("--no-walk")
             }
+            
+            if let gitLogSince = self.gitLogSince {
+                args.append("--since=\(gitLogSince)")
+            }
+            
             let res = Helper.shell(launchPath: "/usr/bin/git", arguments: args)
             
             var json = "[\(res.dropLast())]"

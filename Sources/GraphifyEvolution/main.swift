@@ -62,6 +62,9 @@ struct Application: ParsableCommand {
         @Flag(help: "Specify if analysis state should be saved and restored.")
         var shouldSaveState = false
         
+        @Option(help: "Specify git log since time, e.g. '2 years ago'")
+        var gitLogSince: String?
+        
         enum Language: String, ExpressibleByArgument {
             case swift, cpp, java
         }
@@ -158,6 +161,7 @@ struct Application: ParsableCommand {
                     gitManager.neo4jPath = neo4jPath
                     gitManager.shouldSaveState = shouldSaveState //TODO: retreiving state not yet implemented for evolution
                     gitManager.limitCommits = limitCommits
+                    gitManager.gitLogSince = gitLogSince
                     
                     let bulkManager = BulkAppManager(folderPath: path, jsonPath: bulkPath, appManager: gitManager)
                     bulkManager.onlyAppStore = onlyAppstore
@@ -193,6 +197,7 @@ struct Application: ParsableCommand {
                         newGitManager.neo4jPath = neo4jPath
                         newGitManager.shouldSaveState = shouldSaveState
                         newGitManager.limitCommits = limitCommits
+                        newGitManager.gitLogSince = gitLogSince
                         
                         gitManager = newGitManager
                     }
