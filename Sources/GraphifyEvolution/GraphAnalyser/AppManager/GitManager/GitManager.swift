@@ -273,6 +273,9 @@ class GitManager: AppManager, Codable {          // manager used for project evo
     func newAppManager(path: String, appKey: String?) -> AppManager {
         let manager = GitManager(path: path, appKey: appKey)
         manager.onlyTags = self.onlyTags
+        manager.neo4jPath = self.neo4jPath
+        manager.shouldSaveState = self.shouldSaveState
+        manager.limitCommits = self.limitCommits
         
         return manager
     }
@@ -604,7 +607,7 @@ class GitManager: AppManager, Codable {          // manager used for project evo
                     allCommits.append(Commit(gitCommit: gitCommit))
                 }
                 
-                if self.limitCommits == true && allCommits.count > 300 {
+                if self.limitCommits == true && allCommits.count > 400 {
                     allCommits = [] // pretend as if there were no commits
                 }
                 
