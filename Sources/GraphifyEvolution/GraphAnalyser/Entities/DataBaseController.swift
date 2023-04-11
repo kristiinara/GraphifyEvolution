@@ -314,6 +314,34 @@ class Neo4jClient {
         group.wait()
     }
     
+    func runQueryWithResult(transaction: String) -> [String: Any]? {
+        let group = DispatchGroup()
+        group.enter()
+        
+        var result: [String: Any]?
+        
+        let parameters = [
+            "statements": [[
+                "statement" : transaction
+                ]]
+        ]
+        
+        requestWithParameters(parameters) { [unowned self] json in
+            let success = self.defaultErrorHandling(json: json)
+            
+            if success {
+                result = json
+            } else {
+                result = nil
+            }
+            group.leave()
+        }
+        
+        group.wait()
+        
+        return result
+    }
+    
     private func requestNoReturn(transaction: String, completition: @escaping (Bool) -> Void ) {
         //print("requestNoReturn")
         let parameters = [

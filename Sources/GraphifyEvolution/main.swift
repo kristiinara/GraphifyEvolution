@@ -235,17 +235,30 @@ struct Application: ParsableCommand {
             case html, csv
         }
         
-        @Option(help: "Query that should be run to find code smells.")
-        var query: String = "all"
+        enum SType: String, ExpressibleByArgument, CaseIterable {
+            case method, classInstance
+        }
         
-        @Option(help: "Desired output format, can be either html or csv.")
-        var outputFormat: OutputFormat = .csv
+//        @Option(help: "Query that should be run to find code smells.")
+//        var query: String = "all"
         
-        @Option(help: "Optionally provide appKey if only one specific app should be queried.")
-        var appKey: String?
+//        @Option(help: "Desired output format, can be either html or csv.")
+//        var outputFormat: OutputFormat = .csv
         
-        @Option(help: "Provide output path for html or csv files.")
-        var outputPath: String = "outputFolder/"
+//        @Option(help: "Optionally provide appKey if only one specific app should be queried.")
+//        var appKey: String?
+//
+//        @Option(help: "Provide output path for html or csv files.")
+//        var outputPath: String = "outputFolder/"
+        
+        @Option(help: "Smell types, either classInstance or method. Default is classInstance.")
+        var smellType: SType = .classInstance
+        
+        mutating func run() {
+            let analyser = QueryAnalyser()
+            analyser.queryAll(type: SmellType(rawValue: smellType.rawValue
+                                             )!)
+        }
     }
     
     struct InsertDatabase: ParsableCommand {

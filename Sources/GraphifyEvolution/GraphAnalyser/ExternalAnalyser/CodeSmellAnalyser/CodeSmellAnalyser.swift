@@ -101,14 +101,22 @@ class CodeSmellAnalyser: ExternalAnalyser {
 protocol CodeSmellQuery {
     var name: String { get }
     var description: String { get }
+    var property: String { get }
+    var type: SmellType { get }
     
     func queryStringFor(classInstance: Class) -> String?
+}
+
+enum SmellType: String {
+    case method, classInstance
 }
 
 class LongMethodQuery: CodeSmellQuery {
     
     let name = "LongMethod"
     var veryHighNumberOfInstructions = Metrics.veryHighNumberOfInstructionsMethod
+    let property = "is_long_method"
+    let type: SmellType = .method
     
     func queryStringFor(classInstance: Class) -> String? {
         if let id = classInstance.id {
@@ -127,6 +135,9 @@ class LongMethodQuery: CodeSmellQuery {
 
 class BlobClassQuery: CodeSmellQuery {
     let name = "BlobClass"
+    let property = "is_blob_class"
+    let type: SmellType = .classInstance
+    
     let veryHighLackOfCohesienInMethods = Metrics.veryHighLackOfCohesionInMethods
     let veryHighNumberOfAttributes = Metrics.veryHighNumberOfAttributes
     let veryHighNumberOfMethods = Metrics.veryHighNumberOfMethods
@@ -152,6 +163,9 @@ class BlobClassQuery: CodeSmellQuery {
 
 class BrainMethodQuery: CodeSmellQuery {
     let name = "BrainMethod"
+    let property = "is_brain_method"
+    let type: SmellType = .method
+    
     let highNumberOfInstructionsForClass = Metrics.veryHighNumberOfInstructionsClass
     let highCyclomaticComplexity = Metrics.highCyclomaticComplexity
     let severalMaximalNestingDepth = 3
@@ -179,6 +193,8 @@ class CommentsQuery { // TODO: implement
 
 class ComplexClassQuery: CodeSmellQuery {
     var name: String = "ComplexClass"
+    let property = "is_complex_class"
+    let type: SmellType = .classInstance
     
     var description: String = "Queries classes where class complexity is very high."
     
@@ -194,6 +210,8 @@ class ComplexClassQuery: CodeSmellQuery {
 
 class CyclicDependenciesQuery: CodeSmellQuery {
     var name: String = "CyclicDependencies"
+    let property = "is_cyclic_dependency"
+    let type: SmellType = .classInstance
     
     var description: String = "Queries if there is a cyclic (variable) dependency through a given class and sets is_cyclic_dependency to true if there is."
     
@@ -207,6 +225,8 @@ class CyclicDependenciesQuery: CodeSmellQuery {
 
 class DataClassQuery: CodeSmellQuery {
     var name: String = "DataClass"
+    let property = "is_data_class"
+    let type: SmellType = .classInstance
     
     var description: String = ""
     
@@ -229,6 +249,9 @@ class DataClassQuery: CodeSmellQuery {
 
 class DistortedHierarchyQuery: CodeSmellQuery {
     var name: String = "DistortedHierarchy"
+    let property = "is_distorted_hierarchy"
+    let type: SmellType = .classInstance
+    
     let shortTermMemoryCap = Metrics.shorTermMemoryCap
     
     var description: String = "Queries methods that call too many methods."
@@ -250,6 +273,8 @@ class DistortedHierarchyQuery: CodeSmellQuery {
 class DivergentChangeQuery: CodeSmellQuery {
     var name: String = "DivergentChange"
     let veryHighNumberOfCalledMethods = Metrics.veryHighNumberOfCalledMethods
+    let property = "is_divergent_change"
+    let type: SmellType = .method
     
     var description: String = "Queries methods that call too many methods."
     
@@ -267,9 +292,12 @@ class DivergentChangeQuery: CodeSmellQuery {
 
 class FeatureEnvyQuery: CodeSmellQuery {
     var name = "FeatureEnvy"
-        let fewAccessToForeignVariables = 2
-        let fewAccessToForeignClasses = 2
-        let localityFraction = 0.33
+    let property = "is_feature_envy"
+    let type: SmellType = .classInstance
+    
+    let fewAccessToForeignVariables = 2
+    let fewAccessToForeignClasses = 2
+    let localityFraction = 0.33
     
     var description: String = "Queries classes that tend to access more foreign variables than local variables."
     
@@ -308,6 +336,9 @@ class FeatureEnvyQuery: CodeSmellQuery {
 }
 class GodClassQuery: CodeSmellQuery {
     let name = "GodClass"
+    let property = "is_god_class"
+    let type: SmellType = .classInstance
+    
     let fewAccessToForeignData = 2
     let veryHighClassComplexity = Metrics.veryHighClassComplexity
     let tightClassCohesionFraction = 0.3
@@ -345,12 +376,14 @@ class GodClassQuery: CodeSmellQuery {
 }
 class IgnoringLowMemoryWarningQuery: CodeSmellQuery {
     var name: String = "IgnoringLowMemoryWarning"
+    let property = "is_ignoring_low_memory_warning"
+    let type: SmellType = .classInstance
     
     var description: String = "Queries classes that do not have the method didReceiveMemoryWarning()."
     
     func queryStringFor(classInstance: Class) -> String? {
         if let id = classInstance.id {
-            return "match (class:Class) where id(class) = \(id) and class.name contains 'ViewController' and not (class)-[:CLASS_OWNS_METHOD]->(:Method{name:'didReceiveMemoryWarning()'}) return class.app_key as app_key, class.name as class_name"
+            return "match (class:Class) where id(class) = \(id) and class.name contains 'ViewController' and not (class)-[:CLASS_OWNS_METHOD]->(:Method{name:'didReceiveMemoryWarning()'}) set class.is_ignoring_low_memory_warning = true"
         }
         else {
             return nil
@@ -360,6 +393,9 @@ class IgnoringLowMemoryWarningQuery: CodeSmellQuery {
 
 class InappropriateIntimacyQuery: CodeSmellQuery {
     var name = "InappropriateIntimacy"
+    let property = "has_innapropriate_intimacy"
+    let type: SmellType = .classInstance
+    
     let highNumberOfCallsBetweenClasses = Metrics.highNumberOfCallsBetweenClasses
     
     var description: String = "Queries class pairs where number of calls between classes is high."
@@ -382,6 +418,9 @@ class InappropriateIntimacyQuery: CodeSmellQuery {
 
 class IntensiveCouplingQuery: CodeSmellQuery {
     var name: String = "IntensiveCoupling"
+    let property = "has_intensive_coupling"
+    let type: SmellType = .classInstance
+    
     let maxNumberOfShortMemoryCap = Metrics.shorTermMemoryCap
     let fewCouplingIntensity = 2
     let halfCouplingDispersion = 0.5
@@ -400,6 +439,8 @@ class IntensiveCouplingQuery: CodeSmellQuery {
 
 class InternalDuplicationQuery: CodeSmellQuery {
     var name: String = "InternalDuplication"
+    let property = "is_internal_duplication"
+    let type: SmellType = .classInstance
     
     var description: String = "Queries classes that duplicate or are duplicated by other classes"
     
@@ -412,6 +453,9 @@ class InternalDuplicationQuery: CodeSmellQuery {
 }
 class LazyClassQuery: CodeSmellQuery {
     var name: String = "LazyClass"
+    let property = "is_lazy_class"
+    let type: SmellType = .classInstance
+    
     let mediumNumberOfInstructions = Metrics.medianNumberOfInstructionsClass
     let lowComplexityMethodRatio = Metrics.LowComplexityMethodRatio
     let mediumCouplingBetweenObjectClasses = Metrics.medianCouplingBetweenObjectClasses
@@ -430,6 +474,9 @@ class LazyClassQuery: CodeSmellQuery {
 
 class LongParameterListQuery: CodeSmellQuery {
     var name: String = "LongParameterList"
+    let property = "is_long_parameter_list"
+    let type: SmellType = .method
+    
     let veryHighNumberOfParameters = Metrics.veryHighNumberOfParameters
     
     var description: String = "Queries lazy classes that either have no methods, have low class complexity to method ratio or that have low coupling but where there is some depth of inheritance."
@@ -445,6 +492,9 @@ class LongParameterListQuery: CodeSmellQuery {
 
 class MassiveViewControllerQuery: CodeSmellQuery {
     var name: String = "MassiveViewController"
+    let property = "is_massive_view_controller"
+    let type: SmellType = .classInstance
+    
     let veryHighNumberOfMethods = Metrics.veryHighNumberOfMethods
     let veryHighNumberOfAttributes = Metrics.veryHighNumberOfAttributes
     let veryHighNumberOfInstructions = Metrics.veryHighNumberOfInstructionsClass
@@ -462,6 +512,9 @@ class MassiveViewControllerQuery: CodeSmellQuery {
 
 class LongMessageChainsQuery: CodeSmellQuery {
     var name: String = "LongMessageChain"
+    let property = "is_long_message_chain"
+    let type: SmellType = .method
+    
     let veryHighNumberOfChainedMessages = Metrics.veryHighNumberOfChainedMessages
     
     var description: String = "Queries all methods, where the maximum number of chained message calls is larger than very high."
@@ -477,6 +530,9 @@ class LongMessageChainsQuery: CodeSmellQuery {
 
 class MiddleManQuery: CodeSmellQuery {
     var name: String = "MiddleMan"
+    let property = "is_middle_man"
+    let type: SmellType = .classInstance
+    
     let lowNumberOfInstructionsMethod = Metrics.lowNumberOfInstructionsMethod
     let delegationToAllMethodsRatioHalf = 0.5
     
@@ -519,6 +575,9 @@ class MiddleManQuery: CodeSmellQuery {
 
 class MissingTemplateMethodQuery: CodeSmellQuery {
     var name: String = "MissingTemplateMethod"
+    let property = "is_missing_template_method"
+    let type: SmellType = .method
+    
     let minimalCommonMethodAndVariableCount = 5
     let minimalMethodCount = 2
     
@@ -568,6 +627,9 @@ class MissingTemplateMethodQuery: CodeSmellQuery {
 
 class ParallelInheritanceHierarchiesQuery: CodeSmellQuery {
     var name: String = "ParallelInheritanceHierachie"
+    let property = "is_parent_of_parallel_inheritance_tree"
+    let type: SmellType = .classInstance
+    
     let minimumNumberOfClassesInHierarchy = 5
     let prefixLength = 3
     
@@ -638,6 +700,9 @@ class ParallelInheritanceHierarchiesQuery: CodeSmellQuery {
 
 class SAPBreakerQuery: CodeSmellQuery {
     var name: String = "SAPBreaker"
+    let property = "is_sap_breaker"
+    let type: SmellType = .classInstance
+    
     let allowedDistanceFromMain = 0.5
     
     var description: String = "Queries classes where class abstractness + instability is far from the 1-x mainline. AllowedDistanceFromMain is currently set to 0.5."
@@ -709,6 +774,9 @@ class SAPBreakerQuery: CodeSmellQuery {
 
 class ShotgunSurgeryQuery: CodeSmellQuery {
     var name: String = "ShotgunSurgery"
+    let property = "is_shotgun_surgery"
+    let type: SmellType = .method
+    
     let veryHighNumberOfCallers = Metrics.veryHighNumberOfCallers
     
     var description: String = "Queries all methods that are called by more than a very high number of callers"
@@ -733,6 +801,8 @@ class ShotgunSurgeryQuery: CodeSmellQuery {
 
 class SiblingDuplicationQuery: CodeSmellQuery {
     var name: String = "SiblingDuplication"
+    let property = "is_sibling_duplication"
+    let type: SmellType = .classInstance
     
     var description: String = "Query classes that have a common parent class (somewhere in the hierarchy) and that share duplicated code."
     
@@ -746,6 +816,8 @@ class SiblingDuplicationQuery: CodeSmellQuery {
 
 class SpeculativeGeneralityProtocolQuery: CodeSmellQuery {
     var name: String = "SpeculativeGeneralityProtocol"
+    let property = "is_speculative_generality"
+    let type: SmellType = .classInstance
     
     var description: String = "Query interfaces that are not implemented or extended."
     
@@ -771,6 +843,9 @@ class SpeculativeGeneralityProtocolQuery: CodeSmellQuery {
 
 class SwissArmyKnifeQuery: CodeSmellQuery {
     var name: String = "SwissArmyKnife"
+    let property = "is_swiss_army_knife"
+    let type: SmellType = .classInstance
+    
     let veryHighNumberOfMethods = Metrics.veryHighNumberOfMethodsInterface
     
     var description: String = "Queries classes that are interfaces (i.e. protocols) that have a very high number of methods."
@@ -797,6 +872,9 @@ class SwissArmyKnifeQuery: CodeSmellQuery {
 
 class TraditionBreakerQuery: CodeSmellQuery {
     var name: String = "TraditionBreaker"
+    let property = "is_tradition_breaker"
+    let type: SmellType = .classInstance
+    
     let lowNumberOfmethodsAndAttributes = Metrics.lowNumberOfMethodsAndAttributes
     let veryHighNumberOfMethodsAndAttributes = Metrics.veryHighNumberOfMethodsAndAttributes
     
@@ -887,6 +965,8 @@ struct Metrics {
 
 class LackOfCoheionQuery: MetricsQuery {
     var name: String = "LackOfCohesion"
+    let property = "lack_of_cohesion_in_methods"
+    let type: SmellType = .classInstance
     
     var description: String = "Sets lack_of_cohesion of class. Lack of cohesion is calculated by finding number of methods that use common variables and number of methods that do not use common variables and then substracting the first form the second. Minimal value is 0."
     
@@ -902,6 +982,8 @@ class LackOfCoheionQuery: MetricsQuery {
 
 class NumberOfMethodsQuery: MetricsQuery {
     var name: String = "NumberOfMethods"
+    let property = "number_of_methods"
+    let type: SmellType = .classInstance
     
     var description: String = "Sets number_of_methods of a class."
     
@@ -917,6 +999,8 @@ class NumberOfMethodsQuery: MetricsQuery {
 
 class NumberOfAttributesQuery: MetricsQuery {
     var name: String = "NumberOfAttributes"
+    let property = "number_of_attributes"
+    let type: SmellType = .classInstance
     
     var description: String = "Sets number_of_attributes of a class."
     
@@ -932,6 +1016,8 @@ class NumberOfAttributesQuery: MetricsQuery {
 
 class NumberOfInstructionsQuery: MetricsQuery {
     var name: String = "NumberOfInstructions"
+    let property = "number_of_instructions"
+    let type: SmellType = .classInstance
     
     var description: String = "Sets number_of_instructions for each class by adding together number_of_instructions for each method and number of variables"
     
@@ -945,6 +1031,8 @@ class NumberOfInstructionsQuery: MetricsQuery {
 
 class NumberOfAccessedVariablesQuery: MetricsQuery {
     var name: String = "NumberOfAccessedVariables"
+    let property = "number_of_accessed_variables"
+    let type: SmellType = .method
     
     var description: String = "Set number_of_accessed_variables for each method as the number of used variables."
     
@@ -958,6 +1046,8 @@ class NumberOfAccessedVariablesQuery: MetricsQuery {
 
 class ClassComplexityQuery: MetricsQuery {
     var name: String = "ClassComplexity"
+    let property = "class_complexity"
+    let type: SmellType = .classInstance
     
     var description: String = "Set class_complexity as sum of method cyclomatic complexities."
     
@@ -971,6 +1061,8 @@ class ClassComplexityQuery: MetricsQuery {
 
 class NumberOfSettersQuery: MetricsQuery {
     var name: String = "NumberOfSetters"
+    let property = "number_of_setters"
+    let type: SmellType = .classInstance
     
     var description: String = "Set number_of_setters as count of set methods"
     
@@ -986,6 +1078,8 @@ class NumberOfSettersQuery: MetricsQuery {
 
 class NumberOfGettersQuery: MetricsQuery {
     var name: String = "NumberOfGetters"
+    let property = "number_of_getters"
+    let type: SmellType = .classInstance
     
     var description: String = "Set number_of_getters as count of get methods"
     
@@ -1001,6 +1095,8 @@ class NumberOfGettersQuery: MetricsQuery {
 
 class NumberOfConstructorsQuery: MetricsQuery {
     var name: String = "NumberOfConstructors"
+    let property = "number_of_constructors"
+    let type: SmellType = .classInstance
     
     var description: String = "Set number_of_constructors as count of constructor methods"
     
@@ -1016,6 +1112,8 @@ class NumberOfConstructorsQuery: MetricsQuery {
 
 class NumberOfCalledMethodssQuery: MetricsQuery {
     var name: String = "NumberOfCalledMethods"
+    let property = "number_of_called_methods"
+    let type: SmellType = .method
     
     var description: String = "Set number_of_called_methods as count of called methods"
     
@@ -1031,6 +1129,8 @@ class NumberOfCalledMethodssQuery: MetricsQuery {
 
 class NumberOfCallersQuery: MetricsQuery {
     var name: String = "NumberOfCallers"
+    let property = "number_of_callers"
+    let type: SmellType = .method
     
     var description: String = "Set number_of_callers as count of methods that call this method"
     
